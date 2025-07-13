@@ -1,0 +1,284 @@
+package window
+
+import (
+	"testing"
+
+	"github.com/davidpalaitis/golars/dataframe"
+	"github.com/davidpalaitis/golars/expr"
+	"github.com/davidpalaitis/golars/series"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestWindowFunctionIntegration(t *testing.T) {
+	// Create test DataFrame
+	df, err := dataframe.New(
+		series.NewStringSeries("department", []string{"Sales", "Sales", "Sales", "IT", "IT", "IT"}),
+		series.NewStringSeries("employee", []string{"Alice", "Bob", "Charlie", "Dave", "Eve", "Frank"}),
+		series.NewInt32Series("salary", []int32{50000, 60000, 55000, 70000, 65000, 80000}),
+		series.NewInt32Series("years", []int32{2, 5, 3, 4, 2, 6}),
+	)
+	require.NoError(t, err)
+
+	t.Run("row_number with partition", func(t *testing.T) {
+		// Add row numbers within each department
+		result, err := df.WithColumn("dept_row_num",
+			expr.WindowFunc(RowNumber().Over(
+				Window().PartitionBy("department").OrderBy("salary"),
+			)),
+		)
+		require.NoError(t, err)
+
+		// Check Sales department row numbers
+		deptCol := result.Column("department")
+		rowNumCol := result.Column("dept_row_num")
+		salaryCol := result.Column("salary")
+
+		// Verify row numbers are assigned correctly within partitions
+		for i := 0; i < result.Len(); i++ {
+			dept := deptCol.Get(i).(string)
+			rowNum := rowNumCol.Get(i).(int64)
+			salary := salaryCol.Get(i).(int32)
+
+			if dept == "Sales" {
+				// Sales salaries: 50000(1), 55000(2), 60000(3)
+				switch salary {
+				case 50000:
+					assert.Equal(t, int64(1), rowNum)
+				case 55000:
+					assert.Equal(t, int64(2), rowNum)
+				case 60000:
+					assert.Equal(t, int64(3), rowNum)
+				}
+			} else { // IT
+				// IT salaries: 65000(1), 70000(2), 80000(3)
+				switch salary {
+				case 65000:
+					assert.Equal(t, int64(1), rowNum)
+				case 70000:
+					assert.Equal(t, int64(2), rowNum)
+				case 80000:
+					assert.Equal(t, int64(3), rowNum)
+				}
+			}
+		}
+	})
+
+	t.Run("rank with ties", func(t *testing.T) {
+		// Create data with ties
+		df2, err := dataframe.New(
+			series.NewStringSeries("team", []string{"A", "A", "A", "B", "B", "B"}),
+			series.NewInt32Series("score", []int32{100, 100, 90, 95, 95, 80}),
+		)
+		require.NoError(t, err)
+
+		result, err := df2.WithColumn("team_rank",
+			expr.WindowFunc(Rank().Over(
+				Window().PartitionBy("team").OrderBy("score", false), // descending
+			)),
+		)
+		require.NoError(t, err)
+
+		teamCol := result.Column("team")
+		scoreCol := result.Column("score")
+		rankCol := result.Column("team_rank")
+
+		// Verify ranks handle ties correctly
+		for i := 0; i < result.Len(); i++ {
+			team := teamCol.Get(i).(string)
+			score := scoreCol.Get(i).(int32)
+			rank := rankCol.Get(i).(int64)
+
+			if team == "A" {
+				// Team A scores: 100(1), 100(1), 90(3)
+				if score == 100 {
+					assert.Equal(t, int64(1), rank)
+				} else {
+					assert.Equal(t, int64(3), rank) // Skip rank 2
+				}
+			} else { // Team B
+				// Team B scores: 95(1), 95(1), 80(3)
+				if score == 95 {
+					assert.Equal(t, int64(1), rank)
+				} else {
+					assert.Equal(t, int64(3), rank)
+				}
+			}
+		}
+	})
+
+	t.Run("running sum with partition", func(t *testing.T) {
+		result, err := df.WithColumn("dept_salary_sum",
+			expr.WindowFunc(Sum("salary").Over(
+				Window().PartitionBy("department").OrderBy("years"),
+			)),
+		)
+		require.NoError(t, err)
+
+		deptCol := result.Column("department")
+		yearsCol := result.Column("years")
+		sumCol := result.Column("dept_salary_sum")
+
+		// Verify running sums within partitions
+		for i := 0; i < result.Len(); i++ {
+			dept := deptCol.Get(i).(string)
+			years := yearsCol.Get(i).(int32)
+			sum := sumCol.Get(i).(int32)
+
+			if dept == "Sales" {
+				// Sales ordered by years: 2(50000), 3(55000), 5(60000)
+				switch years {
+				case 2:
+					assert.Equal(t, int32(50000), sum)
+				case 3:
+					assert.Equal(t, int32(105000), sum) // 50000 + 55000
+				case 5:
+					assert.Equal(t, int32(165000), sum) // 50000 + 55000 + 60000
+				}
+			} else { // IT
+				// IT ordered by years: 2(65000), 4(70000), 6(80000)
+				switch years {
+				case 2:
+					assert.Equal(t, int32(65000), sum)
+				case 4:
+					assert.Equal(t, int32(135000), sum) // 65000 + 70000
+				case 6:
+					assert.Equal(t, int32(215000), sum) // 65000 + 70000 + 80000
+				}
+			}
+		}
+	})
+
+	t.Run("lag with partition", func(t *testing.T) {
+		result, err := df.WithColumn("prev_salary",
+			expr.WindowFunc(Lag("salary", 1, int32(0)).Over(
+				Window().PartitionBy("department").OrderBy("years"),
+			)),
+		)
+		require.NoError(t, err)
+
+		deptCol := result.Column("department")
+		yearsCol := result.Column("years")
+		lagCol := result.Column("prev_salary")
+
+		// Verify lag values within partitions
+		for i := 0; i < result.Len(); i++ {
+			dept := deptCol.Get(i).(string)
+			years := yearsCol.Get(i).(int32)
+			prevSalary := lagCol.Get(i).(int32)
+
+			if dept == "Sales" {
+				// Sales ordered by years: 2(50000), 3(55000), 5(60000)
+				switch years {
+				case 2:
+					assert.Equal(t, int32(0), prevSalary) // First in partition
+				case 3:
+					assert.Equal(t, int32(50000), prevSalary)
+				case 5:
+					assert.Equal(t, int32(55000), prevSalary)
+				}
+			} else { // IT
+				// IT ordered by years: 2(65000), 4(70000), 6(80000)
+				switch years {
+				case 2:
+					assert.Equal(t, int32(0), prevSalary) // First in partition
+				case 4:
+					assert.Equal(t, int32(65000), prevSalary)
+				case 6:
+					assert.Equal(t, int32(70000), prevSalary)
+				}
+			}
+		}
+	})
+
+	t.Run("multiple partitions complex", func(t *testing.T) {
+		// Create more complex data
+		df3, err := dataframe.New(
+			series.NewStringSeries("region", []string{"East", "East", "East", "West", "West", "West"}),
+			series.NewStringSeries("product", []string{"A", "A", "B", "A", "B", "B"}),
+			series.NewInt32Series("sales", []int32{100, 150, 200, 120, 180, 160}),
+		)
+		require.NoError(t, err)
+
+		// Add multiple window functions with different partitions
+		result := df3
+		
+		// Rank within region
+		result, err = result.WithColumn("region_rank",
+			expr.WindowFunc(Rank().Over(
+				Window().PartitionBy("region").OrderBy("sales", false),
+			)),
+		)
+		require.NoError(t, err)
+
+		// Rank within product
+		result, err = result.WithColumn("product_rank",
+			expr.WindowFunc(Rank().Over(
+				Window().PartitionBy("product").OrderBy("sales", false),
+			)),
+		)
+		require.NoError(t, err)
+
+		// Rank within region and product
+		result, err = result.WithColumn("region_product_rank",
+			expr.WindowFunc(Rank().Over(
+				Window().PartitionBy("region", "product").OrderBy("sales", false),
+			)),
+		)
+		require.NoError(t, err)
+
+		// Verify multi-partition behavior
+		regionCol := result.Column("region")
+		productCol := result.Column("product")
+		salesCol := result.Column("sales")
+		rpRankCol := result.Column("region_product_rank")
+
+		for i := 0; i < result.Len(); i++ {
+			region := regionCol.Get(i).(string)
+			product := productCol.Get(i).(string)
+			sales := salesCol.Get(i).(int32)
+			rpRank := rpRankCol.Get(i).(int64)
+
+			// Within region-product partitions, all should be rank 1 or 2
+			if region == "East" && product == "A" {
+				// East-A: 100, 150
+				if sales == 150 {
+					assert.Equal(t, int64(1), rpRank)
+				} else {
+					assert.Equal(t, int64(2), rpRank)
+				}
+			} else if region == "East" && product == "B" {
+				// East-B: only 200
+				assert.Equal(t, int64(1), rpRank)
+			} else if region == "West" && product == "A" {
+				// West-A: only 120
+				assert.Equal(t, int64(1), rpRank)
+			} else { // West-B
+				// West-B: 180, 160
+				if sales == 180 {
+					assert.Equal(t, int64(1), rpRank)
+				} else {
+					assert.Equal(t, int64(2), rpRank)
+				}
+			}
+		}
+	})
+
+	t.Run("empty partition handling", func(t *testing.T) {
+		// This shouldn't happen in practice, but test edge case
+		emptyDf, err := dataframe.New(
+			series.NewStringSeries("category", []string{}),
+			series.NewInt32Series("value", []int32{}),
+		)
+		require.NoError(t, err)
+
+		result, err := emptyDf.WithColumn("rank",
+			expr.WindowFunc(Rank().Over(
+				Window().PartitionBy("category").OrderBy("value"),
+			)),
+		)
+		require.NoError(t, err)
+		
+		assert.Equal(t, 0, result.Len())
+	})
+}

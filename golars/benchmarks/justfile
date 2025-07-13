@@ -1,0 +1,253 @@
+# Golars Benchmarks Justfile
+# Naming convention: {verb}-{adjective}-{noun}
+# Verbs: generate, run, compare, analyze, clean, list
+# Adjectives: light (Q1-Q6/small), full (all/medium), heavy (all/large)
+# Nouns: data, golars, polars, benchmarks, results
+
+# Default recipe
+default:
+    @just --list
+
+# Colors for output
+export GREEN := '\033[0;32m'
+export BLUE := '\033[0;34m'
+export YELLOW := '\033[1;33m'
+export RED := '\033[0;31m'
+export NC := '\033[0m'
+
+# Configuration
+LIGHT_QUERIES := "Q[1-6]"
+FULL_QUERIES := ".*"
+RESULTS_DIR := "compare/results"
+
+# =============================================================================
+# DATA GENERATION COMMANDS
+# =============================================================================
+
+# Generate light (small) dataset for quick tests
+generate-light-data:
+    @echo -e "${BLUE}Generating light (small) dataset...${NC}"
+    @mkdir -p data
+    go run cmd/generate/main.go -size small -format parquet
+    @echo -e "${GREEN}✓ Light dataset generated${NC}"
+
+# Generate medium dataset for standard benchmarks
+generate-medium-data:
+    @echo -e "${BLUE}Generating medium dataset...${NC}"
+    @mkdir -p data
+    go run cmd/generate/main.go -size medium -format parquet
+    @echo -e "${GREEN}✓ Medium dataset generated${NC}"
+
+# Generate heavy (large) dataset for stress tests
+generate-heavy-data:
+    @echo -e "${BLUE}Generating heavy (large) dataset...${NC}"
+    @mkdir -p data
+    go run cmd/generate/main.go -size large -format parquet
+    @echo -e "${GREEN}✓ Heavy dataset generated${NC}"
+
+# =============================================================================
+# GOLARS BENCHMARK COMMANDS
+# =============================================================================
+
+# Run light golars benchmarks (Q1-Q6 on small data)
+run-light-golars: _ensure-light-data
+    @echo -e "${GREEN}Running light golars benchmarks (Q1-Q6)...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd groupby && go test -bench="BenchmarkGroupBy{{LIGHT_QUERIES}}_Small" -benchtime=3x -run=^$ | tee ../{{RESULTS_DIR}}/golars_light.txt
+    @echo -e "${GREEN}✓ Light golars benchmarks complete${NC}"
+
+# Run full golars benchmarks (all queries on medium data)
+run-full-golars: _ensure-medium-data
+    @echo -e "${GREEN}Running full golars benchmarks...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd groupby && go test -bench="BenchmarkGroupBy{{FULL_QUERIES}}_Medium" -benchtime=3x -run=^$ | tee ../{{RESULTS_DIR}}/golars_full.txt
+    @echo -e "${GREEN}✓ Full golars benchmarks complete${NC}"
+
+# Run heavy golars benchmarks (all queries on large data)
+run-heavy-golars: _ensure-heavy-data
+    @echo -e "${GREEN}Running heavy golars benchmarks...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd groupby && go test -bench="BenchmarkGroupBy{{FULL_QUERIES}}_Large" -benchtime=3x -run=^$ | tee ../{{RESULTS_DIR}}/golars_heavy.txt
+    @echo -e "${GREEN}✓ Heavy golars benchmarks complete${NC}"
+
+# =============================================================================
+# POLARS BENCHMARK COMMANDS
+# =============================================================================
+
+# Run light polars benchmarks (Q1-Q6 on small data)
+run-light-polars: _ensure-light-data _ensure-polars-setup
+    @echo -e "${BLUE}Running light polars benchmarks (Q1-Q6)...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && python3 run_polars_benchmarks.py small 1-6 | tee results/polars_light.txt
+    @echo -e "${BLUE}✓ Light polars benchmarks complete${NC}"
+
+# Run full polars benchmarks (all queries on medium data)
+run-full-polars: _ensure-medium-data
+    @echo -e "${BLUE}Running full polars benchmarks...${NC}"
+    @echo -e "${YELLOW}Note: This requires polars to be checked out at ../../../polars${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && ./run_comparison.sh all medium
+    @echo -e "${BLUE}✓ Full polars benchmarks complete${NC}"
+
+# Run heavy polars benchmarks (all queries on large data)
+run-heavy-polars: _ensure-heavy-data
+    @echo -e "${BLUE}Running heavy polars benchmarks...${NC}"
+    @echo -e "${YELLOW}Note: This requires polars to be checked out at ../../../polars${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && ./run_comparison.sh all large
+    @echo -e "${BLUE}✓ Heavy polars benchmarks complete${NC}"
+
+# =============================================================================
+# COMPARISON COMMANDS
+# =============================================================================
+
+# Compare light benchmarks (Q1-Q6 golars vs polars)
+compare-light-benchmarks: run-light-golars run-light-polars
+    @echo -e "${YELLOW}Comparing light benchmark results...${NC}"
+    cd compare && python3 analyze_results.py light
+    @echo -e "${GREEN}✓ Light comparison complete${NC}"
+
+# Compare full benchmarks (all queries golars vs polars)
+compare-full-benchmarks: run-full-golars run-full-polars
+    @echo -e "${YELLOW}Comparing full benchmark results...${NC}"
+    cd compare && python3 analyze.py medium
+    @echo -e "${GREEN}✓ Full comparison complete${NC}"
+
+# Compare heavy benchmarks (all queries on large data)
+compare-heavy-benchmarks: run-heavy-golars run-heavy-polars
+    @echo -e "${YELLOW}Comparing heavy benchmark results...${NC}"
+    cd compare && python3 analyze.py large
+    @echo -e "${GREEN}✓ Heavy comparison complete${NC}"
+
+# =============================================================================
+# ANALYSIS COMMANDS
+# =============================================================================
+
+# Analyze light benchmark results
+analyze-light-results:
+    @echo -e "${YELLOW}Analyzing light benchmark results...${NC}"
+    @if [ -f "{{RESULTS_DIR}}/golars_light.txt" ] && [ -f "{{RESULTS_DIR}}/polars_light.txt" ]; then \
+        cd compare && python3 analyze_results.py light; \
+    else \
+        echo -e "${RED}Error: Run benchmarks first with 'just compare-light-benchmarks'${NC}"; \
+        exit 1; \
+    fi
+
+# Analyze full benchmark results
+analyze-full-results:
+    @echo -e "${YELLOW}Analyzing full benchmark results...${NC}"
+    @if [ -f "{{RESULTS_DIR}}/golars_full.txt" ]; then \
+        cd compare && python3 analyze.py medium; \
+    else \
+        echo -e "${RED}Error: Run benchmarks first with 'just compare-full-benchmarks'${NC}"; \
+        exit 1; \
+    fi
+
+# =============================================================================
+# UTILITY COMMANDS
+# =============================================================================
+
+# Clean all generated data files
+clean-all-data:
+    @echo -e "${RED}Cleaning all data files...${NC}"
+    rm -f data/*.csv data/*.parquet
+    @echo -e "${GREEN}✓ Data files cleaned${NC}"
+
+# Clean all benchmark results
+clean-all-results:
+    @echo -e "${RED}Cleaning all results...${NC}"
+    rm -rf {{RESULTS_DIR}}
+    @echo -e "${GREEN}✓ Results cleaned${NC}"
+
+# Clean everything (data and results)
+clean-all-everything: clean-all-data clean-all-results
+    @echo -e "${GREEN}✓ All files cleaned${NC}"
+
+# List all available benchmarks
+list-all-benchmarks:
+    @echo -e "${BLUE}Available Benchmark Commands:${NC}"
+    @echo -e "${GREEN}Light (Q1-Q6, small data):${NC}"
+    @echo "  just run-light-golars    - Run golars Q1-Q6 benchmarks"
+    @echo "  just run-light-polars    - Run polars Q1-Q6 benchmarks"
+    @echo "  just compare-light-benchmarks - Compare golars vs polars"
+    @echo ""
+    @echo -e "${GREEN}Full (all queries, medium data):${NC}"
+    @echo "  just run-full-golars     - Run all golars benchmarks"
+    @echo "  just run-full-polars     - Run all polars benchmarks"
+    @echo "  just compare-full-benchmarks - Compare golars vs polars"
+    @echo ""
+    @echo -e "${GREEN}Heavy (all queries, large data):${NC}"
+    @echo "  just run-heavy-golars    - Run all golars benchmarks on large data"
+    @echo "  just run-heavy-polars    - Run all polars benchmarks on large data"
+    @echo "  just compare-heavy-benchmarks - Compare on large dataset"
+    @echo ""
+    @echo -e "${YELLOW}Utilities:${NC}"
+    @echo "  just generate-light-data - Generate small dataset"
+    @echo "  just generate-medium-data - Generate medium dataset"
+    @echo "  just generate-heavy-data - Generate large dataset"
+    @echo "  just clean-all-data      - Remove generated data"
+    @echo "  just clean-all-results   - Remove benchmark results"
+    @echo ""
+    @echo -e "${BLUE}Note: Light benchmarks (Q1-Q6) are fully implemented and working.${NC}"
+    @echo -e "${BLUE}      Q7-Q10 require additional aggregation functions.${NC}"
+
+# Show benchmark status
+show-benchmark-status:
+    @printf "${BLUE}Golars Benchmark Implementation Status:${NC}\n"
+    @echo ""
+    @printf "${GREEN}✓ Implemented (Q1-Q6):${NC}\n"
+    @echo "  Q1: Simple sum (group by 1 column)"
+    @echo "  Q2: Sum with 2 group-by columns"
+    @echo "  Q3: Sum and mean aggregations"
+    @echo "  Q4: Multiple mean aggregations"
+    @echo "  Q5: Multiple sum aggregations"
+    @echo "  Q6: Median and standard deviation"
+    @echo ""
+    @printf "${YELLOW}⚠ Partially Working:${NC}\n"
+    @echo "  Q7: Range calculation (needs expression support)"
+    @echo "  Q8: Top-k selection (needs topk() function)"
+    @echo ""
+    @printf "${RED}✗ Not Implemented:${NC}\n"
+    @echo "  Q9: Correlation (needs corr() function)"
+    @echo "  Q10: Complex aggregations"
+
+# =============================================================================
+# PRIVATE HELPER RECIPES (prefixed with _)
+# =============================================================================
+
+# Ensure light data exists
+_ensure-light-data:
+    @if [ ! -f "data/h2oai_small.parquet" ]; then \
+        echo -e "${YELLOW}Light data not found, generating...${NC}"; \
+        just generate-light-data; \
+    fi
+
+# Ensure medium data exists
+_ensure-medium-data:
+    @if [ ! -f "data/h2oai_medium.parquet" ]; then \
+        echo -e "${YELLOW}Medium data not found, generating...${NC}"; \
+        just generate-medium-data; \
+    fi
+
+# Ensure heavy data exists
+_ensure-heavy-data:
+    @if [ ! -f "data/h2oai_large.parquet" ]; then \
+        echo -e "${YELLOW}Heavy data not found, generating...${NC}"; \
+        just generate-heavy-data; \
+    fi
+
+# Quick test - runs minimal benchmarks for development
+test-quick-benchmarks: compare-light-benchmarks
+    @echo -e "${GREEN}✓ Quick benchmark test complete${NC}"
+
+# Ensure Polars is available
+_ensure-polars-setup:
+    @if [ ! -d "../../../../polars/py-polars" ]; then \
+        echo -e "${RED}Error: Polars not found at ../../../../polars${NC}"; \
+        echo -e "${YELLOW}Please ensure Polars is cloned at the expected location${NC}"; \
+        exit 1; \
+    fi
+    @if ! python3 -c "import polars" 2>/dev/null; then \
+        echo -e "${YELLOW}Setting up Polars Python environment...${NC}"; \
+        cd ../../../../polars/py-polars && pip3 install -e . --quiet; \
+    fi
