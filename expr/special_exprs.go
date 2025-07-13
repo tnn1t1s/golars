@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 )
 
 // CastExpr represents a type cast operation

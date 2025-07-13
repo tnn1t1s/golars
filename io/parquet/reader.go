@@ -10,8 +10,8 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/apache/arrow/go/v14/parquet/file"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/davidpalaitis/golars/chunked"
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/chunked"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 	"github.com/davidpalaitis/golars/frame"
 	"github.com/davidpalaitis/golars/series"
 )

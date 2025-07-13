@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 	"github.com/davidpalaitis/golars/series"
 )
 

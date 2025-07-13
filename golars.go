@@ -4,14 +4,14 @@
 package golars
 
 import (
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 	"github.com/davidpalaitis/golars/expr"
 	"github.com/davidpalaitis/golars/frame"
 	"github.com/davidpalaitis/golars/io"
 	"github.com/davidpalaitis/golars/io/parquet"
 	"github.com/davidpalaitis/golars/lazy"
 	"github.com/davidpalaitis/golars/series"
-	"github.com/davidpalaitis/golars/window"
+	"github.com/davidpalaitis/golars/internal/window"
 )
 
 // Re-export main types for convenient access

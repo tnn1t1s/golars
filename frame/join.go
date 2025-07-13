@@ -3,8 +3,8 @@ package frame
 import (
 	"fmt"
 
-	"github.com/davidpalaitis/golars/compute"
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/compute"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 	"github.com/davidpalaitis/golars/series"
 )
 

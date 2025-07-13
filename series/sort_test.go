@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
 )
 

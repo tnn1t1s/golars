@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/group"
+	"github.com/davidpalaitis/golars/internal/group"
 )
 
 // GroupByWrapper wraps the group.GroupBy to provide DataFrame-returning methods

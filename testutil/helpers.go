@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/davidpalaitis/golars"
-	"github.com/davidpalaitis/golars/datatypes"
+	"github.com/davidpalaitis/golars/internal/datatypes"
 	"github.com/davidpalaitis/golars/frame"
 	"github.com/davidpalaitis/golars/series"
 )

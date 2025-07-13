@@ -6,7 +6,7 @@ import (
 
 	"github.com/davidpalaitis/golars/expr"
 	"github.com/davidpalaitis/golars/series"
-	"github.com/davidpalaitis/golars/window"
+	"github.com/davidpalaitis/golars/internal/window"
 )
 
 // evaluateExpr evaluates an expression and returns a series
