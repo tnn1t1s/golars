@@ -22,7 +22,7 @@ func TestMedianAggregation(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"median_value": expr.ColBuilder("value").Median().Build(),
+		"median_value": expr.Col("value").Median(),
 	})
 	if err != nil {
 		t.Fatalf("Median aggregation failed: %v", err)
@@ -94,7 +94,7 @@ func TestMedianWithNulls(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"median_value": expr.ColBuilder("value").Median().Build(),
+		"median_value": expr.Col("value").Median(),
 	})
 	if err != nil {
 		t.Fatalf("Median aggregation with nulls failed: %v", err)
@@ -133,7 +133,7 @@ func TestMedianOddEven(t *testing.T) {
 	}
 	
 	resultOdd, err := gbOdd.Agg(map[string]expr.Expr{
-		"median": expr.ColBuilder("value").Median().Build(),
+		"median": expr.Col("value").Median(),
 	})
 	if err != nil {
 		t.Fatalf("Median aggregation (odd) failed: %v", err)
@@ -157,7 +157,7 @@ func TestMedianOddEven(t *testing.T) {
 	}
 	
 	resultEven, err := gbEven.Agg(map[string]expr.Expr{
-		"median": expr.ColBuilder("value").Median().Build(),
+		"median": expr.Col("value").Median(),
 	})
 	if err != nil {
 		t.Fatalf("Median aggregation (even) failed: %v", err)

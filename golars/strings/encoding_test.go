@@ -3,6 +3,7 @@ package strings
 import (
 	"testing"
 
+	"github.com/davidpalaitis/golars/datatypes"
 	"github.com/davidpalaitis/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,7 +57,7 @@ func TestStringEncoding(t *testing.T) {
 	t.Run("ASCII validation", func(t *testing.T) {
 		values := []string{"hello", "world", "café", "test"}
 		validity := []bool{true, true, true, true}
-		s := series.NewSeriesWithValidity("text", values, validity, nil)
+		s := series.NewSeriesWithValidity("text", values, validity, datatypes.String{})
 		ops := NewStringOps(s)
 		
 		// Check ASCII
@@ -93,7 +94,7 @@ func TestStringEncoding(t *testing.T) {
 	t.Run("Encoding with nulls", func(t *testing.T) {
 		values := []string{"hello", "", "world"}
 		validity := []bool{true, false, true}
-		s := series.NewSeriesWithValidity("text", values, validity, nil)
+		s := series.NewSeriesWithValidity("text", values, validity, datatypes.String{})
 		ops := NewStringOps(s)
 		
 		encoded, err := ops.Encode("base64")

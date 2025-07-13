@@ -18,11 +18,12 @@ type DataFrameInterface interface {
 
 // GroupBy represents a grouped DataFrame
 type GroupBy struct {
-	df        DataFrameInterface
-	groupCols []string
-	groups    map[uint64][]int // group hash -> row indices
-	groupKeys map[uint64][]interface{} // group hash -> key values
-	mu        sync.RWMutex
+	df         DataFrameInterface
+	groupCols  []string
+	groups     map[uint64][]int // group hash -> row indices
+	groupKeys  map[uint64][]interface{} // group hash -> key values
+	groupOrder []uint64 // maintains order of first occurrence of each group
+	mu         sync.RWMutex
 }
 
 // GroupKey represents a single group's key values
@@ -34,10 +35,11 @@ type GroupKey struct {
 // NewGroupBy creates a new GroupBy from a DataFrame and group columns
 func NewGroupBy(df DataFrameInterface, columns []string) (*GroupBy, error) {
 	gb := &GroupBy{
-		df:        df,
-		groupCols: columns,
-		groups:    make(map[uint64][]int),
-		groupKeys: make(map[uint64][]interface{}),
+		df:         df,
+		groupCols:  columns,
+		groups:     make(map[uint64][]int),
+		groupKeys:  make(map[uint64][]interface{}),
+		groupOrder: make([]uint64, 0),
 	}
 
 	// Build groups
@@ -67,6 +69,7 @@ func (gb *GroupBy) buildGroups() error {
 		// Check if we've seen this key before
 		if _, exists := gb.groups[key.Hash]; !exists {
 			gb.groupKeys[key.Hash] = key.Values
+			gb.groupOrder = append(gb.groupOrder, key.Hash)
 		}
 		
 		gb.groups[key.Hash] = append(gb.groups[key.Hash], i)

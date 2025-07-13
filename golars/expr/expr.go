@@ -197,7 +197,7 @@ const (
 // Constructor functions
 
 // Col creates a column reference expression
-func Col(name string) Expr {
+func Col(name string) *ColumnExpr {
 	return &ColumnExpr{name: name}
 }
 

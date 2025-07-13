@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/memory"
+	"github.com/davidpalaitis/golars/datatypes"
 	"github.com/davidpalaitis/golars/series"
 )
 
@@ -196,13 +197,17 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 		
 		arr := builder.NewArray()
 		values := make([]string, arr.Len())
+		validity := make([]bool, arr.Len())
 		strArr := arr.(*array.String)
 		for i := 0; i < arr.Len(); i++ {
 			if !strArr.IsNull(i) {
 				values[i] = strArr.Value(i)
+				validity[i] = true
+			} else {
+				validity[i] = false
 			}
 		}
-		return series.NewStringSeries(name, values)
+		return series.NewSeriesWithValidity(name, values, validity, datatypes.String{})
 	}
 }
 
@@ -242,13 +247,17 @@ func applyBinaryOp(s1, s2 series.Series, op func(string, string) interface{}, na
 	
 	arr := builder.NewArray()
 	values := make([]string, arr.Len())
+	validity := make([]bool, arr.Len())
 	strArr := arr.(*array.String)
 	for i := 0; i < arr.Len(); i++ {
 		if !strArr.IsNull(i) {
 			values[i] = strArr.Value(i)
+			validity[i] = true
+		} else {
+			validity[i] = false
 		}
 	}
-	return series.NewStringSeries(name, values)
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.String{})
 }
 
 // Helper function to apply unary operations that may return errors
@@ -299,7 +308,7 @@ func applyUnaryOpWithError(s series.Series, op func(string) (interface{}, error)
 			}
 		}
 		
-		return series.NewSeriesWithValidity(name, values, validity, nil), nil
+		return series.NewSeriesWithValidity(name, values, validity, datatypes.String{}), nil
 		
 	default: // String output
 		values := make([]string, length)
@@ -323,6 +332,46 @@ func applyUnaryOpWithError(s series.Series, op func(string) (interface{}, error)
 			}
 		}
 		
-		return series.NewSeriesWithValidity(name, values, validity, nil), nil
+		return series.NewSeriesWithValidity(name, values, validity, datatypes.String{}), nil
 	}
+}
+
+// applyUnaryBoolOp applies a unary operation that returns a boolean to each string in the series
+func applyUnaryBoolOp(s series.Series, op func(string) bool, name string) series.Series {
+	length := s.Len()
+	values := make([]bool, length)
+	validity := make([]bool, length)
+	
+	for i := 0; i < length; i++ {
+		if s.IsNull(i) {
+			validity[i] = false
+		} else if str, ok := s.Get(i).(string); ok {
+			values[i] = op(str)
+			validity[i] = true
+		} else {
+			validity[i] = false
+		}
+	}
+	
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.Boolean{})
+}
+
+// applyUnaryInt64Op applies a unary operation that returns an int64 to each string in the series
+func applyUnaryInt64Op(s series.Series, op func(string) int64, name string) series.Series {
+	length := s.Len()
+	values := make([]int64, length)
+	validity := make([]bool, length)
+	
+	for i := 0; i < length; i++ {
+		if s.IsNull(i) {
+			validity[i] = false
+		} else if str, ok := s.Get(i).(string); ok {
+			values[i] = op(str)
+			validity[i] = true
+		} else {
+			validity[i] = false
+		}
+	}
+	
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int64{})
 }

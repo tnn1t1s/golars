@@ -23,7 +23,7 @@ func TestStdAggregation(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"std_value": expr.ColBuilder("value").Std().Build(),
+		"std_value": expr.Col("value").Std(),
 	})
 	if err != nil {
 		t.Fatalf("Std aggregation failed: %v", err)
@@ -77,7 +77,7 @@ func TestVarAggregation(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"var_value": expr.ColBuilder("value").Var().Build(),
+		"var_value": expr.Col("value").Var(),
 	})
 	if err != nil {
 		t.Fatalf("Var aggregation failed: %v", err)
@@ -112,8 +112,8 @@ func TestStdVarWithNulls(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"std_value": expr.ColBuilder("value").Std().Build(),
-		"var_value": expr.ColBuilder("value").Var().Build(),
+		"std_value": expr.Col("value").Std(),
+		"var_value": expr.Col("value").Var(),
 	})
 	if err != nil {
 		t.Fatalf("Std/Var aggregation with nulls failed: %v", err)
@@ -149,8 +149,8 @@ func TestStdVarInsufficientData(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"std_value": expr.ColBuilder("value").Std().Build(),
-		"var_value": expr.ColBuilder("value").Var().Build(),
+		"std_value": expr.Col("value").Std(),
+		"var_value": expr.Col("value").Var(),
 	})
 	if err != nil {
 		t.Fatalf("Std/Var aggregation failed: %v", err)

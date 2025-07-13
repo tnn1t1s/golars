@@ -94,7 +94,7 @@ func (so *StringOps) Decode(encoding string) (series.Series, error) {
 
 // IsASCII checks if each string contains only ASCII characters
 func (so *StringOps) IsASCII() series.Series {
-	return applyUnaryOp(so.s, func(str string) interface{} {
+	return applyUnaryBoolOp(so.s, func(str string) bool {
 		for i := 0; i < len(str); i++ {
 			if str[i] >= 128 {
 				return false
@@ -106,7 +106,7 @@ func (so *StringOps) IsASCII() series.Series {
 
 // IsUTF8 checks if each string is valid UTF-8
 func (so *StringOps) IsUTF8() series.Series {
-	return applyUnaryOp(so.s, func(str string) interface{} {
+	return applyUnaryBoolOp(so.s, func(str string) bool {
 		return utf8.ValidString(str)
 	}, "is_utf8")
 }

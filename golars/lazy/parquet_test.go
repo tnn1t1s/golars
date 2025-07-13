@@ -57,7 +57,7 @@ func TestLazyParquetScan(t *testing.T) {
 	// Test 3: Lazy scan with filter
 	t.Run("with_filter", func(t *testing.T) {
 		lf := NewLazyFrame(NewScanNode(NewParquetSource(filename))).
-			Filter(expr.ColBuilder("score").Gt(90).Build())
+			Filter(expr.Col("score").Gt(90))
 		
 		result, err := lf.Collect()
 		require.NoError(t, err)
@@ -72,7 +72,7 @@ func TestLazyParquetScan(t *testing.T) {
 	// Test 4: Lazy scan with filter and projection
 	t.Run("filter_and_projection", func(t *testing.T) {
 		lf := NewLazyFrame(NewScanNode(NewParquetSource(filename))).
-			Filter(expr.ColBuilder("city").Eq(expr.Lit("NYC")).Build()).
+			Filter(expr.Col("city").Eq("NYC")).
 			SelectColumns("name", "score", "city")  // Need to keep city for now
 		
 		result, err := lf.Collect()
@@ -91,7 +91,7 @@ func TestLazyParquetScan(t *testing.T) {
 	t.Run("predicate_pushdown", func(t *testing.T) {
 		lf := NewLazyFrame(NewScanNode(NewParquetSource(filename))).
 			SelectColumns("id", "name", "score").
-			Filter(expr.ColBuilder("score").Gt(85).Build())
+			Filter(expr.Col("score").Gt(85))
 		
 		// Get optimized plan
 		optimizedPlan, err := lf.ExplainOptimized()
@@ -141,11 +141,11 @@ func TestLazyParquetIntegration(t *testing.T) {
 	// Test complex lazy operations
 	t.Run("complex_operations", func(t *testing.T) {
 		lf := NewLazyFrame(NewScanNode(NewParquetSource(filename))).
-			Filter(expr.ColBuilder("score").Gt(70).Build()).
+			Filter(expr.Col("score").Gt(70)).
 			GroupBy("category").
 			Agg(map[string]expr.Expr{
-				"avg_score": expr.ColBuilder("score").Mean().Build(),
-				"count":     expr.ColBuilder("category").Count().Build(),
+				"avg_score": expr.Col("score").Mean(),
+				"count":     expr.Col("category").Count(),
 			}).
 			Sort("avg_score", true)
 		

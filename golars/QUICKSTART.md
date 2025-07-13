@@ -82,22 +82,22 @@ subset := df.Drop("age")
 
 ```go
 // Simple filter
-filtered := df.Filter(
-    golars.ColBuilder("age").Gt(30).Build(),
+filtered, err := df.Filter(
+    golars.Col("age").Gt(30),
 )
 
 // Complex filter with AND
-filtered := df.Filter(
-    golars.ColBuilder("age").Gt(25).
-        And(golars.ColBuilder("salary").Lt(70000)).
-        Build(),
+filtered, err := df.Filter(
+    golars.Col("age").Gt(25).And(
+        golars.Col("salary").Lt(70000),
+    ),
 )
 
 // Filter with OR
-filtered := df.Filter(
-    golars.ColBuilder("department").Eq(golars.Lit("Sales")).
-        Or(golars.ColBuilder("department").Eq(golars.Lit("Marketing"))).
-        Build(),
+filtered, err := df.Filter(
+    golars.Col("department").Eq("Sales").Or(
+        golars.Col("department").Eq("Marketing"),
+    ),
 )
 ```
 
@@ -129,9 +129,9 @@ grouped, err := df.GroupBy("department").Sum("salary")
 
 // Multiple aggregations
 grouped, err := df.GroupBy("department").Agg(map[string]golars.Expr{
-    "total_salary": golars.ColBuilder("salary").Sum().Build(),
-    "avg_age": golars.ColBuilder("age").Mean().Build(),
-    "count": golars.ColBuilder("").Count().Build(),
+    "total_salary": golars.Col("salary").Sum(),
+    "avg_age": golars.Col("age").Mean(),
+    "count": golars.Col("").Count(),
 })
 ```
 
@@ -166,13 +166,13 @@ lf := golars.LazyFromDataFrame(df)
 
 // Build complex query (nothing is executed yet)
 result := lf.
-    Filter(golars.ColBuilder("age").Gt(25).Build()).
-    Filter(golars.ColBuilder("salary").Gt(50000).Build()).
+    Filter(golars.Col("age").Gt(25)).
+    Filter(golars.Col("salary").Gt(50000)).
     GroupBy("department").
     Agg(map[string]golars.Expr{
-        "avg_salary": golars.ColBuilder("salary").Mean().Build(),
-        "total": golars.ColBuilder("salary").Sum().Build(),
-        "count": golars.ColBuilder("").Count().Build(),
+        "avg_salary": golars.Col("salary").Mean(),
+        "total": golars.Col("salary").Sum(),
+        "count": golars.Col("").Count(),
     }).
     Sort("avg_salary", true).
     Limit(10)
@@ -201,7 +201,7 @@ hasNulls := s.NullCount() > 0
 
 // Filter out nulls
 filtered := df.Filter(
-    golars.ColBuilder("score").IsNotNull().Build(),
+    golars.Col("score").IsNotNull(),
 )
 
 // Fill nulls with a value
@@ -214,20 +214,17 @@ Golars uses expressions for complex operations:
 
 ```go
 // Arithmetic
-expr := golars.ColBuilder("price").
-    Mul(golars.ColBuilder("quantity")).
-    Build()
+expr := golars.Col("price").
+    Mul(golars.Col("quantity"))
 
 // Add computed column
 df = df.AddColumn("total", expr)
 
 // Conditional expressions
 expr := golars.When(
-    golars.ColBuilder("age").Gt(65),
-    golars.Lit("Senior"),
-).Otherwise(
-    golars.Lit("Adult"),
-).Build()
+    golars.Col("age").Gt(65),
+).Then("Senior").
+    Otherwise("Adult")
 ```
 
 ## Performance Tips
@@ -240,14 +237,14 @@ expr := golars.When(
 ```go
 // Good: Lazy evaluation with early filtering
 result := golars.LazyFromDataFrame(df).
-    Filter(golars.ColBuilder("active").Eq(golars.Lit(true)).Build()).
+    Filter(golars.Col("active").Eq(true)).
     SelectColumns("id", "name", "amount").
     GroupBy("name").
     Sum("amount").
     Collect()
 
 // Less efficient: Eager evaluation
-filtered := df.Filter(golars.ColBuilder("active").Eq(golars.Lit(true)).Build())
+filtered := df.Filter(golars.Col("active").Eq(true))
 selected := filtered.Select("id", "name", "amount")
 result := selected.GroupBy("name").Sum("amount")
 ```
@@ -282,17 +279,17 @@ func main() {
     result := golars.LazyFromDataFrame(df).
         // Add profit column
         AddColumn("profit", 
-            golars.ColBuilder("sales").Sub(golars.ColBuilder("cost")).Build()).
+            golars.Col("sales").Sub(golars.Col("cost"))).
         // Filter for profitable sales
-        Filter(golars.ColBuilder("profit").Gt(0).Build()).
+        Filter(golars.Col("profit").Gt(0)).
         // Group by store
         GroupBy("store").
         // Multiple aggregations
         Agg(map[string]golars.Expr{
-            "total_sales": golars.ColBuilder("sales").Sum().Build(),
-            "total_profit": golars.ColBuilder("profit").Sum().Build(),
-            "avg_profit_margin": golars.ColBuilder("profit").
-                Div(golars.ColBuilder("sales")).Mean().Build(),
+            "total_sales": golars.Col("sales").Sum(),
+            "total_profit": golars.Col("profit").Sum(),
+            "avg_profit_margin": golars.Col("profit").
+                Div(golars.Col("sales")).Mean(),
         }).
         // Sort by total profit
         Sort("total_profit", true).

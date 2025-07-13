@@ -451,6 +451,13 @@ type lastValueFunc struct {
 	spec   *Spec
 }
 
+// nthValueFunc implements the NTH_VALUE() window function
+type nthValueFunc struct {
+	column string
+	n      int
+	spec   *Spec
+}
+
 // NTile creates an NTILE() window function
 func NTile(buckets int) WindowFunc {
 	if buckets <= 0 {
@@ -1076,5 +1083,165 @@ func (f *lastValueFunc) Name() string {
 
 // Validate checks if the window specification is valid
 func (f *lastValueFunc) Validate(spec *Spec) error {
+	return nil
+}
+
+// NthValue creates a NTH_VALUE() window function
+func NthValue(column string, n int) WindowFunc {
+	return WindowFunc{&nthValueFunc{column: column, n: n}}
+}
+
+// SetSpec sets the window specification
+func (f *nthValueFunc) SetSpec(spec *Spec) {
+	f.spec = spec
+}
+
+// Compute returns the nth value in the window for each row
+func (f *nthValueFunc) Compute(partition Partition) (series.Series, error) {
+	col, err := partition.Column(f.column)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get window frame
+	var frame *FrameSpec
+	if f.spec != nil && f.spec.GetFrame() != nil {
+		frame = f.spec.GetFrame()
+	} else {
+		// Default frame
+		if partition.IsOrdered() {
+			frame = &FrameSpec{
+				Type:  RowsFrame,
+				Start: FrameBound{Type: UnboundedPreceding},
+				End:   FrameBound{Type: CurrentRow},
+			}
+		} else {
+			frame = &FrameSpec{
+				Type:  RowsFrame,
+				Start: FrameBound{Type: UnboundedPreceding},
+				End:   FrameBound{Type: UnboundedFollowing},
+			}
+		}
+	}
+
+	// Get indices
+	indices := partition.Indices()
+	var orderIndices []int
+	if partition.IsOrdered() && len(partition.OrderIndices()) > 0 {
+		orderIndices = partition.OrderIndices()
+	} else {
+		orderIndices = indices
+	}
+
+	// Build result based on data type
+	dataType := col.DataType()
+	size := partition.Size()
+	
+	switch dataType.(type) {
+	case datatypes.Int32:
+		values := make([]int32, size)
+		validity := make([]bool, size)
+		
+		for i := 0; i < size; i++ {
+			start, end := partition.FrameBounds(i, frame)
+			
+			// Calculate the actual position
+			// n is 1-based, so nth=1 means first value
+			targetIdx := start + f.n - 1
+			
+			// Check if the nth position is within the window
+			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
+				actualIdx := orderIndices[targetIdx]
+				if !col.IsNull(actualIdx) {
+					values[i] = col.Get(actualIdx).(int32)
+					validity[i] = true
+				}
+			}
+		}
+		
+		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
+		
+	case datatypes.Int64:
+		values := make([]int64, size)
+		validity := make([]bool, size)
+		
+		for i := 0; i < size; i++ {
+			start, end := partition.FrameBounds(i, frame)
+			targetIdx := start + f.n - 1
+			
+			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
+				actualIdx := orderIndices[targetIdx]
+				if !col.IsNull(actualIdx) {
+					values[i] = col.Get(actualIdx).(int64)
+					validity[i] = true
+				}
+			}
+		}
+		
+		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
+		
+	case datatypes.Float64:
+		values := make([]float64, size)
+		validity := make([]bool, size)
+		
+		for i := 0; i < size; i++ {
+			start, end := partition.FrameBounds(i, frame)
+			targetIdx := start + f.n - 1
+			
+			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
+				actualIdx := orderIndices[targetIdx]
+				if !col.IsNull(actualIdx) {
+					values[i] = col.Get(actualIdx).(float64)
+					validity[i] = true
+				}
+			}
+		}
+		
+		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
+		
+	case datatypes.String:
+		values := make([]string, size)
+		validity := make([]bool, size)
+		
+		for i := 0; i < size; i++ {
+			start, end := partition.FrameBounds(i, frame)
+			targetIdx := start + f.n - 1
+			
+			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
+				actualIdx := orderIndices[targetIdx]
+				if !col.IsNull(actualIdx) {
+					values[i] = col.Get(actualIdx).(string)
+					validity[i] = true
+				}
+			}
+		}
+		
+		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
+		
+	default:
+		return nil, fmt.Errorf("unsupported data type for NTH_VALUE: %v", dataType)
+	}
+}
+
+// DataType returns the output data type
+func (f *nthValueFunc) DataType(inputType datatypes.DataType) datatypes.DataType {
+	return inputType
+}
+
+// String returns a string representation
+func (f *nthValueFunc) String() string {
+	return fmt.Sprintf("nth_value(%s, %d)", f.column, f.n)
+}
+
+// Name returns the function name
+func (f *nthValueFunc) Name() string {
+	return "nth_value"
+}
+
+// Validate checks if the window specification is valid
+func (f *nthValueFunc) Validate(spec *Spec) error {
+	if f.n <= 0 {
+		return fmt.Errorf("NTH_VALUE: n must be positive, got %d", f.n)
+	}
 	return nil
 }

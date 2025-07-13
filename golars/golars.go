@@ -15,11 +15,7 @@ import (
 )
 
 // Re-export main types for convenient access
-
-// DataFrame is a table of data with named columns
 type DataFrame = frame.DataFrame
-
-// Series is a named column with a data type
 type Series = series.Series
 
 // DataType represents all possible data types
@@ -65,6 +61,13 @@ func NewDataFrame(columns ...Series) (*DataFrame, error) {
 func NewDataFrameFromMap(data map[string]interface{}) (*DataFrame, error) {
 	return frame.NewDataFrameFromMap(data)
 }
+
+// DataFrameFrom creates a new DataFrame with automatic type inference
+// This mimics Polars' pl.DataFrame() constructor
+func DataFrameFrom(data interface{}, options ...DataFrameOption) (*DataFrame, error) {
+	return NewDataFrameAuto(data, options...)
+}
+
 
 // Re-export Series constructors
 
@@ -158,8 +161,11 @@ var (
 // Expr represents an expression
 type Expr = expr.Expr
 
+// ColumnExpr represents a column expression
+type ColumnExpr = expr.ColumnExpr
+
 // Col creates a column reference expression
-func Col(name string) Expr {
+func Col(name string) *ColumnExpr {
 	return expr.Col(name)
 }
 
@@ -168,13 +174,8 @@ func Lit(value interface{}) Expr {
 	return expr.Lit(value)
 }
 
-// ColBuilder creates a column expression builder for fluent API
-func ColBuilder(name string) *expr.ExprBuilder {
-	return expr.ColBuilder(name)
-}
-
 // When creates a conditional expression
-func When(condition interface{}) *expr.WhenBuilder {
+func When(condition Expr) *expr.WhenBuilder {
 	return expr.When(condition)
 }
 
@@ -345,3 +346,6 @@ func Max(column string) window.WindowFunc {
 func Count(column string) window.WindowFunc {
 	return window.Count(column)
 }
+
+
+

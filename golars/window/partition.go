@@ -27,6 +27,9 @@ type Partition interface {
 	// OrderIndices returns the indices in sorted order (if ordered)
 	OrderIndices() []int
 	
+	// ApplyOrder sorts the partition according to the given order clauses
+	ApplyOrder(orderBy []OrderClause) error
+	
 	// FrameBounds calculates the frame boundaries for a specific row
 	FrameBounds(row int, frame *FrameSpec) (start, end int)
 }
@@ -38,6 +41,7 @@ type WindowPartition struct {
 	orderIndices []int // indices in sorted order
 	isOrdered    bool
 	size         int
+	orderBy      []OrderClause // stores the order by clauses
 }
 
 // NewPartition creates a new partition from series and indices
@@ -89,6 +93,9 @@ func (p *WindowPartition) ApplyOrder(orderBy []OrderClause) error {
 		return nil
 	}
 	
+	// Store the order by clauses
+	p.orderBy = orderBy
+	
 	// Create a copy of indices to sort
 	p.orderIndices = make([]int, len(p.indices))
 	copy(p.orderIndices, p.indices)
@@ -128,6 +135,32 @@ func (p *WindowPartition) ApplyOrder(orderBy []OrderClause) error {
 	return nil
 }
 
+// GetOrderValue returns the value used for ordering at the given row
+func (p *WindowPartition) GetOrderValue(row int) interface{} {
+	if !p.isOrdered || len(p.orderBy) == 0 {
+		return nil
+	}
+	
+	// Get the actual row index
+	var idx int
+	if row < len(p.orderIndices) {
+		idx = p.orderIndices[row]
+	} else {
+		return nil
+	}
+	
+	// Return the value from the first order column
+	// For multi-column ordering, RANGE frames only use the first column
+	firstOrderCol := p.orderBy[0]
+	if firstOrderCol.Column != "" {
+		if s, ok := p.series[firstOrderCol.Column]; ok {
+			return s.Get(idx)
+		}
+	}
+	
+	return nil
+}
+
 // FrameBounds calculates the frame boundaries for a specific row
 func (p *WindowPartition) FrameBounds(row int, frame *FrameSpec) (start, end int) {
 	if frame == nil {
@@ -140,6 +173,8 @@ func (p *WindowPartition) FrameBounds(row int, frame *FrameSpec) (start, end int
 		return p.calculateRowBounds(row, frame)
 	case RangeFrame:
 		return p.calculateRangeBounds(row, frame)
+	case GroupsFrame:
+		return p.calculateGroupsBounds(row, frame)
 	default:
 		return 0, p.size
 	}
@@ -189,11 +224,338 @@ func (p *WindowPartition) calculateRowBounds(currentRow int, frame *FrameSpec) (
 
 // calculateRangeBounds calculates frame boundaries for RANGE frame type
 func (p *WindowPartition) calculateRangeBounds(currentRow int, frame *FrameSpec) (start, end int) {
-	// For now, implement basic RANGE support
-	// Full implementation would compare actual values
+	// RANGE frames require an ORDER BY clause
+	if !p.IsOrdered() {
+		// Without ordering, treat as entire partition
+		return 0, p.size
+	}
 	
-	// Default behavior: same as ROWS for now
-	return p.calculateRowBounds(currentRow, frame)
+	// Get the current row's order value
+	currentValue := p.GetOrderValue(currentRow)
+	if currentValue == nil {
+		// Null values - handle separately
+		return p.calculateNullRangeBounds(currentRow, frame)
+	}
+	
+	// Calculate start boundary
+	start = p.findRangeStart(currentRow, currentValue, frame.Start)
+	
+	// Calculate end boundary
+	end = p.findRangeEnd(currentRow, currentValue, frame.End)
+	
+	return start, end
+}
+
+// findRangeStart finds the start position for a RANGE frame
+func (p *WindowPartition) findRangeStart(currentRow int, currentValue interface{}, bound FrameBound) int {
+	switch bound.Type {
+	case UnboundedPreceding:
+		return 0
+		
+	case Preceding:
+		// Find first row where value >= (currentValue - offset)
+		targetValue := subtractOffset(currentValue, bound.Offset)
+		for i := 0; i < p.size; i++ {
+			val := p.GetOrderValue(i)
+			if val != nil && compareValues(val, targetValue) >= 0 {
+				return i
+			}
+		}
+		return p.size
+		
+	case CurrentRow:
+		// Find first row with same value (peer row)
+		for i := 0; i < currentRow; i++ {
+			val := p.GetOrderValue(i)
+			if val != nil && compareValues(val, currentValue) == 0 {
+				return i
+			}
+		}
+		return currentRow
+		
+	case Following:
+		// Find first row where value >= (currentValue + offset)
+		targetValue := addOffset(currentValue, bound.Offset)
+		for i := currentRow; i < p.size; i++ {
+			val := p.GetOrderValue(i)
+			if val != nil && compareValues(val, targetValue) >= 0 {
+				return i
+			}
+		}
+		return p.size
+		
+	case UnboundedFollowing:
+		return p.size
+	}
+	
+	return 0
+}
+
+// findRangeEnd finds the end position for a RANGE frame
+func (p *WindowPartition) findRangeEnd(currentRow int, currentValue interface{}, bound FrameBound) int {
+	switch bound.Type {
+	case UnboundedPreceding:
+		return 0
+		
+	case Preceding:
+		// Find last row where value <= (currentValue - offset) + 1
+		targetValue := subtractOffset(currentValue, bound.Offset)
+		end := 0
+		for i := 0; i < currentRow; i++ {
+			val := p.GetOrderValue(i)
+			if val != nil && compareValues(val, targetValue) <= 0 {
+				end = i + 1
+			} else {
+				break
+			}
+		}
+		return end
+		
+	case CurrentRow:
+		// Find last row with same value (peer row) + 1
+		end := currentRow + 1
+		for i := currentRow + 1; i < p.size; i++ {
+			val := p.GetOrderValue(i)
+			if val != nil && compareValues(val, currentValue) == 0 {
+				end = i + 1
+			} else {
+				break
+			}
+		}
+		return end
+		
+	case Following:
+		// Find last row where value <= (currentValue + offset) + 1
+		targetValue := addOffset(currentValue, bound.Offset)
+		end := currentRow + 1
+		for i := currentRow + 1; i < p.size; i++ {
+			val := p.GetOrderValue(i)
+			if val != nil && compareValues(val, targetValue) <= 0 {
+				end = i + 1
+			} else {
+				break
+			}
+		}
+		return end
+		
+	case UnboundedFollowing:
+		return p.size
+	}
+	
+	return p.size
+}
+
+// calculateNullRangeBounds handles RANGE bounds for null values
+func (p *WindowPartition) calculateNullRangeBounds(currentRow int, frame *FrameSpec) (start, end int) {
+	// For null values in RANGE frames, include all nulls as peers
+	start = currentRow
+	end = currentRow + 1
+	
+	// Find all null peers before current row
+	for i := currentRow - 1; i >= 0; i-- {
+		if p.GetOrderValue(i) == nil {
+			start = i
+		} else {
+			break
+		}
+	}
+	
+	// Find all null peers after current row
+	for i := currentRow + 1; i < p.size; i++ {
+		if p.GetOrderValue(i) == nil {
+			end = i + 1
+		} else {
+			break
+		}
+	}
+	
+	return start, end
+}
+
+// addOffset adds an offset to a value for RANGE calculations
+func addOffset(value interface{}, offset interface{}) interface{} {
+	if offset == nil {
+		return value
+	}
+	
+	switch v := value.(type) {
+	case int8:
+		return v + offset.(int8)
+	case int16:
+		return v + offset.(int16)
+	case int32:
+		return v + offset.(int32)
+	case int64:
+		return v + offset.(int64)
+	case int:
+		return v + offset.(int)
+	case float32:
+		return v + offset.(float32)
+	case float64:
+		return v + offset.(float64)
+	default:
+		// For non-numeric types, RANGE doesn't make sense with offsets
+		return value
+	}
+}
+
+// subtractOffset subtracts an offset from a value for RANGE calculations
+func subtractOffset(value interface{}, offset interface{}) interface{} {
+	if offset == nil {
+		return value
+	}
+	
+	switch v := value.(type) {
+	case int8:
+		return v - offset.(int8)
+	case int16:
+		return v - offset.(int16)
+	case int32:
+		return v - offset.(int32)
+	case int64:
+		return v - offset.(int64)
+	case int:
+		return v - offset.(int)
+	case float32:
+		return v - offset.(float32)
+	case float64:
+		return v - offset.(float64)
+	default:
+		// For non-numeric types, RANGE doesn't make sense with offsets
+		return value
+	}
+}
+
+// calculateGroupsBounds calculates frame boundaries for GROUPS frame type
+func (p *WindowPartition) calculateGroupsBounds(currentRow int, frame *FrameSpec) (start, end int) {
+	// GROUPS frames require an ORDER BY clause
+	if !p.IsOrdered() {
+		// Without ordering, treat as entire partition
+		return 0, p.size
+	}
+	
+	// Find peer groups
+	groups := p.findPeerGroups()
+	
+	// Find which group the current row belongs to
+	currentGroup := -1
+	for i, group := range groups {
+		for _, rowIdx := range group {
+			if rowIdx == currentRow {
+				currentGroup = i
+				break
+			}
+		}
+		if currentGroup >= 0 {
+			break
+		}
+	}
+	
+	if currentGroup < 0 {
+		// Current row not found in groups
+		return currentRow, currentRow + 1
+	}
+	
+	// Calculate start group
+	startGroup := p.calculateGroupStartBoundary(currentGroup, frame.Start, len(groups))
+	
+	// Calculate end group
+	endGroup := p.calculateGroupEndBoundary(currentGroup, frame.End, len(groups))
+	
+	// Ensure valid bounds
+	if startGroup > endGroup {
+		startGroup, endGroup = endGroup, startGroup
+	}
+	
+	// Convert group indices to row indices
+	if startGroup < len(groups) {
+		start = groups[startGroup][0]
+	} else {
+		start = p.size
+	}
+	
+	if endGroup < len(groups) {
+		// End is the first row of the next group (exclusive)
+		end = groups[endGroup][0]
+	} else {
+		// Include all remaining rows
+		end = p.size
+	}
+	
+	return start, end
+}
+
+// findPeerGroups identifies groups of rows with the same order value
+func (p *WindowPartition) findPeerGroups() [][]int {
+	groups := make([][]int, 0)
+	
+	if p.size == 0 {
+		return groups
+	}
+	
+	currentGroup := []int{0}
+	currentValue := p.GetOrderValue(0)
+	
+	for i := 1; i < p.size; i++ {
+		val := p.GetOrderValue(i)
+		
+		// Check if this row is a peer of the current group
+		if (currentValue == nil && val == nil) || 
+		   (currentValue != nil && val != nil && compareValues(currentValue, val) == 0) {
+			// Same value, add to current group
+			currentGroup = append(currentGroup, i)
+		} else {
+			// Different value, start new group
+			groups = append(groups, currentGroup)
+			currentGroup = []int{i}
+			currentValue = val
+		}
+	}
+	
+	// Add the last group
+	if len(currentGroup) > 0 {
+		groups = append(groups, currentGroup)
+	}
+	
+	return groups
+}
+
+// calculateGroupStartBoundary calculates the start group index for a boundary
+func (p *WindowPartition) calculateGroupStartBoundary(currentGroup int, bound FrameBound, numGroups int) int {
+	switch bound.Type {
+	case UnboundedPreceding:
+		return 0
+	case Preceding:
+		offset := bound.Offset.(int)
+		return max(0, currentGroup-offset)
+	case CurrentRow:
+		return currentGroup
+	case Following:
+		offset := bound.Offset.(int)
+		return min(numGroups-1, currentGroup+offset)
+	case UnboundedFollowing:
+		return numGroups - 1
+	}
+	return currentGroup
+}
+
+// calculateGroupEndBoundary calculates the end group index for a boundary
+func (p *WindowPartition) calculateGroupEndBoundary(currentGroup int, bound FrameBound, numGroups int) int {
+	switch bound.Type {
+	case UnboundedPreceding:
+		return 0
+	case Preceding:
+		offset := bound.Offset.(int)
+		return max(0, currentGroup-offset+1)
+	case CurrentRow:
+		return currentGroup + 1
+	case Following:
+		offset := bound.Offset.(int)
+		return min(numGroups, currentGroup+offset+1)
+	case UnboundedFollowing:
+		return numGroups
+	}
+	return currentGroup + 1
 }
 
 // compareValues compares two values for ordering

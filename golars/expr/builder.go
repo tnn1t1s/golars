@@ -340,61 +340,6 @@ func toExpr(v interface{}) Expr {
 	}
 }
 
-// Convenience functions for creating expression builders
+// Deprecated: ExprBuilder is deprecated in favor of direct method chaining on expressions
+// This is kept only for internal use and will be removed in future versions
 
-// ColBuilder creates a column expression builder
-func ColBuilder(name string) *ExprBuilder {
-	return NewBuilder(Col(name))
-}
-
-// LitBuilder creates a literal expression builder
-func LitBuilder(value interface{}) *ExprBuilder {
-	return NewBuilder(Lit(value))
-}
-
-// When creates a conditional expression builder
-func When(condition interface{}) *WhenBuilder {
-	return &WhenBuilder{
-		when: toExpr(condition),
-	}
-}
-
-// WhenBuilder helps build conditional expressions
-type WhenBuilder struct {
-	when Expr
-	then Expr
-}
-
-// Then sets the then clause
-func (w *WhenBuilder) Then(expr interface{}) *WhenThenBuilder {
-	return &WhenThenBuilder{
-		when: w.when,
-		then: toExpr(expr),
-	}
-}
-
-// WhenThenBuilder represents a when-then expression being built
-type WhenThenBuilder struct {
-	when      Expr
-	then      Expr
-	otherwise Expr
-}
-
-// Otherwise sets the otherwise clause
-func (w *WhenThenBuilder) Otherwise(expr interface{}) *ExprBuilder {
-	return &ExprBuilder{
-		expr: &WhenThenExpr{
-			when:      w.when,
-			then:      w.then,
-			otherwise: toExpr(expr),
-		},
-	}
-}
-
-// Build builds the expression without otherwise clause
-func (w *WhenThenBuilder) Build() Expr {
-	return &WhenThenExpr{
-		when: w.when,
-		then: w.then,
-	}
-}

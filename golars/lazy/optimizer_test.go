@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/davidpalaitis/golars/expr"
+	"github.com/davidpalaitis/golars/frame"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -583,4 +584,83 @@ func BenchmarkOptimization_Combined(b *testing.B) {
 			}
 		}
 	}
+}
+
+func TestJoinReordering_InnerJoins(t *testing.T) {
+	// Create three scan nodes (tables A, B, C)
+	scanA := NewScanNode(NewDataFrameSource(nil))
+	scanB := NewScanNode(NewDataFrameSource(nil))
+	scanC := NewScanNode(NewDataFrameSource(nil))
+	
+	// Create joins: (A join B) join C
+	joinAB := NewJoinNode(scanA, scanB, []string{"id"}, frame.InnerJoin)
+	joinABC := NewJoinNode(joinAB, scanC, []string{"id"}, frame.InnerJoin)
+	
+	// Apply join reordering
+	optimizer := NewJoinReordering()
+	optimized, err := optimizer.Optimize(joinABC)
+	require.NoError(t, err)
+	require.NotNil(t, optimized)
+	
+	// The optimizer should maintain the structure for now (since we use simple heuristics)
+	// In a real implementation, it would reorder based on statistics
+	joinNode, ok := optimized.(*JoinNode)
+	require.True(t, ok, "Expected JoinNode at root")
+	assert.Equal(t, frame.InnerJoin, joinNode.how)
+}
+
+func TestJoinReordering_PreservesNonInnerJoins(t *testing.T) {
+	// Create three scan nodes
+	scanA := NewScanNode(NewDataFrameSource(nil))
+	scanB := NewScanNode(NewDataFrameSource(nil))
+	scanC := NewScanNode(NewDataFrameSource(nil))
+	
+	// Create joins with left join: (A left join B) inner join C
+	leftJoin := NewJoinNode(scanA, scanB, []string{"id"}, frame.LeftJoin)
+	mixedJoin := NewJoinNode(leftJoin, scanC, []string{"id"}, frame.InnerJoin)
+	
+	// Apply join reordering
+	optimizer := NewJoinReordering()
+	optimized, err := optimizer.Optimize(mixedJoin)
+	require.NoError(t, err)
+	
+	// Should preserve the left join order
+	joinNode, ok := optimized.(*JoinNode)
+	require.True(t, ok, "Expected JoinNode at root")
+	
+	// The left join should remain on the left side
+	leftNode, ok := joinNode.left.(*JoinNode)
+	require.True(t, ok, "Expected JoinNode on left")
+	assert.Equal(t, frame.LeftJoin, leftNode.how, "Left join should be preserved")
+}
+
+func TestJoinReordering_EstimateSize(t *testing.T) {
+	optimizer := &JoinReordering{}
+	
+	// Test scan node
+	scan := NewScanNode(NewDataFrameSource(nil))
+	size := optimizer.estimateSize(scan)
+	assert.Equal(t, int64(1000), size, "Scan should have default size")
+	
+	// Test filter node (should reduce size)
+	filter := NewFilterNode(scan, expr.ColBuilder("a").Gt(int64(5)).Build())
+	size = optimizer.estimateSize(filter)
+	assert.Equal(t, int64(500), size, "Filter should reduce size by 50%")
+	
+	// Test limit node
+	limit := NewLimitNode(scan, 100)
+	size = optimizer.estimateSize(limit)
+	assert.Equal(t, int64(100), size, "Limit should constrain size")
+	
+	// Test inner join
+	scanA := NewScanNode(NewDataFrameSource(nil))
+	scanB := NewScanNode(NewDataFrameSource(nil))
+	innerJoin := NewJoinNode(scanA, scanB, []string{"id"}, frame.InnerJoin)
+	size = optimizer.estimateSize(innerJoin)
+	assert.Equal(t, int64(100000), size, "Inner join should estimate based on formula")
+	
+	// Test cross join
+	crossJoin := NewJoinNode(scanA, scanB, []string{}, frame.CrossJoin)
+	size = optimizer.estimateSize(crossJoin)
+	assert.Equal(t, int64(1000000), size, "Cross join should be cartesian product")
 }

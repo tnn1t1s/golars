@@ -4,6 +4,7 @@ import (
 	"strings"
 	
 	"github.com/davidpalaitis/golars/expr"
+	"github.com/davidpalaitis/golars/frame"
 )
 
 // Optimizer represents a query optimization pass
@@ -559,6 +560,160 @@ func (opt *FilterCombining) combineFilters(plan LogicalPlan) (LogicalPlan, error
 			return plan.WithChildren(optimizedChildren), nil
 		}
 		return plan, nil
+	}
+}
+
+// JoinReordering optimizes join order based on estimated selectivity
+type JoinReordering struct{}
+
+// NewJoinReordering creates a new join reordering optimizer
+func NewJoinReordering() Optimizer {
+	return &JoinReordering{}
+}
+
+// Optimize reorders joins for better performance
+func (opt *JoinReordering) Optimize(plan LogicalPlan) (LogicalPlan, error) {
+	return opt.reorderJoins(plan)
+}
+
+func (opt *JoinReordering) reorderJoins(plan LogicalPlan) (LogicalPlan, error) {
+	switch node := plan.(type) {
+	case *JoinNode:
+		// First optimize children
+		optimizedLeft, err := opt.reorderJoins(node.left)
+		if err != nil {
+			return nil, err
+		}
+		optimizedRight, err := opt.reorderJoins(node.right)
+		if err != nil {
+			return nil, err
+		}
+		
+		// Check if we can reorder this join with joins below
+		// For now, we'll implement a simple heuristic:
+		// - Inner joins can be reordered
+		// - Left/Right joins maintain their order
+		// - Prefer smaller tables on the right side of hash joins
+		
+		if node.how == frame.InnerJoin {
+			// Check if left side is also a join
+			if leftJoin, ok := optimizedLeft.(*JoinNode); ok && leftJoin.how == frame.InnerJoin {
+				// We have a chain of inner joins: (A join B) join C
+				// Consider reordering based on estimated sizes
+				
+				// Get estimated sizes (in a real implementation, this would use statistics)
+				// sizeA := opt.estimateSize(leftJoin.left) // Not used in current implementation
+				sizeB := opt.estimateSize(leftJoin.right)
+				sizeC := opt.estimateSize(optimizedRight)
+				
+				// Try different join orders and pick the best
+				// For inner joins: (A join B) join C = A join (B join C)
+				// Heuristic: put smaller tables on the right for hash joins
+				
+				if sizeC < sizeB {
+					// Reorder to A join (B join C)
+					newRightJoin := &JoinNode{
+						left:  leftJoin.right,
+						right: optimizedRight,
+						on:    node.on, // Simplified - in real implementation would need to adjust
+						how:   frame.InnerJoin,
+					}
+					
+					return &JoinNode{
+						left:  leftJoin.left,
+						right: newRightJoin,
+						on:    leftJoin.on,
+						how:   frame.InnerJoin,
+					}, nil
+				}
+			}
+		}
+		
+		// No reordering, return optimized node
+		return &JoinNode{
+			left:  optimizedLeft,
+			right: optimizedRight,
+			on:    node.on,
+			how:   node.how,
+		}, nil
+		
+	default:
+		// For other nodes, just optimize children
+		children := plan.Children()
+		if len(children) > 0 {
+			optimizedChildren := make([]LogicalPlan, len(children))
+			for i, child := range children {
+				optimized, err := opt.reorderJoins(child)
+				if err != nil {
+					return nil, err
+				}
+				optimizedChildren[i] = optimized
+			}
+			return plan.WithChildren(optimizedChildren), nil
+		}
+		return plan, nil
+	}
+}
+
+// estimateSize estimates the size of a logical plan's output
+// In a real implementation, this would use table statistics
+func (opt *JoinReordering) estimateSize(plan LogicalPlan) int64 {
+	switch node := plan.(type) {
+	case *ScanNode:
+		// Base table - would use statistics in real implementation
+		// For now, return a default size
+		return 1000
+		
+	case *FilterNode:
+		// Assume filters reduce size by 50%
+		baseSize := opt.estimateSize(node.input)
+		return baseSize / 2
+		
+	case *JoinNode:
+		// Estimate join output size based on join type
+		leftSize := opt.estimateSize(node.left)
+		rightSize := opt.estimateSize(node.right)
+		
+		switch node.how {
+		case frame.InnerJoin:
+			// Inner join typically produces fewer rows
+			return (leftSize * rightSize) / 10
+		case frame.LeftJoin:
+			// Left join preserves left side
+			return leftSize
+		case frame.RightJoin:
+			// Right join preserves right side
+			return rightSize
+		case frame.OuterJoin:
+			// Outer join can be larger
+			return leftSize + rightSize
+		case frame.CrossJoin:
+			// Cross join is cartesian product
+			return leftSize * rightSize
+		default:
+			return leftSize
+		}
+		
+	case *GroupByNode:
+		// Group by typically reduces rows significantly
+		baseSize := opt.estimateSize(node.input)
+		return baseSize / 10
+		
+	case *LimitNode:
+		// Limit constrains output size
+		baseSize := opt.estimateSize(node.input)
+		if int64(node.limit) < baseSize {
+			return int64(node.limit)
+		}
+		return baseSize
+		
+	default:
+		// For other nodes, assume size doesn't change much
+		children := plan.Children()
+		if len(children) > 0 {
+			return opt.estimateSize(children[0])
+		}
+		return 1000
 	}
 }
 

@@ -67,6 +67,16 @@ type Series interface {
 	Sort(ascending bool) Series
 	ArgSort(config SortConfig) []int
 	Take(indices []int) Series
+	
+	// Aggregation methods
+	Sum() float64
+	Mean() float64
+	Min() interface{}
+	Max() interface{}
+	Count() int
+	Std() float64
+	Var() float64
+	Median() float64
 }
 
 // TypedSeries is a generic series implementation for specific types

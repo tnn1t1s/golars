@@ -3,6 +3,7 @@ package strings
 import (
 	"testing"
 
+	"github.com/davidpalaitis/golars/datatypes"
 	"github.com/davidpalaitis/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ func TestStringFormat(t *testing.T) {
 	t.Run("With nulls", func(t *testing.T) {
 		names := []string{"Alice", "Bob", "Charlie"}
 		namesValidity := []bool{true, false, true}
-		nameSeries := series.NewSeriesWithValidity("name", names, namesValidity, nil)
+		nameSeries := series.NewSeriesWithValidity("name", names, namesValidity, datatypes.String{})
 		ages := series.NewInt32Series("age", []int32{25, 30, 35})
 		ops := NewStringOps(nameSeries)
 		

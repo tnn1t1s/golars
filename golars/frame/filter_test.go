@@ -20,7 +20,7 @@ func TestDataFrameFilter(t *testing.T) {
 
 	t.Run("SimpleComparison", func(t *testing.T) {
 		// Filter age > 30
-		filtered, err := df.Filter(expr.ColBuilder("age").Gt(30).Build())
+		filtered, err := df.Filter(expr.Col("age").Gt(30))
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
 		
@@ -33,7 +33,7 @@ func TestDataFrameFilter(t *testing.T) {
 
 	t.Run("EqualityFilter", func(t *testing.T) {
 		// Filter name == "Bob"
-		filtered, err := df.Filter(expr.ColBuilder("name").Eq(expr.Lit("Bob")).Build())
+		filtered, err := df.Filter(expr.Col("name").Eq("Bob"))
 		assert.NoError(t, err)
 		assert.Equal(t, 1, filtered.Height())
 		
@@ -45,9 +45,9 @@ func TestDataFrameFilter(t *testing.T) {
 	t.Run("CompoundFilter", func(t *testing.T) {
 		// Filter age > 25 AND score < 90
 		filtered, err := df.Filter(
-			expr.ColBuilder("age").Gt(25).And(
-				expr.ColBuilder("score").Lt(90),
-			).Build(),
+			expr.Col("age").Gt(25).And(
+				expr.Col("score").Lt(90),
+			),
 		)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
@@ -66,9 +66,9 @@ func TestDataFrameFilter(t *testing.T) {
 	t.Run("OrFilter", func(t *testing.T) {
 		// Filter age < 26 OR age > 34
 		filtered, err := df.Filter(
-			expr.ColBuilder("age").Lt(26).Or(
-				expr.ColBuilder("age").Gt(34),
-			).Build(),
+			expr.Col("age").Lt(26).Or(
+				expr.Col("age").Gt(34),
+			),
 		)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
@@ -86,7 +86,7 @@ func TestDataFrameFilter(t *testing.T) {
 	t.Run("NotFilter", func(t *testing.T) {
 		// Filter NOT (age == 30)
 		filtered, err := df.Filter(
-			expr.ColBuilder("age").Eq(30).Not().Build(),
+			expr.Col("age").Eq(30).Not(),
 		)
 		assert.NoError(t, err)
 		assert.Equal(t, 4, filtered.Height())
@@ -101,7 +101,7 @@ func TestDataFrameFilter(t *testing.T) {
 
 	t.Run("EmptyResult", func(t *testing.T) {
 		// Filter that matches no rows
-		filtered, err := df.Filter(expr.ColBuilder("age").Gt(100).Build())
+		filtered, err := df.Filter(expr.Col("age").Gt(100))
 		assert.NoError(t, err)
 		assert.Equal(t, 0, filtered.Height())
 		assert.Equal(t, df.Width(), filtered.Width())
@@ -134,7 +134,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 
 	t.Run("IsNull", func(t *testing.T) {
 		// Filter for null values
-		filtered, err := df.Filter(expr.ColBuilder("value").IsNull().Build())
+		filtered, err := df.Filter(expr.Col("value").IsNull())
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
 		
@@ -147,7 +147,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 
 	t.Run("IsNotNull", func(t *testing.T) {
 		// Filter for non-null values
-		filtered, err := df.Filter(expr.ColBuilder("value").IsNotNull().Build())
+		filtered, err := df.Filter(expr.Col("value").IsNotNull())
 		assert.NoError(t, err)
 		assert.Equal(t, 3, filtered.Height())
 		
@@ -161,7 +161,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 
 	t.Run("ComparisonWithNull", func(t *testing.T) {
 		// Comparisons with null should exclude null rows
-		filtered, err := df.Filter(expr.ColBuilder("value").Gt(25).Build())
+		filtered, err := df.Filter(expr.Col("value").Gt(25))
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
 		
@@ -180,7 +180,7 @@ func TestDataFrameFilterErrors(t *testing.T) {
 	)
 
 	t.Run("NonExistentColumn", func(t *testing.T) {
-		_, err := df.Filter(expr.ColBuilder("nonexistent").Gt(0).Build())
+		_, err := df.Filter(expr.Col("nonexistent").Gt(0))
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
@@ -223,13 +223,13 @@ func TestComplexFilters(t *testing.T) {
 	t.Run("ComplexCompoundFilter", func(t *testing.T) {
 		// (category == "A" OR category == "B") AND value > 50 AND flag == true
 		filtered, err := df.Filter(
-			expr.ColBuilder("category").Eq(expr.Lit("A")).Or(
-				expr.ColBuilder("category").Eq(expr.Lit("B")),
+			expr.Col("category").Eq("A").Or(
+				expr.Col("category").Eq("B"),
 			).And(
-				expr.ColBuilder("value").Gt(50),
+				expr.Col("value").Gt(50),
 			).And(
-				expr.ColBuilder("flag").Eq(true),
-			).Build(),
+				expr.Col("flag").Eq(true),
+			),
 		)
 		assert.NoError(t, err)
 		
@@ -254,22 +254,22 @@ func TestComplexFilters(t *testing.T) {
 
 	t.Run("ChainedFilters", func(t *testing.T) {
 		// Apply filters in sequence
-		filtered1, err := df.Filter(expr.ColBuilder("value").Ge(30).Build())
+		filtered1, err := df.Filter(expr.Col("value").Ge(30))
 		assert.NoError(t, err)
 		
-		filtered2, err := filtered1.Filter(expr.ColBuilder("category").Ne(expr.Lit("C")).Build())
+		filtered2, err := filtered1.Filter(expr.Col("category").Ne("C"))
 		assert.NoError(t, err)
 		
-		filtered3, err := filtered2.Filter(expr.ColBuilder("flag").Eq(true).Build())
+		filtered3, err := filtered2.Filter(expr.Col("flag").Eq(true))
 		assert.NoError(t, err)
 		
 		// Should be equivalent to combining all conditions
 		combined, err := df.Filter(
-			expr.ColBuilder("value").Ge(30).And(
-				expr.ColBuilder("category").Ne(expr.Lit("C")),
+			expr.Col("value").Ge(30).And(
+				expr.Col("category").Ne("C"),
 			).And(
-				expr.ColBuilder("flag").Eq(true),
-			).Build(),
+				expr.Col("flag").Eq(true),
+			),
 		)
 		assert.NoError(t, err)
 		
@@ -297,7 +297,7 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 	)
 	
 	b.Run("SimpleFilter", func(b *testing.B) {
-		filterExpr := expr.ColBuilder("value").Gt(50000).Build()
+		filterExpr := expr.Col("value").Gt(50000)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			filtered, _ := df.Filter(filterExpr)
@@ -306,9 +306,9 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 	})
 	
 	b.Run("CompoundFilter", func(b *testing.B) {
-		filterExpr := expr.ColBuilder("value").Gt(25000).And(
-			expr.ColBuilder("value").Lt(75000),
-		).Build()
+		filterExpr := expr.Col("value").Gt(25000).And(
+			expr.Col("value").Lt(75000),
+		)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			filtered, _ := df.Filter(filterExpr)
@@ -317,7 +317,7 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 	})
 	
 	b.Run("StringFilter", func(b *testing.B) {
-		filterExpr := expr.ColBuilder("category").Eq(expr.Lit("A")).Build()
+		filterExpr := expr.Col("category").Eq("A")
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			filtered, _ := df.Filter(filterExpr)

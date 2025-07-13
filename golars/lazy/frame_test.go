@@ -70,7 +70,7 @@ func TestLazyFrame_Filter(t *testing.T) {
 	lf := NewLazyFrameFromDataFrame(df)
 	
 	// Filter where a > 2
-	filtered := lf.Filter(expr.ColBuilder("a").Gt(int64(2)).Build())
+	filtered := lf.Filter(expr.Col("a").Gt(int64(2)))
 	
 	// Check plan
 	plan := filtered.Explain()
@@ -94,7 +94,7 @@ func TestLazyFrame_ChainedOperations(t *testing.T) {
 	
 	// Chain multiple operations
 	result, err := NewLazyFrameFromDataFrame(df).
-		Filter(expr.ColBuilder("a").Gt(int64(2)).Build()).
+		Filter(expr.Col("a").Gt(int64(2))).
 		SelectColumns("a", "b").
 		Sort("a", true).
 		Limit(2).
@@ -136,7 +136,7 @@ func TestLazyFrame_Explain(t *testing.T) {
 	
 	// Create a complex query
 	lf := NewLazyFrameFromDataFrame(df).
-		Filter(expr.ColBuilder("a").Gt(int64(1)).Build()).
+		Filter(expr.Col("a").Gt(int64(1))).
 		SelectColumns("a", "b").
 		Sort("a", false)
 	
@@ -153,8 +153,8 @@ func TestLazyFrame_MultipleFilters(t *testing.T) {
 	
 	// Apply multiple filters
 	result, err := NewLazyFrameFromDataFrame(df).
-		Filter(expr.ColBuilder("a").Gt(int64(2)).Build()).
-		Filter(expr.ColBuilder("b").Lt(int64(50)).Build()).
+		Filter(expr.Col("a").Gt(int64(2))).
+		Filter(expr.Col("b").Lt(int64(50))).
 		Collect()
 	
 	require.NoError(t, err)
@@ -197,7 +197,7 @@ func TestLazyFrame_SortMultiple(t *testing.T) {
 
 func TestLazyFrame_Clone(t *testing.T) {
 	df := createTestDataFrame()
-	lf1 := NewLazyFrameFromDataFrame(df).Filter(expr.ColBuilder("a").Gt(int64(2)).Build())
+	lf1 := NewLazyFrameFromDataFrame(df).Filter(expr.Col("a").Gt(int64(2)))
 	
 	// Clone the lazy frame
 	lf2 := lf1.Clone()
@@ -253,7 +253,7 @@ func BenchmarkLazyFrame_vs_Eager(b *testing.B) {
 	b.Run("Eager", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			// Eager evaluation creates intermediate DataFrames
-			filtered, _ := df.Filter(expr.ColBuilder("a").Gt(int64(5000)).Build())
+			filtered, _ := df.Filter(expr.Col("a").Gt(int64(5000)))
 			sorted, _ := filtered.Sort("b")
 			limited, _ := sorted.Take([]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 			_ = limited
@@ -264,7 +264,7 @@ func BenchmarkLazyFrame_vs_Eager(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			// Lazy evaluation builds a plan and executes once
 			result, _ := NewLazyFrameFromDataFrame(df).
-				Filter(expr.ColBuilder("a").Gt(int64(5000)).Build()).
+				Filter(expr.Col("a").Gt(int64(5000))).
 				Sort("b", false).
 				Limit(10).
 				Collect()

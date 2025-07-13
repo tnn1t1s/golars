@@ -5,6 +5,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/davidpalaitis/golars/datatypes"
 	"github.com/davidpalaitis/golars/series"
 )
 
@@ -60,7 +61,7 @@ func (so *StringOps) Format(formatStr string, args ...series.Series) (series.Ser
 		validity[i] = true
 	}
 	
-	return series.NewSeriesWithValidity(so.s.Name()+"_formatted", values, validity, nil), nil
+	return series.NewSeriesWithValidity(so.s.Name()+"_formatted", values, validity, datatypes.String{}), nil
 }
 
 // FormatTemplate applies template-based formatting
@@ -118,7 +119,7 @@ func (so *StringOps) FormatTemplate(templateStr string, data map[string]series.S
 		validity[i] = true
 	}
 	
-	return series.NewSeriesWithValidity(so.s.Name()+"_templated", values, validity, nil), nil
+	return series.NewSeriesWithValidity(so.s.Name()+"_templated", values, validity, datatypes.String{}), nil
 }
 
 // Join concatenates multiple string series with a separator
@@ -162,7 +163,7 @@ func (so *StringOps) Join(separator string, others ...series.Series) (series.Ser
 		validity[i] = true
 	}
 	
-	return series.NewSeriesWithValidity(so.s.Name()+"_joined", values, validity, nil), nil
+	return series.NewSeriesWithValidity(so.s.Name()+"_joined", values, validity, datatypes.String{}), nil
 }
 
 // Center centers strings in a field of specified width

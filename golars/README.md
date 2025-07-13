@@ -64,21 +64,26 @@ import (
 )
 
 func main() {
-    // Create a DataFrame
-    df, err := golars.NewDataFrame(
-        golars.NewSeries("name", []string{"Alice", "Bob", "Charlie", "David", "Eve"}),
-        golars.NewSeries("age", []int32{25, 30, 35, 28, 32}),
-        golars.NewSeries("city", []string{"NYC", "LA", "Chicago", "NYC", "LA"}),
-        golars.NewSeries("salary", []float64{70000, 85000, 95000, 75000, 90000}),
-    )
+    // Create a DataFrame using the new API with type inference
+    df, err := golars.DataFrame(map[string]interface{}{
+        "name":   []string{"Alice", "Bob", "Charlie", "David", "Eve"},
+        "age":    []int{25, 30, 35, 28, 32},
+        "city":   []string{"NYC", "LA", "Chicago", "NYC", "LA"},
+        "salary": []float64{70000, 85000, 95000, 75000, 90000},
+    })
     if err != nil {
         log.Fatal(err)
     }
     
-    // Filter and select
-    result := df.
-        Filter(golars.ColBuilder("age").Gt(28).Build()).
-        Select("name", "city", "salary")
+    // Filter and select using the new chainable API
+    result, err := df.Filter(golars.Col("age").Gt(28))
+    if err != nil {
+        log.Fatal(err)
+    }
+    result, err = result.Select("name", "city", "salary")
+    if err != nil {
+        log.Fatal(err)
+    }
     
     fmt.Println(result)
 }
@@ -89,12 +94,12 @@ func main() {
 ```go
 // Use lazy evaluation for better performance
 lf := golars.LazyFromDataFrame(df).
-    Filter(golars.ColBuilder("age").Gt(25).Build()).
-    Filter(golars.ColBuilder("salary").Gt(80000).Build()).
+    Filter(golars.Col("age").Gt(25)).
+    Filter(golars.Col("salary").Gt(80000)).
     GroupBy("city").
     Agg(map[string]golars.Expr{
-        "avg_salary": golars.ColBuilder("salary").Mean().Build(),
-        "count": golars.ColBuilder("").Count().Build(),
+        "avg_salary": golars.Col("salary").Mean(),
+        "count": golars.Col("salary").Count(),
     }).
     Sort("avg_salary", true)
 
@@ -126,7 +131,7 @@ if err != nil {
 
 // Process with lazy evaluation
 result := golars.LazyFromDataFrame(df).
-    Filter(golars.ColBuilder("status").Eq(golars.Lit("active")).Build()).
+    Filter(golars.Col("status").Eq("active")).
     SelectColumns("id", "name", "value").
     Collect()
 ```
@@ -136,12 +141,12 @@ result := golars.LazyFromDataFrame(df).
 ```go
 // Create a lazy scan of a Parquet file
 lf := golars.ScanParquet("large_dataset.parquet").
-    Filter(golars.ColBuilder("year").Eq(golars.Lit(2024)).Build()).
+    Filter(golars.Col("year").Eq(2024)).
     SelectColumns("id", "name", "amount").  // Only read needed columns
     GroupBy("name").
     Agg(map[string]golars.Expr{
-        "total": golars.ColBuilder("amount").Sum().Build(),
-        "count": golars.ColBuilder("name").Count().Build(),
+        "total": golars.Col("amount").Sum(),
+        "count": golars.Col("name").Count(),
     })
 
 // The query is optimized before execution

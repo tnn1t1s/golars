@@ -116,63 +116,60 @@ func TestAggExpr(t *testing.T) {
 	}
 }
 
-func TestExprBuilder(t *testing.T) {
+func TestColumnExprMethods(t *testing.T) {
 	// Test arithmetic operations
-	expr := ColBuilder("a").Add("b").Mul(2).Build()
-	assert.Equal(t, "((col(a) + col(b)) * lit(2))", expr.String())
+	arithExpr := Col("a").Add("b").Mul(2)
+	assert.Equal(t, "((col(a) + col(b)) * lit(2))", arithExpr.String())
 	
 	// Test comparison operations
-	expr = ColBuilder("age").Gt(18).And(ColBuilder("age").Lt(65)).Build()
-	assert.Equal(t, "((col(age) > lit(18)) & (col(age) < lit(65)))", expr.String())
+	compExpr := Col("age").Gt(18).And(Col("age").Lt(65))
+	assert.Equal(t, "((col(age) > lit(18)) & (col(age) < lit(65)))", compExpr.String())
 	
 	// Test null operations
-	expr = ColBuilder("name").IsNotNull().Build()
-	assert.Equal(t, "col(name).is_not_null()", expr.String())
+	nullExpr := Col("name").IsNotNull()
+	assert.Equal(t, "col(name).is_not_null()", nullExpr.String())
 	
 	// Test aggregations
-	expr = ColBuilder("salary").Mean().Alias("avg_salary").Build()
-	assert.Equal(t, "col(salary).mean().alias(avg_salary)", expr.String())
-	assert.Equal(t, "avg_salary", expr.Name())
+	aggExpr := Col("salary").Mean().Alias("avg_salary")
+	assert.Equal(t, "col(salary).mean().alias(avg_salary)", aggExpr.String())
+	assert.Equal(t, "avg_salary", aggExpr.Name())
 }
 
 func TestWhenThenExpr(t *testing.T) {
 	// Test simple when-then
-	expr := When(ColBuilder("age").Gt(18)).Then(Lit("adult")).Build()
-	assert.Equal(t, "when((col(age) > lit(18))).then(lit(adult))", expr.String())
+	whenExpr1 := When(Col("age").Gt(18)).Then(Lit("adult")).Build()
+	assert.Equal(t, "when((col(age) > lit(18))).then(lit(adult))", whenExpr1.String())
 	
 	// Test when-then-otherwise
-	expr = When(ColBuilder("score").Ge(90)).
+	whenExpr2 := When(Col("score").Ge(90)).
 		Then("A").
-		Otherwise("B").
-		Build()
-	assert.Equal(t, "when((col(score) >= lit(90))).then(col(A)).otherwise(col(B))", expr.String())
+		Otherwise("B")
+	assert.Equal(t, "when((col(score) >= lit(90))).then(col(A)).otherwise(col(B))", whenExpr2.String())
 }
 
 func TestComplexExpressions(t *testing.T) {
 	// Test complex arithmetic
-	expr := ColBuilder("a").Add(ColBuilder("b").Mul(2)).Div(ColBuilder("c").Sub(1)).Build()
-	assert.Equal(t, "((col(a) + (col(b) * lit(2))) / (col(c) - lit(1)))", expr.String())
+	arithExpr := Col("a").Add(Col("b").Mul(2)).Div(Col("c").Sub(1))
+	assert.Equal(t, "((col(a) + (col(b) * lit(2))) / (col(c) - lit(1)))", arithExpr.String())
 	
 	// Test complex logical
-	expr = ColBuilder("x").Gt(0).
-		And(ColBuilder("y").Lt(100)).
-		Or(ColBuilder("z").Eq(Lit("special"))).
-		Build()
-	assert.Equal(t, "(((col(x) > lit(0)) & (col(y) < lit(100))) | (col(z) == lit(special)))", expr.String())
+	logicExpr := Col("x").Gt(0).
+		And(Col("y").Lt(100)).
+		Or(Col("z").Eq(Lit("special")))
+	assert.Equal(t, "(((col(x) > lit(0)) & (col(y) < lit(100))) | (col(z) == lit(special)))", logicExpr.String())
 	
 	// Test nested conditionals
-	expr = When(ColBuilder("grade").Ge(90)).Then("A").
+	condExpr := When(Col("grade").Ge(90)).Then("A").
 		Otherwise(
-			When(ColBuilder("grade").Ge(80)).Then("B").Otherwise("C"),
-		).Build()
+			When(Col("grade").Ge(80)).Then("B").Otherwise("C"),
+		)
 	expected := "when((col(grade) >= lit(90))).then(col(A)).otherwise(when((col(grade) >= lit(80))).then(col(B)).otherwise(col(C)))"
-	assert.Equal(t, expected, expr.String())
+	assert.Equal(t, expected, condExpr.String())
 }
 
-func TestExprBuilderChaining(t *testing.T) {
+func TestColumnExprChaining(t *testing.T) {
 	// Test method chaining
-	builder := ColBuilder("price")
-	expr := builder.Mul(1.1).Add(5).Gt(100).Build()
+	expr := Col("price").Mul(1.1).Add(5).Gt(100)
 	assert.Equal(t, "(((col(price) * lit(1.1)) + lit(5)) > lit(100))", expr.String())
 	assert.Equal(t, datatypes.Boolean{}, expr.DataType())
 }
@@ -188,7 +185,7 @@ func TestToExpr(t *testing.T) {
 	col := Col("x")
 	assert.Equal(t, col, toExpr(col))
 	
-	// Test passing builder
-	builder := ColBuilder("y")
-	assert.Equal(t, builder.expr, toExpr(builder))
+	// Test passing column expr
+	col2 := Col("y")
+	assert.Equal(t, col2, toExpr(col2))
 }

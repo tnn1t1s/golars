@@ -4,12 +4,13 @@ import (
 	"github.com/davidpalaitis/golars/expr"
 )
 
-// FrameType represents the type of window frame (ROWS or RANGE)
+// FrameType represents the type of window frame (ROWS, RANGE, or GROUPS)
 type FrameType int
 
 const (
 	RowsFrame FrameType = iota
 	RangeFrame
+	GroupsFrame
 )
 
 // BoundType represents the type of frame boundary
@@ -113,6 +114,16 @@ func (s *Spec) RangeBetween(start, end interface{}) *Spec {
 	return s
 }
 
+// GroupsBetween defines a GROUPS frame with specific boundaries
+func (s *Spec) GroupsBetween(start, end int) *Spec {
+	s.frame = &FrameSpec{
+		Type:  GroupsFrame,
+		Start: s.createGroupBound(start),
+		End:   s.createGroupBound(end),
+	}
+	return s
+}
+
 // UnboundedPreceding sets the frame to start from the beginning of the partition
 func (s *Spec) UnboundedPreceding() *Spec {
 	if s.frame == nil {
@@ -192,11 +203,65 @@ func (s *Spec) createRangeBound(value interface{}) FrameBound {
 		return FrameBound{Type: UnboundedPreceding}
 	}
 	
-	// For now, we'll implement basic RANGE support
-	// Full implementation would handle various comparable types
-	return FrameBound{
-		Type:   CurrentRow,
-		Offset: value,
+	// Check if value is a special string indicating unbounded
+	if str, ok := value.(string); ok {
+		switch str {
+		case "UNBOUNDED PRECEDING":
+			return FrameBound{Type: UnboundedPreceding}
+		case "UNBOUNDED FOLLOWING":
+			return FrameBound{Type: UnboundedFollowing}
+		case "CURRENT ROW":
+			return FrameBound{Type: CurrentRow}
+		}
+	}
+	
+	// Numeric values indicate PRECEDING or FOLLOWING with offset
+	switch v := value.(type) {
+	case int:
+		if v < 0 {
+			return FrameBound{Type: Preceding, Offset: -v}
+		} else if v > 0 {
+			return FrameBound{Type: Following, Offset: v}
+		} else {
+			return FrameBound{Type: CurrentRow}
+		}
+	case int64:
+		if v < 0 {
+			return FrameBound{Type: Preceding, Offset: -v}
+		} else if v > 0 {
+			return FrameBound{Type: Following, Offset: v}
+		} else {
+			return FrameBound{Type: CurrentRow}
+		}
+	case float64:
+		if v < 0 {
+			return FrameBound{Type: Preceding, Offset: -v}
+		} else if v > 0 {
+			return FrameBound{Type: Following, Offset: v}
+		} else {
+			return FrameBound{Type: CurrentRow}
+		}
+	default:
+		// For other types, treat as current row
+		return FrameBound{Type: CurrentRow, Offset: value}
+	}
+}
+
+// createGroupBound creates a frame bound for GROUPS frames
+func (s *Spec) createGroupBound(offset int) FrameBound {
+	// GROUPS frames work similar to ROWS but count peer groups
+	if offset == 0 {
+		return FrameBound{Type: CurrentRow}
+	} else if offset < 0 {
+		return FrameBound{
+			Type:   Preceding,
+			Offset: -offset,
+		}
+	} else {
+		return FrameBound{
+			Type:   Following,
+			Offset: offset,
+		}
 	}
 }
 

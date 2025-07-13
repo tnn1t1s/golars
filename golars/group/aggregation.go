@@ -38,8 +38,9 @@ func (gb *GroupBy) Agg(aggregations map[string]expr.Expr) (*AggResult, error) {
 		result.Results[colName] = make([]interface{}, 0, len(gb.groups))
 	}
 
-	// Process each group
-	for hash, indices := range gb.groups {
+	// Process each group in order
+	for _, hash := range gb.groupOrder {
+		indices := gb.groups[hash]
 		// Apply aggregations
 		for colName, aggExpr := range aggregations {
 			if err := gb.applyAggregation(result, hash, indices, colName, aggExpr); err != nil {
@@ -56,7 +57,7 @@ func (gb *GroupBy) Agg(aggregations map[string]expr.Expr) (*AggResult, error) {
 func (gb *GroupBy) Sum(columns ...string) (*AggResult, error) {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_sum"] = expr.ColBuilder(col).Sum().Build()
+		aggs[col+"_sum"] = expr.Col(col).Sum()
 	}
 	return gb.Agg(aggs)
 }
@@ -65,7 +66,7 @@ func (gb *GroupBy) Sum(columns ...string) (*AggResult, error) {
 func (gb *GroupBy) Mean(columns ...string) (*AggResult, error) {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_mean"] = expr.ColBuilder(col).Mean().Build()
+		aggs[col+"_mean"] = expr.Col(col).Mean()
 	}
 	return gb.Agg(aggs)
 }
@@ -78,10 +79,11 @@ func (gb *GroupBy) Count() (*AggResult, error) {
 	// Create result columns
 	resultCols := make([]series.Series, 0, len(gb.groupCols)+1)
 
-	// Add group columns
+	// Add group columns in order
 	for i, groupCol := range gb.groupCols {
-		values := make([]interface{}, 0, len(gb.groups))
-		for _, keyValues := range gb.groupKeys {
+		values := make([]interface{}, 0, len(gb.groupOrder))
+		for _, hash := range gb.groupOrder {
+			keyValues := gb.groupKeys[hash]
 			values = append(values, keyValues[i])
 		}
 
@@ -91,9 +93,10 @@ func (gb *GroupBy) Count() (*AggResult, error) {
 		resultCols = append(resultCols, s)
 	}
 
-	// Add count column
-	counts := make([]int64, 0, len(gb.groups))
-	for _, indices := range gb.groups {
+	// Add count column in order
+	counts := make([]int64, 0, len(gb.groupOrder))
+	for _, hash := range gb.groupOrder {
+		indices := gb.groups[hash]
 		counts = append(counts, int64(len(indices)))
 	}
 	countSeries := series.NewInt64Series("count", counts)
@@ -106,7 +109,7 @@ func (gb *GroupBy) Count() (*AggResult, error) {
 func (gb *GroupBy) Min(columns ...string) (*AggResult, error) {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_min"] = expr.ColBuilder(col).Min().Build()
+		aggs[col+"_min"] = expr.Col(col).Min()
 	}
 	return gb.Agg(aggs)
 }
@@ -115,7 +118,7 @@ func (gb *GroupBy) Min(columns ...string) (*AggResult, error) {
 func (gb *GroupBy) Max(columns ...string) (*AggResult, error) {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_max"] = expr.ColBuilder(col).Max().Build()
+		aggs[col+"_max"] = expr.Col(col).Max()
 	}
 	return gb.Agg(aggs)
 }
@@ -196,10 +199,11 @@ func (gb *GroupBy) applyAggregation(result *AggregationResult, hash uint64,
 func (gb *GroupBy) buildResultDataFrame(result *AggregationResult) (*AggResult, error) {
 	columns := make([]series.Series, 0)
 
-	// Add group columns
+	// Add group columns in order
 	for i, groupCol := range gb.groupCols {
-		values := make([]interface{}, 0, len(result.GroupKeys))
-		for _, key := range result.GroupKeys {
+		values := make([]interface{}, 0, len(gb.groupOrder))
+		for _, hash := range gb.groupOrder {
+			key := result.GroupKeys[hash]
 			values = append(values, key[i])
 		}
 

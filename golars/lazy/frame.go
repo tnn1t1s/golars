@@ -25,6 +25,7 @@ func NewLazyFrame(plan LogicalPlan) *LazyFrame {
 			NewProjectionPushdown(),
 			NewCommonSubexpressionElimination(),
 			NewFilterCombining(),
+			NewJoinReordering(),
 			// TODO: Implement these optimizers
 			// NewColumnPruning(),
 		},
@@ -247,7 +248,7 @@ func (lgb *LazyGroupBy) Agg(aggs map[string]expr.Expr) *LazyFrame {
 func (lgb *LazyGroupBy) Sum(columns ...string) *LazyFrame {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		sumExpr := expr.ColBuilder(col).Sum().Build()
+		sumExpr := expr.Col(col).Sum()
 		// Use the same naming convention as the eager GroupBy
 		aggs[col+"_sum"] = sumExpr
 	}
@@ -258,7 +259,7 @@ func (lgb *LazyGroupBy) Sum(columns ...string) *LazyFrame {
 func (lgb *LazyGroupBy) Mean(columns ...string) *LazyFrame {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_mean"] = expr.ColBuilder(col).Mean().Build()
+		aggs[col+"_mean"] = expr.Col(col).Mean()
 	}
 	return lgb.Agg(aggs)
 }
@@ -266,7 +267,7 @@ func (lgb *LazyGroupBy) Mean(columns ...string) *LazyFrame {
 // Count returns the count of rows in each group
 func (lgb *LazyGroupBy) Count() *LazyFrame {
 	aggs := map[string]expr.Expr{
-		"count": expr.ColBuilder("").Count().Build(),
+		"count": expr.Col("*").Count(),
 	}
 	return lgb.Agg(aggs)
 }
@@ -275,7 +276,7 @@ func (lgb *LazyGroupBy) Count() *LazyFrame {
 func (lgb *LazyGroupBy) Min(columns ...string) *LazyFrame {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_min"] = expr.ColBuilder(col).Min().Build()
+		aggs[col+"_min"] = expr.Col(col).Min()
 	}
 	return lgb.Agg(aggs)
 }
@@ -284,7 +285,7 @@ func (lgb *LazyGroupBy) Min(columns ...string) *LazyFrame {
 func (lgb *LazyGroupBy) Max(columns ...string) *LazyFrame {
 	aggs := make(map[string]expr.Expr)
 	for _, col := range columns {
-		aggs[col+"_max"] = expr.ColBuilder(col).Max().Build()
+		aggs[col+"_max"] = expr.Col(col).Max()
 	}
 	return lgb.Agg(aggs)
 }

@@ -22,8 +22,8 @@ func TestFirstLastAggregation(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"first_value": expr.ColBuilder("value").First().Build(),
-		"last_value": expr.ColBuilder("value").Last().Build(),
+		"first_value": expr.Col("value").First(),
+		"last_value": expr.Col("value").Last(),
 	})
 	if err != nil {
 		t.Fatalf("First/Last aggregation failed: %v", err)
@@ -78,8 +78,8 @@ func TestFirstLastWithNulls(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"first_value": expr.ColBuilder("value").First().Build(),
-		"last_value": expr.ColBuilder("value").Last().Build(),
+		"first_value": expr.Col("value").First(),
+		"last_value": expr.Col("value").Last(),
 	})
 	if err != nil {
 		t.Fatalf("First/Last aggregation with nulls failed: %v", err)
@@ -130,8 +130,8 @@ func TestFirstLastAllNulls(t *testing.T) {
 	}
 	
 	result, err := gb.Agg(map[string]expr.Expr{
-		"first_value": expr.ColBuilder("value").First().Build(),
-		"last_value": expr.ColBuilder("value").Last().Build(),
+		"first_value": expr.Col("value").First(),
+		"last_value": expr.Col("value").Last(),
 	})
 	if err != nil {
 		t.Fatalf("First/Last aggregation failed: %v", err)

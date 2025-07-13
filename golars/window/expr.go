@@ -105,8 +105,11 @@ func (e *Expr) frameString(frame *FrameSpec) string {
 	}
 	
 	frameType := "ROWS"
-	if frame.Type == RangeFrame {
+	switch frame.Type {
+	case RangeFrame:
 		frameType = "RANGE"
+	case GroupsFrame:
+		frameType = "GROUPS"
 	}
 	
 	start := e.boundString(frame.Start)
