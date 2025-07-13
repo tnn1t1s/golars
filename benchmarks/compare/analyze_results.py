@@ -44,6 +44,7 @@ def main():
     size_map = {
         "light": "light",
         "small": "light",
+        "medium-safe": "medium_safe",
         "full": "full", 
         "medium": "full",
         "heavy": "heavy",

@@ -38,6 +38,13 @@ generate-medium-data:
     go run cmd/generate/main.go -size medium -format parquet
     @echo -e "${GREEN}✓ Medium dataset generated${NC}"
 
+# Generate medium-safe dataset for memory-constrained systems
+generate-medium-safe-data:
+    @echo -e "${BLUE}Generating medium-safe dataset (250k rows)...${NC}"
+    @mkdir -p data
+    go run cmd/generate/main.go -size medium-safe -format parquet
+    @echo -e "${GREEN}✓ Medium-safe dataset generated${NC}"
+
 # Generate heavy (large) dataset for stress tests
 generate-heavy-data:
     @echo -e "${BLUE}Generating heavy (large) dataset...${NC}"
@@ -63,6 +70,13 @@ run-full-golars: _ensure-medium-data
     cd groupby && go test -bench="BenchmarkGroupBy{{FULL_QUERIES}}_Medium" -benchtime=3x -run=^$ | tee ../{{RESULTS_DIR}}/golars_full.txt
     @echo -e "${GREEN}✓ Full golars benchmarks complete${NC}"
 
+# Run medium-safe golars benchmarks (Q1-Q6 on 250k rows)
+run-medium-safe-golars: _ensure-medium-safe-data
+    @echo -e "${GREEN}Running medium-safe golars benchmarks (Q1-Q6, 250k rows)...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd groupby && go test -bench="BenchmarkGroupBy{{LIGHT_QUERIES}}_MediumSafe" -benchtime=3x -run=^$ | tee ../{{RESULTS_DIR}}/golars_medium_safe.txt
+    @echo -e "${GREEN}✓ Medium-safe golars benchmarks complete${NC}"
+
 # Run heavy golars benchmarks (all queries on large data)
 run-heavy-golars: _ensure-heavy-data
     @echo -e "${GREEN}Running heavy golars benchmarks...${NC}"
@@ -78,7 +92,7 @@ run-heavy-golars: _ensure-heavy-data
 run-light-polars: _ensure-light-data _ensure-polars-setup
     @echo -e "${BLUE}Running light polars benchmarks (Q1-Q6)...${NC}"
     @mkdir -p {{RESULTS_DIR}}
-    cd compare && python3 run_polars_benchmarks.py small 1-6 | tee results/polars_light.txt
+    cd compare && source ../../polars/.venv/bin/activate && python run_polars_benchmarks.py small 1-6 | tee results/polars_light.txt
     @echo -e "${BLUE}✓ Light polars benchmarks complete${NC}"
 
 # Run full polars benchmarks (all queries on medium data)
@@ -88,6 +102,13 @@ run-full-polars: _ensure-medium-data
     @mkdir -p {{RESULTS_DIR}}
     cd compare && ./run_comparison.sh all medium
     @echo -e "${BLUE}✓ Full polars benchmarks complete${NC}"
+
+# Run medium-safe polars benchmarks (Q1-Q6 on 250k rows)
+run-medium-safe-polars: _ensure-medium-safe-data _ensure-polars-setup
+    @echo -e "${BLUE}Running medium-safe polars benchmarks (Q1-Q6, 250k rows)...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && source ../../polars/.venv/bin/activate && python run_polars_benchmarks.py medium-safe 1-6 | tee results/polars_medium_safe.txt
+    @echo -e "${BLUE}✓ Medium-safe polars benchmarks complete${NC}"
 
 # Run heavy polars benchmarks (all queries on large data)
 run-heavy-polars: _ensure-heavy-data
@@ -112,6 +133,12 @@ compare-full-benchmarks: run-full-golars run-full-polars
     @echo -e "${YELLOW}Comparing full benchmark results...${NC}"
     cd compare && python3 analyze.py medium
     @echo -e "${GREEN}✓ Full comparison complete${NC}"
+
+# Compare medium-safe benchmarks (Q1-Q6 on 250k rows)
+compare-medium-safe-benchmarks: run-medium-safe-golars run-medium-safe-polars
+    @echo -e "${YELLOW}Comparing medium-safe benchmark results...${NC}"
+    cd compare && python3 analyze_results.py medium-safe
+    @echo -e "${GREEN}✓ Medium-safe comparison complete${NC}"
 
 # Compare heavy benchmarks (all queries on large data)
 compare-heavy-benchmarks: run-heavy-golars run-heavy-polars
@@ -229,6 +256,13 @@ _ensure-medium-data:
         just generate-medium-data; \
     fi
 
+# Ensure medium-safe data exists
+_ensure-medium-safe-data:
+    @if [ ! -f "data/h2oai_medium-safe.parquet" ]; then \
+        echo -e "${YELLOW}Medium-safe data not found, generating...${NC}"; \
+        just generate-medium-safe-data; \
+    fi
+
 # Ensure heavy data exists
 _ensure-heavy-data:
     @if [ ! -f "data/h2oai_large.parquet" ]; then \
@@ -242,12 +276,13 @@ test-quick-benchmarks: compare-light-benchmarks
 
 # Ensure Polars is available
 _ensure-polars-setup:
-    @if [ ! -d "../../../../polars/py-polars" ]; then \
-        echo -e "${RED}Error: Polars not found at ../../../../polars${NC}"; \
+    @if [ ! -d "../polars/py-polars" ]; then \
+        echo -e "${RED}Error: Polars not found at ../polars${NC}"; \
         echo -e "${YELLOW}Please ensure Polars is cloned at the expected location${NC}"; \
         exit 1; \
     fi
-    @if ! python3 -c "import polars" 2>/dev/null; then \
-        echo -e "${YELLOW}Setting up Polars Python environment...${NC}"; \
-        cd ../../../../polars/py-polars && pip3 install -e . --quiet; \
+    @if [ ! -f "../polars/.venv/bin/activate" ]; then \
+        echo -e "${RED}Error: Polars virtual environment not found${NC}"; \
+        echo -e "${YELLOW}Please set up the Polars virtual environment first${NC}"; \
+        exit 1; \
     fi

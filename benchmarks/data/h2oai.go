@@ -36,6 +36,14 @@ var (
 		Sort:      false,
 	}
 
+	H2OAIMediumSafe = H2OAIConfig{
+		NRows:     250_000,
+		NGroups:   500,
+		NullRatio: 0.05,
+		Seed:      0,
+		Sort:      false,
+	}
+
 	H2OAILarge = H2OAIConfig{
 		NRows:     10_000_000,
 		NGroups:   10_000,
@@ -150,6 +158,8 @@ func GetConfigBySize(size string) (H2OAIConfig, error) {
 		return H2OAISmall, nil
 	case "medium":
 		return H2OAIMedium, nil
+	case "medium-safe":
+		return H2OAIMediumSafe, nil
 	case "large":
 		return H2OAILarge, nil
 	case "xlarge":
@@ -181,6 +191,12 @@ func GetDataSizeInfo() []DataSizeInfo {
 			Rows:        H2OAIMedium.NRows,
 			Groups:      H2OAIMedium.NGroups,
 			SizeInBytes: int64(H2OAIMedium.NRows) * 9 * 8,
+		},
+		{
+			Name:        "medium-safe",
+			Rows:        H2OAIMediumSafe.NRows,
+			Groups:      H2OAIMediumSafe.NGroups,
+			SizeInBytes: int64(H2OAIMediumSafe.NRows) * 9 * 8,
 		},
 		{
 			Name:        "large",

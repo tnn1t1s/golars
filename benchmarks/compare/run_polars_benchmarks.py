@@ -7,8 +7,6 @@ This script runs the benchmarks directly without pytest to have more control.
 import sys
 import time
 import os
-sys.path.insert(0, os.path.abspath("../../../../polars/py-polars"))
-
 import polars as pl
 
 def load_data(size):

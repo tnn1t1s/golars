@@ -1,0 +1,20 @@
+Loading small dataset...
+Loaded 10,000 rows with 9 columns
+Memory usage: 0.48 MB
+
+Running benchmarks...
+Q1: Simple sum: 3.48ms (100 rows)
+Q2: Sum with 2 group-by: 6.27ms (6,359 rows)
+Q3: Sum and mean: 3.12ms (100 rows)
+Q4: Multiple means: 2.22ms (100 rows)
+Q5: Multiple sums: 1.96ms (100 rows)
+Q6: Median and std: 7.19ms (6,322 rows)
+
+Summary:
+----------------------------------------
+Q1: 3.48ms
+Q2: 6.27ms
+Q3: 3.12ms
+Q4: 2.22ms
+Q5: 1.96ms
+Q6: 7.19ms
