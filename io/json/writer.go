@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/davidpalaitis/golars/frame"
+	"github.com/tnn1t1s/golars/frame"
 )
 
 // WriteOptions configures JSON writing behavior

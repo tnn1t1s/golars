@@ -4,9 +4,9 @@ package io
 import (
 	"os"
 
-	"github.com/davidpalaitis/golars/frame"
-	"github.com/davidpalaitis/golars/io/csv"
-	"github.com/davidpalaitis/golars/io/parquet"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/io/csv"
+	"github.com/tnn1t1s/golars/io/parquet"
 )
 
 // CSV Read Options

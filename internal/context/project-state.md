@@ -146,6 +146,6 @@ LazyFrame -> LogicalPlan -> Optimizers -> Executor -> DataFrame
 - Add benchmarks for performance-critical code
 
 ### Contact & Resources
-- GitHub: github.com/davidpalaitis/golars
+- GitHub: github.com/tnn1t1s/golars
 - License: MIT
 - Main maintainer: David Palaitis

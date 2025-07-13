@@ -3,9 +3,9 @@ package frame
 import (
 	"fmt"
 
-	"github.com/davidpalaitis/golars/internal/compute"
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/internal/compute"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // JoinType specifies the type of join operation

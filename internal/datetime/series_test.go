@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davidpalaitis/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

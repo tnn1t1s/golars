@@ -3,7 +3,7 @@ package expr_test
 import (
 	"fmt"
 
-	"github.com/davidpalaitis/golars/expr"
+	"github.com/tnn1t1s/golars/expr"
 )
 
 // Example demonstrates creating basic expressions

@@ -1,7 +1,7 @@
 package window
 
 import (
-	"github.com/davidpalaitis/golars/expr"
+	"github.com/tnn1t1s/golars/expr"
 )
 
 // FrameType represents the type of window frame (ROWS, RANGE, or GROUPS)

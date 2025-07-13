@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/davidpalaitis/golars"
+	"github.com/tnn1t1s/golars"
 )
 
 // ExampleDataFrameFrom demonstrates creating a DataFrame from a map

@@ -3,7 +3,7 @@ package golars
 import (
 	"fmt"
 	
-	"github.com/davidpalaitis/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // SeriesFrom creates a new series with automatic type inference

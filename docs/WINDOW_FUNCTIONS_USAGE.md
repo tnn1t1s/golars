@@ -19,9 +19,9 @@ Window functions perform calculations across a set of rows that are related to t
 
 ```go
 import (
-    "github.com/davidpalaitis/golars"
-    "github.com/davidpalaitis/golars/dataframe"
-    "github.com/davidpalaitis/golars/expr"
+    "github.com/tnn1t1s/golars"
+    "github.com/tnn1t1s/golars/dataframe"
+    "github.com/tnn1t1s/golars/expr"
 )
 
 // Basic window function usage

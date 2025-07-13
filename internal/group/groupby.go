@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // DataFrameInterface represents the methods needed from DataFrame

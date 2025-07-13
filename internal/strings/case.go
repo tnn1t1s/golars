@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // ToUpper converts all characters to uppercase

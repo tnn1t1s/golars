@@ -28,7 +28,7 @@ package main
 import (
     "fmt"
     "log"
-    "github.com/davidpalaitis/golars"
+    "github.com/tnn1t1s/golars"
 )
 
 func main() {
@@ -64,13 +64,13 @@ DataFrame: 4 × 3
 ## Build Verification
 
 All core packages now build successfully:
-- ✅ `github.com/davidpalaitis/golars` (main package)
-- ✅ `github.com/davidpalaitis/golars/frame`
-- ✅ `github.com/davidpalaitis/golars/series`
-- ✅ `github.com/davidpalaitis/golars/lazy`
-- ✅ `github.com/davidpalaitis/golars/io/csv`
-- ✅ `github.com/davidpalaitis/golars/io/parquet`
-- ✅ `github.com/davidpalaitis/golars/io/json`
+- ✅ `github.com/tnn1t1s/golars` (main package)
+- ✅ `github.com/tnn1t1s/golars/frame`
+- ✅ `github.com/tnn1t1s/golars/series`
+- ✅ `github.com/tnn1t1s/golars/lazy`
+- ✅ `github.com/tnn1t1s/golars/io/csv`
+- ✅ `github.com/tnn1t1s/golars/io/parquet`
+- ✅ `github.com/tnn1t1s/golars/io/json`
 
 ## Known Issues (Non-Critical)
 

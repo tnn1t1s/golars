@@ -3,9 +3,9 @@ package groupby
 import (
 	"testing"
 
-	"github.com/davidpalaitis/golars/benchmarks/data"
-	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/frame"
+	"github.com/tnn1t1s/golars/benchmarks/data"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/frame"
 )
 
 // Global variable to store test data

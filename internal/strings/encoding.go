@@ -7,7 +7,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // Encode encodes strings using the specified encoding

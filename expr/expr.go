@@ -3,7 +3,7 @@ package expr
 import (
 	"fmt"
 
-	"github.com/davidpalaitis/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // Expr represents an expression that can be evaluated

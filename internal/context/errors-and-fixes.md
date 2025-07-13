@@ -60,7 +60,7 @@ allocator := memory.DefaultAllocator
 
 **Fix**: Add the import
 ```go
-import "github.com/davidpalaitis/golars/datatypes"
+import "github.com/tnn1t1s/golars/datatypes"
 ```
 
 ## Type Constraint Errors

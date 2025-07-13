@@ -10,8 +10,8 @@
 // Window functions are created by combining a function with a window specification:
 //
 //	import (
-//	    "github.com/davidpalaitis/golars"
-//	    "github.com/davidpalaitis/golars/internal/window"
+//	    "github.com/tnn1t1s/golars"
+//	    "github.com/tnn1t1s/golars/internal/window"
 //	)
 //
 //	// Create a window specification

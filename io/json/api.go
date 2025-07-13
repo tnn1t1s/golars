@@ -1,7 +1,7 @@
 package json
 
 import (
-	"github.com/davidpalaitis/golars/frame"
+	"github.com/tnn1t1s/golars/frame"
 )
 
 // ReadJSON reads a JSON file into a DataFrame

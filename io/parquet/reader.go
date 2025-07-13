@@ -10,10 +10,10 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/apache/arrow/go/v14/parquet/file"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/davidpalaitis/golars/internal/chunked"
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/frame"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/internal/chunked"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // ReaderOptions configures parquet reading behavior

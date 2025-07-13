@@ -6,7 +6,7 @@ import (
 	"hash"
 	"hash/fnv"
 
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // HashTable for efficient join operations

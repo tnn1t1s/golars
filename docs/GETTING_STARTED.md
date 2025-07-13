@@ -34,7 +34,7 @@ package main
 import (
     "fmt"
     "log"
-    "github.com/davidpalaitis/golars"
+    "github.com/tnn1t1s/golars"
 )
 
 func main() {
@@ -73,13 +73,13 @@ func main() {
 Since Golars is a local project, you need to tell Go where to find it. Add a replace directive to your `go.mod`:
 
 ```bash
-go mod edit -replace github.com/davidpalaitis/golars=../golars
+go mod edit -replace github.com/tnn1t1s/golars=../golars
 ```
 
 Then get the dependency:
 
 ```bash
-go get github.com/davidpalaitis/golars
+go get github.com/tnn1t1s/golars
 ```
 
 ## Step 5: Run the Program

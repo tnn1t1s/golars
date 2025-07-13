@@ -3,8 +3,8 @@ package datetime
 import (
 	"testing"
 
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/expr"
 	"github.com/stretchr/testify/assert"
 )
 

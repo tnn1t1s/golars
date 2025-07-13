@@ -5,8 +5,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // Mode calculates the mode (most frequent value) of each column

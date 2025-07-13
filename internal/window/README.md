@@ -28,9 +28,9 @@ This package implements SQL-style window functions for the Golars DataFrame libr
 
 ```go
 import (
-    "github.com/davidpalaitis/golars"
-    "github.com/davidpalaitis/golars/dataframe"
-    "github.com/davidpalaitis/golars/expr"
+    "github.com/tnn1t1s/golars"
+    "github.com/tnn1t1s/golars/dataframe"
+    "github.com/tnn1t1s/golars/expr"
 )
 
 // Create window specification

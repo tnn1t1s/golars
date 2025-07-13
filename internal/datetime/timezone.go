@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // ConvertTimezone converts a DateTime to a different timezone

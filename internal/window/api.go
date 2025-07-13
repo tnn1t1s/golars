@@ -1,7 +1,7 @@
 package window
 
 import (
-	"github.com/davidpalaitis/golars/expr"
+	"github.com/tnn1t1s/golars/expr"
 )
 
 // WindowFunc wraps a Function to provide the Over method

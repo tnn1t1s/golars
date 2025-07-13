@@ -3,8 +3,8 @@ package frame
 import (
 	"fmt"
 
-	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/internal/group"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/group"
 )
 
 // GroupByWrapper wraps the group.GroupBy to provide DataFrame-returning methods

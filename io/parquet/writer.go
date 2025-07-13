@@ -10,9 +10,9 @@ import (
 	"github.com/apache/arrow/go/v14/parquet"
 	"github.com/apache/arrow/go/v14/parquet/compress"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/frame"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // CompressionType represents the compression algorithm to use

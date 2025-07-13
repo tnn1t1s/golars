@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/davidpalaitis/golars"
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/frame"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // CreateTestDataFrame creates a standard DataFrame for testing with the specified number of rows.

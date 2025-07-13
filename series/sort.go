@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/davidpalaitis/golars/internal/chunked"
-	"github.com/davidpalaitis/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/chunked"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // SortOrder represents the order of sorting

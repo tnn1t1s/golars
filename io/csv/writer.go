@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/davidpalaitis/golars/frame"
+	"github.com/tnn1t1s/golars/frame"
 )
 
 // Writer writes DataFrame data to CSV format

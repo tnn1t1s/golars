@@ -85,22 +85,22 @@ type WriterFactory func(dest io.Writer, opts ...WriterOption) DataFrameWriter
 External connectors should be implemented as separate Go modules:
 
 ```
-github.com/davidpalaitis/golars-excel     # Excel support
-github.com/davidpalaitis/golars-postgres  # PostgreSQL connector
-github.com/davidpalaitis/golars-mysql     # MySQL connector
-github.com/davidpalaitis/golars-sqlite    # SQLite connector
-github.com/davidpalaitis/golars-avro      # Avro format
-github.com/davidpalaitis/golars-arrow-ipc # Arrow IPC format
-github.com/davidpalaitis/golars-s3        # Native S3 support (no FUSE)
+github.com/tnn1t1s/golars-excel     # Excel support
+github.com/tnn1t1s/golars-postgres  # PostgreSQL connector
+github.com/tnn1t1s/golars-mysql     # MySQL connector
+github.com/tnn1t1s/golars-sqlite    # SQLite connector
+github.com/tnn1t1s/golars-avro      # Avro format
+github.com/tnn1t1s/golars-arrow-ipc # Arrow IPC format
+github.com/tnn1t1s/golars-s3        # Native S3 support (no FUSE)
 ```
 
 ### Example: Excel Connector
 ```go
-// In github.com/davidpalaitis/golars-excel
+// In github.com/tnn1t1s/golars-excel
 package excel
 
 import (
-    "github.com/davidpalaitis/golars"
+    "github.com/tnn1t1s/golars"
     "github.com/xuri/excelize/v2"
 )
 
@@ -122,11 +122,11 @@ func NewExcelReader(source io.Reader, opts ...golars.ReaderOption) golars.DataFr
 
 ### Example: PostgreSQL Connector
 ```go
-// In github.com/davidpalaitis/golars-postgres
+// In github.com/tnn1t1s/golars-postgres
 package postgres
 
 import (
-    "github.com/davidpalaitis/golars"
+    "github.com/tnn1t1s/golars"
     "github.com/jackc/pgx/v5"
 )
 
@@ -157,9 +157,9 @@ df, err := golars.ReadParquet("/mnt/s3/data.parquet")
 ### External Formats (user imports)
 ```go
 import (
-    "github.com/davidpalaitis/golars"
-    _ "github.com/davidpalaitis/golars-excel"     // Registers excel format
-    _ "github.com/davidpalaitis/golars-postgres"  // Registers postgres connector
+    "github.com/tnn1t1s/golars"
+    _ "github.com/tnn1t1s/golars-excel"     // Registers excel format
+    _ "github.com/tnn1t1s/golars-postgres"  // Registers postgres connector
 )
 
 // Excel (after importing golars-excel)

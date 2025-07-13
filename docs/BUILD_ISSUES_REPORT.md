@@ -9,7 +9,7 @@ The Golars library currently has compilation errors due to duplicate function de
 
 ### 1. Duplicate I/O Function Declarations (Critical)
 
-**Location**: Root package (`github.com/davidpalaitis/golars`)
+**Location**: Root package (`github.com/tnn1t1s/golars`)
 
 **Files involved**:
 - `io.go` (lines 13-31)
@@ -34,7 +34,7 @@ Remove the functions from `io.go` since `golars.go` already provides these as pa
 
 ### 2. Duplicate toFloat64Value Function (Secondary)
 
-**Location**: Frame package (`github.com/davidpalaitis/golars/frame`)
+**Location**: Frame package (`github.com/tnn1t1s/golars/frame`)
 
 **Files involved**:
 - `rolling_join.go` (line 421)
@@ -84,7 +84,7 @@ package main
 import (
     "fmt"
     "log"
-    "github.com/davidpalaitis/golars"
+    "github.com/tnn1t1s/golars"
 )
 
 func main() {

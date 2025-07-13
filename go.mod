@@ -1,4 +1,4 @@
-module github.com/davidpalaitis/golars
+module github.com/tnn1t1s/golars
 
 go 1.21
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/davidpalaitis/golars/internal/datatypes"
-	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/frame"
 )
 
 // LogicalPlan represents a node in the query plan tree

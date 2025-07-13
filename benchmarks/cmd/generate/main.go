@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/davidpalaitis/golars/benchmarks/data"
-	"github.com/davidpalaitis/golars/frame"
-	"github.com/davidpalaitis/golars/io/csv"
-	"github.com/davidpalaitis/golars/io/parquet"
+	"github.com/tnn1t1s/golars/benchmarks/data"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/io/csv"
+	"github.com/tnn1t1s/golars/io/parquet"
 )
 
 func main() {

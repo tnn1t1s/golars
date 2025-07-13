@@ -3,10 +3,10 @@ package lazy
 import (
 	"fmt"
 
-	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/frame"
-	"github.com/davidpalaitis/golars/io"
-	"github.com/davidpalaitis/golars/series"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/io"
+	"github.com/tnn1t1s/golars/series"
 )
 
 // Executor executes logical plans to produce DataFrames

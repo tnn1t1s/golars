@@ -3,8 +3,8 @@ package lazy
 import (
 	"testing"
 
-	"github.com/davidpalaitis/golars/expr"
-	"github.com/davidpalaitis/golars/frame"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/frame"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

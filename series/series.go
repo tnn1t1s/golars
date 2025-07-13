@@ -5,8 +5,8 @@ import (
 	"reflect"
 
 	"github.com/apache/arrow/go/v14/arrow"
-	"github.com/davidpalaitis/golars/internal/chunked"
-	"github.com/davidpalaitis/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/chunked"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // Series is a named column with a data type
