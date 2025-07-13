@@ -42,3 +42,13 @@ Thumbs.db
 # Local environment
 .env
 .env.local
+
+# Other projects and comparison directories
+polars/
+test_golars/
+transcripts/
+claude-observer/
+claude-docs/
+tools/
+.claude/
+.claudedocs/
