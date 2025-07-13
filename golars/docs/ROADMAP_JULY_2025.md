@@ -35,15 +35,14 @@ Golars has achieved approximately **90%** feature parity with Polars, with stron
 - [x] Common subexpression elimination
 - [x] Join reordering optimization
 
-### ✅ I/O Support (60% Complete)
+### ✅ Built-in I/O Support (100% Complete)
 - [x] **CSV**: Read/write with type inference and custom options
 - [x] **Parquet**: Read/write with compression (Snappy, Gzip, Zstd)
-- [x] **JSON/NDJSON**: Read/write with type inference and streaming
-- [ ] Database connectors (PostgreSQL, MySQL, SQLite)
-- [ ] Excel support (xlsx/xls)
-- [ ] Cloud storage integration (S3, Azure, GCS)
-- [ ] Apache Avro format
-- [ ] IPC/Arrow format
+- [x] Works over any filesystem (local, NAS, FUSE-mounted cloud storage)
+- [x] Streaming support for large files
+- [x] Predicate pushdown and column pruning for Parquet
+
+Note: Additional formats (JSON, databases, Excel, etc.) will be available as external packages via the I/O Integration Interface
 
 ### ✅ Window Functions (100% Complete)
 - [x] **Ranking**: ROW_NUMBER, RANK, DENSE_RANK, PERCENT_RANK, NTILE
@@ -132,20 +131,19 @@ Critical for time series analysis:
 
 ### 🟢 Medium Priority (Nice to Have)
 
-#### 6. Additional I/O Formats (60% Complete) - 4 weeks
-- [ ] **Databases**:
-  - [ ] PostgreSQL connector
-  - [ ] MySQL connector  
-  - [ ] SQLite connector
-  - [ ] Generic ODBC/JDBC
-- [ ] **File Formats**:
-  - [ ] Excel (xlsx/xls)
-  - [ ] Apache Avro
-  - [ ] IPC/Feather format
-- [ ] **Cloud Storage**:
-  - [ ] S3 integration
-  - [ ] Azure Blob Storage
-  - [ ] Google Cloud Storage
+#### 6. I/O Integration Interface (NEW) - 2 weeks
+- [ ] **Core Interfaces**:
+  - [ ] DataFrameReader/Writer interfaces
+  - [ ] ReaderOption/WriterOption configuration
+  - [ ] Format registration system
+  - [ ] Plugin discovery mechanism
+- [ ] **Documentation**:
+  - [ ] Interface specifications
+  - [ ] Connector development guide
+  - [ ] Example connector implementation
+- [ ] **Reference Implementation**:
+  - [ ] Simple JSON connector as example
+  - [ ] Test harness for external connectors
 
 #### 7. Advanced Data Types (10% Complete) - 3 weeks
 - [ ] **Complex Types**:
@@ -214,10 +212,10 @@ Critical for time series analysis:
 3. **Weeks 16-17**: Statistical Functions
 4. **Week 18**: Integration and optimization
 
-### Phase 3: Medium Priority Features (Q3 2025) - 9 weeks
-1. **Weeks 19-22**: Additional I/O Formats
-2. **Weeks 23-25**: Advanced Data Types
-3. **Weeks 26-27**: Expression Enhancements
+### Phase 3: Medium Priority Features (Q3 2025) - 7 weeks
+1. **Weeks 19-20**: I/O Integration Interface
+2. **Weeks 21-23**: Advanced Data Types
+3. **Weeks 24-25**: Expression Enhancements
 
 ### Phase 4: Performance & Polish (Q4 2025) - 10 weeks
 1. **Weeks 28-33**: Performance Optimizations
@@ -279,7 +277,8 @@ With focused effort, Golars can achieve feature parity with Polars by Q4 2025, p
 |----------|--------|--------|----------|
 | Core Data Structures | ✅ | ✅ | 100% |
 | Basic Operations | ✅ | ✅ | 95% |
-| I/O Formats | 🟡 | ✅ | 60% |
+| Built-in I/O (CSV/Parquet) | ✅ | ✅ | 100% |
+| External I/O Interface | ❌ | N/A | 0% |
 | String Operations | ✅ | ✅ | 100% |
 | DateTime | ✅ | ✅ | 100% |
 | Window Functions | ✅ | ✅ | 100% |
@@ -291,3 +290,5 @@ With focused effort, Golars can achieve feature parity with Polars by Q4 2025, p
 | **Overall** | **🟡** | **✅** | **90%** |
 
 Legend: ✅ Complete | 🟡 Partial | ❌ Not Started
+
+Note: Golars follows a different I/O strategy than Polars, keeping only CSV/Parquet in core and providing interfaces for external connectors as separate packages.
