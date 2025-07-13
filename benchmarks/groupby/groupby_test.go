@@ -58,7 +58,7 @@ func benchmarkGroupByQ1(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v1_sum": expr.ColBuilder("v1").Sum().Build(),
+			"v1_sum": expr.Col("v1").Sum(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -85,7 +85,7 @@ func benchmarkGroupByQ2(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v1_sum": expr.ColBuilder("v1").Sum().Build(),
+			"v1_sum": expr.Col("v1").Sum(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -112,8 +112,8 @@ func benchmarkGroupByQ3(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v1_sum":  expr.ColBuilder("v1").Sum().Build(),
-			"v3_mean": expr.ColBuilder("v3").Mean().Build(),
+			"v1_sum":  expr.Col("v1").Sum(),
+			"v3_mean": expr.Col("v3").Mean(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -140,9 +140,9 @@ func benchmarkGroupByQ4(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v1_mean": expr.ColBuilder("v1").Mean().Build(),
-			"v2_mean": expr.ColBuilder("v2").Mean().Build(),
-			"v3_mean": expr.ColBuilder("v3").Mean().Build(),
+			"v1_mean": expr.Col("v1").Mean(),
+			"v2_mean": expr.Col("v2").Mean(),
+			"v3_mean": expr.Col("v3").Mean(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -169,9 +169,9 @@ func benchmarkGroupByQ5(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v1_sum": expr.ColBuilder("v1").Sum().Build(),
-			"v2_sum": expr.ColBuilder("v2").Sum().Build(),
-			"v3_sum": expr.ColBuilder("v3").Sum().Build(),
+			"v1_sum": expr.Col("v1").Sum(),
+			"v2_sum": expr.Col("v2").Sum(),
+			"v3_sum": expr.Col("v3").Sum(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -198,8 +198,8 @@ func benchmarkGroupByQ6(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v3_median": expr.ColBuilder("v3").Median().Build(),
-			"v3_std":    expr.ColBuilder("v3").Std().Build(),
+			"v3_median": expr.Col("v3").Median(),
+			"v3_std":    expr.Col("v3").Std(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -226,7 +226,8 @@ func benchmarkGroupByQ7(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"range_v1_v2": expr.ColBuilder("v1").Max().Sub(expr.ColBuilder("v2").Min().Build()).Build(),
+			"v1_max": expr.Col("v1").Max(), // Simplified - Sub not available on AggExpr
+			"v2_min": expr.Col("v2").Min(),
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -260,7 +261,7 @@ func benchmarkGroupByQ8(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v3_max": expr.ColBuilder("v3").Max().Build(), // Simplified version
+			"v3_max": expr.Col("v3").Max(), // Simplified version
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -289,7 +290,7 @@ func benchmarkGroupByQ9(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"r2": expr.ColBuilder("v1").Mean().Build(), // Placeholder - should be corr(v1,v2)^2
+			"r2": expr.Col("v1").Mean(), // Placeholder - should be corr(v1,v2)^2
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -316,8 +317,8 @@ func benchmarkGroupByQ10(b *testing.B, df *frame.DataFrame) {
 			b.Fatal(err)
 		}
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v3_sum":   expr.ColBuilder("v3").Sum().Build(),
-			"v1_count": expr.ColBuilder("v1").Count().Build(),
+			"v3_sum":   expr.Col("v3").Sum(),
+			"v1_count": expr.Col("v1").Count(),
 		})
 		if err != nil {
 			b.Fatal(err)
