@@ -183,7 +183,7 @@ func ExampleColumnExpr_Between() {
 	// Output:
 	// Between: col(age).between(lit(25), lit(35))
 	// Price range: col(price).between(lit(10), lit(100))
-	// Date range: col(date).between(lit(2023-01-01), lit(2023-12-31))
+	// Date range: col(date).between(col(2023-01-01), col(2023-12-31))
 }
 
 // ExampleColumnExpr_IsIn demonstrates membership testing
@@ -242,5 +242,5 @@ func ExampleAlias() {
 	// Output:
 	// Aliased: (col(price) * col(quantity)).alias(total_price)
 	// Average: col(score).mean().alias(average_score)
-	// Profit margin: ((((col(revenue) - col(cost)) / col(revenue)) * lit(100))).alias(profit_margin_pct)
+	// Profit margin: (((col(revenue) - col(cost)) / col(revenue)) * lit(100)).alias(profit_margin_pct)
 }

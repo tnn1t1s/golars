@@ -140,6 +140,8 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 	switch firstResult.(type) {
 	case int32:
 		outputType = arrow.PrimitiveTypes.Int32
+	case bool:
+		outputType = arrow.FixedWidthTypes.Boolean
 	case string:
 		outputType = arrow.BinaryTypes.String
 	default:
@@ -172,6 +174,38 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 		
 		arr := builder.NewArray()
 		return series.NewInt32Series(name, arr.(*array.Int32).Int32Values())
+		
+	case arrow.FixedWidthTypes.Boolean:
+		builder := array.NewBooleanBuilder(pool)
+		defer builder.Release()
+		
+		for i := 0; i < length; i++ {
+			if s.IsNull(i) {
+				builder.AppendNull()
+			} else {
+				val := s.Get(i)
+				if str, ok := val.(string); ok {
+					result := op(str)
+					if boolVal, ok := result.(bool); ok {
+						builder.Append(boolVal)
+					} else {
+						builder.AppendNull()
+					}
+				} else {
+					builder.AppendNull()
+				}
+			}
+		}
+		
+		arr := builder.NewArray()
+		boolArr := arr.(*array.Boolean)
+		values := make([]bool, boolArr.Len())
+		for i := 0; i < boolArr.Len(); i++ {
+			if boolArr.IsValid(i) {
+				values[i] = boolArr.Value(i)
+			}
+		}
+		return series.NewBooleanSeries(name, values)
 		
 	default: // String output
 		builder := array.NewStringBuilder(pool)

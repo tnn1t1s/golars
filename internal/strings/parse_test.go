@@ -19,6 +19,7 @@ func TestStringToInteger(t *testing.T) {
 		intSeries, err := ops.ToInteger()
 		require.NoError(t, err)
 		assert.Equal(t, 4, intSeries.Len())
+		// The type will be Int16 since we have negative values
 		assert.Equal(t, datatypes.Int16{}, intSeries.DataType())
 		assert.Equal(t, int16(123), intSeries.Get(0))
 		assert.Equal(t, int16(456), intSeries.Get(1))
@@ -49,8 +50,10 @@ func TestStringToInteger(t *testing.T) {
 		assert.True(t, intSeries.IsNull(1))  // "abc" is invalid
 		assert.False(t, intSeries.IsNull(2))
 		assert.True(t, intSeries.IsNull(3))  // empty string
-		assert.Equal(t, int16(123), intSeries.Get(0))
-		assert.Equal(t, int16(456), intSeries.Get(2))
+		// Since we only have positive values 123 and 456, type will be UInt16
+		assert.Equal(t, datatypes.UInt16{}, intSeries.DataType())
+		assert.Equal(t, uint16(123), intSeries.Get(0))
+		assert.Equal(t, uint16(456), intSeries.Get(2))
 	})
 
 	t.Run("Large integers", func(t *testing.T) {

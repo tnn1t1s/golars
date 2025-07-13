@@ -35,28 +35,51 @@ func TestFirstLastAggregation(t *testing.T) {
 	}
 
 	// Check values
+	// Result should have group column and aggregation columns
+	// but order may vary due to map iteration
+	if len(result.Columns) != 3 {
+		t.Fatalf("Expected 3 columns, got %d", len(result.Columns))
+	}
+	
+	// Create a map of actual results grouped by group value
+	type groupResult struct {
+		first, last float64
+	}
+	actualResults := make(map[string]groupResult)
+	
+	// First column should be the group column
 	groupCol := result.Columns[0]
-	firstCol := result.Columns[1]
-	lastCol := result.Columns[2]
-	
-	expectedFirst := map[string]float64{"A": 1.0, "B": 4.0}
-	expectedLast := map[string]float64{"A": 3.0, "B": 6.0}
-	
 	for i := 0; i < groupCol.Len(); i++ {
 		groupVal := groupCol.Get(i).(string)
-		firstVal := firstCol.Get(i).(float64)
-		lastVal := lastCol.Get(i).(float64)
-		
-		if expected, ok := expectedFirst[groupVal]; ok {
-			if firstVal != expected {
-				t.Errorf("Group %s: expected first %f, got %f", groupVal, expected, firstVal)
+		// Find first and last values for this group
+		var first, last float64
+		for _, col := range result.Columns[1:] {
+			val := col.Get(i).(float64)
+			if col.Name() == "first_value" {
+				first = val
+			} else if col.Name() == "last_value" {
+				last = val
 			}
 		}
-		
-		if expected, ok := expectedLast[groupVal]; ok {
-			if lastVal != expected {
-				t.Errorf("Group %s: expected last %f, got %f", groupVal, expected, lastVal)
+		actualResults[groupVal] = groupResult{first: first, last: last}
+	}
+	
+	// Check expected values
+	expected := map[string]groupResult{
+		"A": {first: 1.0, last: 3.0},
+		"B": {first: 4.0, last: 6.0},
+	}
+	
+	for group, exp := range expected {
+		if actual, ok := actualResults[group]; ok {
+			if actual.first != exp.first {
+				t.Errorf("Group %s: expected first %f, got %f", group, exp.first, actual.first)
 			}
+			if actual.last != exp.last {
+				t.Errorf("Group %s: expected last %f, got %f", group, exp.last, actual.last)
+			}
+		} else {
+			t.Errorf("Group %s not found in results", group)
 		}
 	}
 }
@@ -88,28 +111,51 @@ func TestFirstLastWithNulls(t *testing.T) {
 	// Check values - should skip nulls
 	// Group A: [null, 1, 2] -> first = 1, last = 2
 	// Group B: [null, 3, 4] -> first = 3, last = 4
+	
+	// Result should have group column and aggregation columns
+	if len(result.Columns) != 3 {
+		t.Fatalf("Expected 3 columns, got %d", len(result.Columns))
+	}
+	
+	// Create a map of actual results grouped by group value
+	type groupResult struct {
+		first, last float64
+	}
+	actualResults := make(map[string]groupResult)
+	
+	// First column should be the group column
 	groupCol := result.Columns[0]
-	firstCol := result.Columns[1]
-	lastCol := result.Columns[2]
-	
-	expectedFirst := map[string]float64{"A": 1.0, "B": 3.0}
-	expectedLast := map[string]float64{"A": 2.0, "B": 4.0}
-	
 	for i := 0; i < groupCol.Len(); i++ {
 		groupVal := groupCol.Get(i).(string)
-		firstVal := firstCol.Get(i).(float64)
-		lastVal := lastCol.Get(i).(float64)
-		
-		if expected, ok := expectedFirst[groupVal]; ok {
-			if firstVal != expected {
-				t.Errorf("Group %s: expected first %f, got %f", groupVal, expected, firstVal)
+		// Find first and last values for this group
+		var first, last float64
+		for _, col := range result.Columns[1:] {
+			val := col.Get(i).(float64)
+			if col.Name() == "first_value" {
+				first = val
+			} else if col.Name() == "last_value" {
+				last = val
 			}
 		}
-		
-		if expected, ok := expectedLast[groupVal]; ok {
-			if lastVal != expected {
-				t.Errorf("Group %s: expected last %f, got %f", groupVal, expected, lastVal)
+		actualResults[groupVal] = groupResult{first: first, last: last}
+	}
+	
+	// Check expected values
+	expected := map[string]groupResult{
+		"A": {first: 1.0, last: 2.0},
+		"B": {first: 3.0, last: 4.0},
+	}
+	
+	for group, exp := range expected {
+		if actual, ok := actualResults[group]; ok {
+			if actual.first != exp.first {
+				t.Errorf("Group %s: expected first %f, got %f", group, exp.first, actual.first)
 			}
+			if actual.last != exp.last {
+				t.Errorf("Group %s: expected last %f, got %f", group, exp.last, actual.last)
+			}
+		} else {
+			t.Errorf("Group %s not found in results", group)
 		}
 	}
 }

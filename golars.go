@@ -9,7 +9,6 @@ import (
 	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/io"
 	"github.com/tnn1t1s/golars/io/parquet"
-	"github.com/tnn1t1s/golars/lazy"
 	"github.com/tnn1t1s/golars/series"
 	"github.com/tnn1t1s/golars/internal/window"
 )
@@ -29,9 +28,6 @@ type Field = datatypes.Field
 
 // SortOptions contains options for sorting
 type SortOptions = frame.SortOptions
-
-// LazyFrame represents a lazy computation on a DataFrame
-type LazyFrame = lazy.LazyFrame
 
 // JoinType specifies the type of join operation
 type JoinType = frame.JoinType
@@ -254,21 +250,6 @@ var (
 	WithPageSize         = io.WithPageSize
 	WithDictionary       = io.WithDictionary
 )
-
-// LazyFromDataFrame creates a LazyFrame from an existing DataFrame
-func LazyFromDataFrame(df *DataFrame) *LazyFrame {
-	return lazy.NewLazyFrameFromDataFrame(df)
-}
-
-// ScanCSV creates a LazyFrame from a CSV file without reading it immediately
-func ScanCSV(path string) *LazyFrame {
-	return lazy.NewLazyFrame(lazy.NewScanNode(lazy.NewCSVSource(path)))
-}
-
-// ScanParquet creates a LazyFrame from a Parquet file without reading it immediately
-func ScanParquet(path string) *LazyFrame {
-	return lazy.NewLazyFrame(lazy.NewScanNode(lazy.NewParquetSource(path)))
-}
 
 // Window functions
 

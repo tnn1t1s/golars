@@ -33,7 +33,7 @@ func TestDataFrameFilter(t *testing.T) {
 
 	t.Run("EqualityFilter", func(t *testing.T) {
 		// Filter name == "Bob"
-		filtered, err := df.Filter(expr.Col("name").Eq("Bob"))
+		filtered, err := df.Filter(expr.Col("name").Eq(expr.Lit("Bob")))
 		assert.NoError(t, err)
 		assert.Equal(t, 1, filtered.Height())
 		
@@ -223,8 +223,8 @@ func TestComplexFilters(t *testing.T) {
 	t.Run("ComplexCompoundFilter", func(t *testing.T) {
 		// (category == "A" OR category == "B") AND value > 50 AND flag == true
 		filtered, err := df.Filter(
-			expr.Col("category").Eq("A").Or(
-				expr.Col("category").Eq("B"),
+			expr.Col("category").Eq(expr.Lit("A")).Or(
+				expr.Col("category").Eq(expr.Lit("B")),
 			).And(
 				expr.Col("value").Gt(50),
 			).And(
@@ -257,7 +257,7 @@ func TestComplexFilters(t *testing.T) {
 		filtered1, err := df.Filter(expr.Col("value").Ge(30))
 		assert.NoError(t, err)
 		
-		filtered2, err := filtered1.Filter(expr.Col("category").Ne("C"))
+		filtered2, err := filtered1.Filter(expr.Col("category").Ne(expr.Lit("C")))
 		assert.NoError(t, err)
 		
 		filtered3, err := filtered2.Filter(expr.Col("flag").Eq(true))
@@ -266,7 +266,7 @@ func TestComplexFilters(t *testing.T) {
 		// Should be equivalent to combining all conditions
 		combined, err := df.Filter(
 			expr.Col("value").Ge(30).And(
-				expr.Col("category").Ne("C"),
+				expr.Col("category").Ne(expr.Lit("C")),
 			).And(
 				expr.Col("flag").Eq(true),
 			),
@@ -317,7 +317,7 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 	})
 	
 	b.Run("StringFilter", func(b *testing.B) {
-		filterExpr := expr.Col("category").Eq("A")
+		filterExpr := expr.Col("category").Eq(expr.Lit("A"))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			filtered, _ := df.Filter(filterExpr)

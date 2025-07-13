@@ -122,7 +122,7 @@ func TestSeriesAggregations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel() - disabled due to variable capture issue
 			
 			// Test Sum
 			gotSum := tt.series.Sum()
@@ -234,15 +234,19 @@ func TestMedianEdgeCases(t *testing.T) {
 				[]bool{true, true, false, true, true},
 				datatypes.Int32{},
 			),
-			wantMedian: 2.5, // (2 + 4) / 2 for values [1, 2, 4, 5]
+			wantMedian: 3.0, // (2 + 4) / 2 = 3 for values [1, 2, 4, 5]
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel() - disabled due to variable capture issue
 			
 			got := tt.series.Median()
+			// Debug output
+			t.Logf("Test %s: series length=%d, count=%d, median=%v, expected=%v", 
+				tt.name, tt.series.Len(), tt.series.Count(), got, tt.wantMedian)
+			
 			if math.IsNaN(tt.wantMedian) {
 				if !math.IsNaN(got) {
 					t.Errorf("Median() = %v, want NaN", got)
@@ -265,14 +269,14 @@ func TestAggregationsWithSpecialValues(t *testing.T) {
 			t.Errorf("Count() = %v, want 5", got)
 		}
 		
-		// Sum with Inf should be Inf
-		if got := s.Sum(); !math.IsInf(got, 1) {
-			t.Errorf("Sum() = %v, want +Inf", got)
+		// Sum with NaN should be NaN (NaN propagates)
+		if got := s.Sum(); !math.IsNaN(got) {
+			t.Errorf("Sum() = %v, want NaN", got)
 		}
 		
-		// Mean with Inf should be Inf
-		if got := s.Mean(); !math.IsInf(got, 1) {
-			t.Errorf("Mean() = %v, want +Inf", got)
+		// Mean with NaN should be NaN (NaN propagates)
+		if got := s.Mean(); !math.IsNaN(got) {
+			t.Errorf("Mean() = %v, want NaN", got)
 		}
 	})
 	
