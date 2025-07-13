@@ -158,6 +158,321 @@ Results are stored in JSON format:
 }
 ```
 
+## How Benchmark Results are Collected
+
+The golars benchmark suite provides comprehensive tools for collecting, storing, and analyzing performance metrics. This section details the complete process from running benchmarks to analyzing results.
+
+### Collection Process Overview
+
+1. **Benchmark Execution**: Uses Go's built-in testing framework
+2. **Result Capture**: Output is saved in standardized formats
+3. **Data Parsing**: Scripts extract metrics from raw output
+4. **Analysis**: Tools compare golars vs Polars performance
+5. **Visualization**: Results are formatted for easy interpretation
+
+### Running Benchmarks
+
+#### Using Go Test Directly
+
+The most basic way to run benchmarks:
+
+```bash
+# Run all benchmarks in a package
+go test -bench=. ./groupby -benchmem
+
+# Run specific benchmark
+go test -bench=BenchmarkGroupByQ1_Small ./groupby -benchmem
+
+# Run with multiple iterations for statistical accuracy
+go test -bench=. ./groupby -benchmem -count=5 -benchtime=10x
+```
+
+**Command flags explained:**
+- `-bench=.`: Run all benchmarks (or use regex pattern)
+- `-benchmem`: Include memory allocation statistics
+- `-count=5`: Run each benchmark 5 times
+- `-benchtime=10x`: Run each benchmark for 10 iterations (or use duration like `10s`)
+- `-cpuprofile=cpu.prof`: Generate CPU profile
+- `-memprofile=mem.prof`: Generate memory profile
+- `-run=^$`: Skip regular tests, only run benchmarks
+
+#### Using Make Commands
+
+```bash
+# Run group-by benchmarks and save results
+make benchmark-groupby SIZE=medium
+
+# Run all benchmark suites
+make benchmark-all SIZE=large
+
+# Compare with Polars
+make compare SIZE=medium
+```
+
+#### Using Just Commands (Recommended)
+
+The justfile provides the most comprehensive benchmark automation:
+
+```bash
+# Light benchmarks (Q1-Q6, small dataset)
+just run-light-golars
+just run-light-polars
+just compare-light-benchmarks
+
+# Full benchmarks (all queries, medium dataset)
+just run-full-golars
+just run-full-polars
+just compare-full-benchmarks
+
+# Heavy benchmarks (all queries, large dataset)
+just run-heavy-golars
+just run-heavy-polars
+just compare-heavy-benchmarks
+```
+
+### Understanding Benchmark Output
+
+#### Go Benchmark Format
+
+Go benchmarks produce output in this format:
+
+```
+BenchmarkGroupByQ1_Small-8   	     306	   3492280 ns/op	  890327 B/op	   41158 allocs/op
+```
+
+**Breaking down each column:**
+1. **Benchmark name**: `BenchmarkGroupByQ1_Small-8`
+   - Function name: `BenchmarkGroupByQ1_Small`
+   - `-8`: Number of GOMAXPROCS (CPU cores used)
+
+2. **Iterations**: `306`
+   - Number of times the benchmark was run
+   - Go automatically adjusts this for reliable timing
+
+3. **Time per operation**: `3492280 ns/op`
+   - Average nanoseconds per benchmark iteration
+   - Convert to other units: 3.49ms in this example
+
+4. **Memory per operation**: `890327 B/op`
+   - Bytes allocated per iteration
+   - Includes all heap allocations during the operation
+
+5. **Allocations per operation**: `41158 allocs/op`
+   - Number of heap allocations
+   - High allocation counts can indicate GC pressure
+
+#### Statistical Output (with -count flag)
+
+When using `-count=5`, you might see:
+
+```
+BenchmarkGroupByQ1_Small-8   	     300	   3492280 ns/op	  890327 B/op	   41158 allocs/op
+BenchmarkGroupByQ1_Small-8   	     298	   3510234 ns/op	  890327 B/op	   41158 allocs/op
+BenchmarkGroupByQ1_Small-8   	     302	   3488901 ns/op	  890327 B/op	   41158 allocs/op
+BenchmarkGroupByQ1_Small-8   	     299	   3502111 ns/op	  890327 B/op	   41158 allocs/op
+BenchmarkGroupByQ1_Small-8   	     301	   3495672 ns/op	  890327 B/op	   41158 allocs/op
+```
+
+This provides data for calculating statistics like median, standard deviation, etc.
+
+### Result Storage
+
+#### Directory Structure
+
+```
+benchmarks/
+└── results/              # All results stored here (gitignored)
+    ├── golars_light.txt      # Light benchmark results
+    ├── golars_full.txt       # Full benchmark results
+    ├── golars_heavy.txt      # Heavy benchmark results
+    ├── polars_light.txt      # Polars equivalent results
+    ├── polars_full.json      # Polars JSON format results
+    └── comparison_report.md  # Generated comparison report
+```
+
+#### File Formats
+
+**Golars results** (`.txt` files):
+- Raw output from `go test -bench`
+- Plain text format, easy to parse with regex
+- Includes all benchmark runs if using `-count`
+
+**Polars results** (`.json` files):
+- JSON format from pytest-benchmark
+- Contains detailed statistics
+- Includes environment information
+
+### Data Extraction and Parsing
+
+#### Parsing Golars Results
+
+The `analyze.py` script extracts metrics using regex:
+
+```python
+def parse_golars_results(txt_path: Path) -> Dict[str, Tuple[float, int]]:
+    """Parse Go benchmark output."""
+    results = {}
+    
+    with open(txt_path) as f:
+        for line in f:
+            # Parse lines like: BenchmarkGroupByQ1_Medium-8    1234    987654 ns/op    12345 B/op    67 allocs/op
+            match = re.search(r'BenchmarkGroupBy(Q\d+)_\w+.*?\s+\d+\s+(\d+)\s+ns/op\s+(\d+)\s+B/op', line)
+            if match:
+                query = match.group(1).lower()
+                time_ns = int(match.group(2))
+                memory_bytes = int(match.group(3))
+                # Convert nanoseconds to seconds
+                results[query] = (time_ns / 1e9, memory_bytes)
+    
+    return results
+```
+
+#### Parsing Polars Results
+
+Polars/pytest-benchmark produces JSON with this structure:
+
+```json
+{
+  "benchmarks": [
+    {
+      "name": "test_groupby_h2oai_q1",
+      "stats": {
+        "min": 0.0421,
+        "max": 0.0456,
+        "mean": 0.0435,
+        "median": 0.0433,
+        "stddev": 0.0012,
+        "rounds": 5,
+        "iterations": 1
+      }
+    }
+  ]
+}
+```
+
+### Performance Metrics Calculated
+
+#### Primary Metrics
+
+1. **Execution Time**
+   - Wall-clock time for the operation
+   - Measured in nanoseconds, converted to milliseconds/seconds
+   - Lower is better
+
+2. **Memory Usage**
+   - Total heap memory allocated
+   - Measured in bytes, converted to MB/GB
+   - Lower is better
+
+3. **Allocation Count**
+   - Number of heap allocations
+   - Indicates GC pressure
+   - Lower is better
+
+#### Derived Metrics
+
+1. **Throughput**
+   - Rows processed per second
+   - Calculated as: `rows / execution_time`
+   - Higher is better
+
+2. **Memory Efficiency**
+   - Bytes per row: `memory_usage / rows`
+   - Indicates memory scalability
+   - Lower is better
+
+3. **Speedup Ratio**
+   - Comparison between golars and Polars
+   - Calculated as: `polars_time / golars_time`
+   - Values > 1.0 mean golars is faster
+
+### Analysis Tools
+
+#### Basic Analysis
+
+```bash
+# Analyze light benchmark results
+just analyze-light-results
+
+# Custom analysis with Python script
+python compare/analyze.py \
+  --golars results/golars_full.txt \
+  --polars results/polars_full.json
+```
+
+#### Analysis Output Example
+
+```
+Benchmark Comparison Report
+==========================
+
+Dataset: Medium (1,000,000 rows)
+
+Query Performance:
+┌─────────┬──────────────┬──────────────┬──────────┬──────────────┐
+│ Query   │ Golars (ms)  │ Polars (ms)  │ Speedup  │ Memory (MB)  │
+├─────────┼──────────────┼──────────────┼──────────┼──────────────┤
+│ Q1      │ 45.2 ± 1.2   │ 38.5 ± 0.8   │ 0.85x    │ 125.4        │
+│ Q2      │ 67.8 ± 2.1   │ 55.3 ± 1.5   │ 0.82x    │ 187.6        │
+│ Q3      │ 89.3 ± 3.2   │ 71.2 ± 2.1   │ 0.80x    │ 215.8        │
+└─────────┴──────────────┴──────────────┴──────────┴──────────────┘
+
+Throughput (rows/sec):
+- Golars Q1: 22,123,893
+- Polars Q1: 25,974,026
+```
+
+### Advanced Features
+
+#### CPU Profiling
+
+```bash
+# Generate CPU profile
+go test -bench=BenchmarkGroupByQ1 ./groupby -cpuprofile=cpu.prof
+
+# Analyze profile
+go tool pprof cpu.prof
+```
+
+#### Memory Profiling
+
+```bash
+# Generate memory profile
+go test -bench=BenchmarkGroupByQ1 ./groupby -memprofile=mem.prof
+
+# Analyze allocations
+go tool pprof -alloc_space mem.prof
+```
+
+#### Continuous Benchmarking
+
+For CI/CD integration:
+
+```bash
+# Save results with timestamp
+DATE=$(date +%Y%m%d_%H%M%S)
+go test -bench=. ./groupby -benchmem | tee results/golars_${DATE}.txt
+
+# Compare with previous run
+python compare/analyze_trends.py \
+  --current results/golars_${DATE}.txt \
+  --previous results/golars_previous.txt
+```
+
+### Best Practices
+
+1. **Warm-up Runs**: Go benchmarks automatically handle warm-up
+2. **Multiple Iterations**: Use `-count=5` or more for statistical validity
+3. **Consistent Environment**: 
+   - Close other applications
+   - Disable CPU frequency scaling
+   - Use consistent GOMAXPROCS
+4. **Data Size Selection**:
+   - Small: Quick development feedback
+   - Medium: Standard comparisons
+   - Large: Production-like performance
+5. **Result Validation**: Always verify operations produce correct results
+
 ## Contributing
 
 When adding new benchmarks:
