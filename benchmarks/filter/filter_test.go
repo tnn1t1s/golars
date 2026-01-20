@@ -99,21 +99,21 @@ func benchmarkFilterString(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkFilterIsIn - Filter using IsIn
-// Polars: df.filter(pl.col("id1").is_in(["id001", "id002", "id003"]))
-func BenchmarkFilterIsIn_Small(b *testing.B) {
-	benchmarkFilterIsIn(b, testData.small)
+// BenchmarkFilterOr - Filter with OR condition
+// Polars: df.filter((pl.col("v1") > 4) | (pl.col("v2") < 5))
+func BenchmarkFilterOr_Small(b *testing.B) {
+	benchmarkFilterOr(b, testData.small)
 }
 
-func BenchmarkFilterIsIn_Medium(b *testing.B) {
-	benchmarkFilterIsIn(b, testData.medium)
+func BenchmarkFilterOr_Medium(b *testing.B) {
+	benchmarkFilterOr(b, testData.medium)
 }
 
-func benchmarkFilterIsIn(b *testing.B, df *frame.DataFrame) {
+func benchmarkFilterOr(b *testing.B, df *frame.DataFrame) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		result, err := df.Filter(
-			expr.Col("id1").IsIn([]string{"id001", "id002", "id003"}),
+			expr.Col("v1").Gt(4).Or(expr.Col("v2").Lt(5)),
 		)
 		if err != nil {
 			b.Fatal(err)
