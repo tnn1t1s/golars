@@ -15,9 +15,11 @@ The benchmarks are based on:
 ```
 benchmarks/
 ├── data/          # Data generation utilities
-├── groupby/       # H2O.ai group-by benchmarks
+├── agg/           # Aggregation benchmarks (sum, mean, min, max, std, var, median)
 ├── filter/        # Filter operation benchmarks
+├── groupby/       # H2O.ai group-by benchmarks (Q1-Q10)
 ├── join/          # Join operation benchmarks
+├── sort/          # Sort benchmarks (single/multi column, asc/desc)
 ├── io/            # I/O benchmarks (CSV, Parquet)
 ├── compare/       # Comparison scripts and analysis tools
 └── results/       # Benchmark results (gitignored)
@@ -28,19 +30,24 @@ benchmarks/
 ### Quick Start
 
 ```bash
-# Run all benchmarks with medium dataset (1M rows)
+# Run all benchmarks with medium dataset
 make benchmark-all
 
 # Run specific benchmark suite
-make benchmark-groupby
-make benchmark-filter
-make benchmark-join
-make benchmark-io
+make benchmark-agg       # Aggregation operations (sum, mean, min, max, std, var, median)
+make benchmark-filter    # Filter operations (simple, compound, string, OR)
+make benchmark-sort      # Sort operations (single/multi column, asc/desc, int/string/float)
+make benchmark-groupby   # H2O.ai group-by queries (Q1-Q10)
+make benchmark-join      # Join operations (inner, left, multi-key)
+make benchmark-io        # I/O operations (CSV, Parquet read/write)
 
 # Run with different data sizes
-BENCH_SIZE=small make benchmark-all   # 10K rows
-BENCH_SIZE=medium make benchmark-all  # 1M rows (default)
-BENCH_SIZE=large make benchmark-all   # 10M rows
+make benchmark-all SIZE=small    # 10K rows, fast feedback
+make benchmark-all SIZE=medium   # 250K rows (default, memory-safe)
+make benchmark-all SIZE=large    # 10M rows, production-like
+
+# Run with more iterations for statistical accuracy
+make benchmark-all COUNT=5
 ```
 
 ### Detailed Usage
@@ -108,6 +115,55 @@ python compare/visualize.py --output results/comparison_charts.html
 | Q8 | Top-k | Group by 1 column, top 2 values |
 | Q9 | Correlation | Group by 2 columns, correlation squared |
 | Q10 | All columns | Group by all ID columns, sum and count |
+
+### Aggregation Benchmarks
+
+| Benchmark | Description |
+|-----------|-------------|
+| Sum | Sum of integer column |
+| Mean | Mean of float column |
+| Min | Minimum value |
+| Max | Maximum value |
+| Std | Standard deviation |
+| Var | Variance |
+| Median | Median value |
+| Count | Row count |
+
+### Filter Benchmarks
+
+| Benchmark | Description |
+|-----------|-------------|
+| FilterSimple | Single column comparison (v1 > 5) |
+| FilterCompound | AND condition (v1 > 5 AND v2 < 10) |
+| FilterString | String equality (id1 == "id010") |
+| FilterOr | OR condition (v1 > 4 OR v2 < 5) |
+
+### Sort Benchmarks
+
+| Benchmark | Description |
+|-----------|-------------|
+| SortSingleInt | Sort by single integer column |
+| SortSingleString | Sort by single string column |
+| SortMultiColumn | Sort by multiple columns |
+| SortDescending | Sort in descending order |
+| SortFloat | Sort by float column |
+
+### Join Benchmarks
+
+| Benchmark | Description |
+|-----------|-------------|
+| InnerJoin | Inner join on single column |
+| LeftJoin | Left join on single column |
+| MultiKeyJoin | Join on multiple columns |
+
+### I/O Benchmarks
+
+| Benchmark | Description |
+|-----------|-------------|
+| WriteCSV | Write DataFrame to CSV |
+| ReadCSV | Read DataFrame from CSV |
+| WriteParquet | Write DataFrame to Parquet |
+| ReadParquet | Read DataFrame from Parquet |
 
 ### Data Schema
 
