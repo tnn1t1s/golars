@@ -12,8 +12,8 @@ import (
 
 // Global variable to store test data
 var testData struct {
-	small  *frame.DataFrame
-	medium *frame.DataFrame
+	small   *frame.DataFrame
+	medium  *frame.DataFrame
 	tempDir string
 }
 
@@ -52,14 +52,14 @@ func BenchmarkWriteCSV_Medium(b *testing.B) {
 
 func benchmarkWriteCSV(b *testing.B, df *frame.DataFrame, filename string) {
 	path := filepath.Join(testData.tempDir, filename)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := golars.WriteCSV(df, path)
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		// Clean up after each iteration
 		os.Remove(path)
 	}
@@ -76,14 +76,14 @@ func BenchmarkReadCSV_Medium(b *testing.B) {
 
 func benchmarkReadCSV(b *testing.B, df *frame.DataFrame, filename string) {
 	path := filepath.Join(testData.tempDir, filename)
-	
+
 	// Write the file once for reading
 	err := golars.WriteCSV(df, path)
 	if err != nil {
 		b.Fatal(err)
 	}
 	defer os.Remove(path)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		result, err := golars.ReadCSV(path)
@@ -105,14 +105,14 @@ func BenchmarkWriteParquet_Medium(b *testing.B) {
 
 func benchmarkWriteParquet(b *testing.B, df *frame.DataFrame, filename string) {
 	path := filepath.Join(testData.tempDir, filename)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := golars.WriteParquet(df, path)
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		// Clean up after each iteration
 		os.Remove(path)
 	}
@@ -129,14 +129,14 @@ func BenchmarkReadParquet_Medium(b *testing.B) {
 
 func benchmarkReadParquet(b *testing.B, df *frame.DataFrame, filename string) {
 	path := filepath.Join(testData.tempDir, filename)
-	
+
 	// Write the file once for reading
 	err := golars.WriteParquet(df, path)
 	if err != nil {
 		b.Fatal(err)
 	}
 	defer os.Remove(path)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		result, err := golars.ReadParquet(path)

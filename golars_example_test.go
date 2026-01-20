@@ -20,8 +20,8 @@ func ExampleDataFrameFrom() {
 	}
 
 	fmt.Printf("Shape: (%d, %d)\n", df.Height(), df.Width())
-	fmt.Printf("Has columns: name=%v, age=%v, salary=%v, active=%v\n", 
-		df.HasColumn("name"), df.HasColumn("age"), 
+	fmt.Printf("Has columns: name=%v, age=%v, salary=%v, active=%v\n",
+		df.HasColumn("name"), df.HasColumn("age"),
 		df.HasColumn("salary"), df.HasColumn("active"))
 	// Output:
 	// Shape: (3, 4)

@@ -3,18 +3,18 @@ package expr
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestColumnExpr(t *testing.T) {
 	col := Col("test_col")
-	
+
 	assert.Equal(t, "col(test_col)", col.String())
 	assert.True(t, col.IsColumn())
 	assert.Equal(t, "test_col", col.Name())
 	assert.Equal(t, datatypes.Unknown{}, col.DataType())
-	
+
 	// Test alias
 	aliased := col.Alias("new_name")
 	assert.Equal(t, "col(test_col).alias(new_name)", aliased.String())
@@ -35,7 +35,7 @@ func TestLiteralExpr(t *testing.T) {
 		{true, "lit(true)", datatypes.Boolean{}},
 		{nil, "null", datatypes.Null{}},
 	}
-	
+
 	for _, test := range tests {
 		lit := Lit(test.value)
 		assert.Equal(t, test.expected, lit.String())
@@ -47,10 +47,10 @@ func TestLiteralExpr(t *testing.T) {
 func TestBinaryExpr(t *testing.T) {
 	col1 := Col("a")
 	col2 := Col("b")
-	
+
 	tests := []struct {
-		expr     Expr
-		expected string
+		expr      Expr
+		expected  string
 		isBoolean bool
 	}{
 		{&BinaryExpr{col1, col2, OpAdd}, "(col(a) + col(b))", false},
@@ -64,7 +64,7 @@ func TestBinaryExpr(t *testing.T) {
 		{&BinaryExpr{col1, col2, OpAnd}, "(col(a) & col(b))", true},
 		{&BinaryExpr{col1, col2, OpOr}, "(col(a) | col(b))", true},
 	}
-	
+
 	for _, test := range tests {
 		assert.Equal(t, test.expected, test.expr.String())
 		if test.isBoolean {
@@ -75,7 +75,7 @@ func TestBinaryExpr(t *testing.T) {
 
 func TestUnaryExpr(t *testing.T) {
 	col := Col("a")
-	
+
 	tests := []struct {
 		expr     Expr
 		expected string
@@ -86,7 +86,7 @@ func TestUnaryExpr(t *testing.T) {
 		{&UnaryExpr{col, OpIsNull}, "col(a).is_null()", datatypes.Boolean{}},
 		{&UnaryExpr{col, OpIsNotNull}, "col(a).is_not_null()", datatypes.Boolean{}},
 	}
-	
+
 	for _, test := range tests {
 		assert.Equal(t, test.expected, test.expr.String())
 		assert.Equal(t, test.dataType, test.expr.DataType())
@@ -95,7 +95,7 @@ func TestUnaryExpr(t *testing.T) {
 
 func TestAggExpr(t *testing.T) {
 	col := Col("value")
-	
+
 	tests := []struct {
 		expr     Expr
 		expected string
@@ -109,7 +109,7 @@ func TestAggExpr(t *testing.T) {
 		{&AggExpr{col, AggStd}, "col(value).std()", datatypes.Float64{}},
 		{&AggExpr{col, AggVar}, "col(value).var()", datatypes.Float64{}},
 	}
-	
+
 	for _, test := range tests {
 		assert.Equal(t, test.expected, test.expr.String())
 		assert.Equal(t, test.dataType, test.expr.DataType())
@@ -120,15 +120,15 @@ func TestColumnExprMethods(t *testing.T) {
 	// Test arithmetic operations
 	arithExpr := Col("a").Add("b").Mul(2)
 	assert.Equal(t, "((col(a) + col(b)) * lit(2))", arithExpr.String())
-	
+
 	// Test comparison operations
 	compExpr := Col("age").Gt(18).And(Col("age").Lt(65))
 	assert.Equal(t, "((col(age) > lit(18)) & (col(age) < lit(65)))", compExpr.String())
-	
+
 	// Test null operations
 	nullExpr := Col("name").IsNotNull()
 	assert.Equal(t, "col(name).is_not_null()", nullExpr.String())
-	
+
 	// Test aggregations
 	aggExpr := Col("salary").Mean().Alias("avg_salary")
 	assert.Equal(t, "col(salary).mean().alias(avg_salary)", aggExpr.String())
@@ -139,7 +139,7 @@ func TestWhenThenExpr(t *testing.T) {
 	// Test simple when-then
 	whenExpr1 := When(Col("age").Gt(18)).Then(Lit("adult")).Build()
 	assert.Equal(t, "when((col(age) > lit(18))).then(lit(adult))", whenExpr1.String())
-	
+
 	// Test when-then-otherwise
 	whenExpr2 := When(Col("score").Ge(90)).
 		Then("A").
@@ -151,13 +151,13 @@ func TestComplexExpressions(t *testing.T) {
 	// Test complex arithmetic
 	arithExpr := Col("a").Add(Col("b").Mul(2)).Div(Col("c").Sub(1))
 	assert.Equal(t, "((col(a) + (col(b) * lit(2))) / (col(c) - lit(1)))", arithExpr.String())
-	
+
 	// Test complex logical
 	logicExpr := Col("x").Gt(0).
 		And(Col("y").Lt(100)).
 		Or(Col("z").Eq(Lit("special")))
 	assert.Equal(t, "(((col(x) > lit(0)) & (col(y) < lit(100))) | (col(z) == lit(special)))", logicExpr.String())
-	
+
 	// Test nested conditionals
 	condExpr := When(Col("grade").Ge(90)).Then("A").
 		Otherwise(
@@ -180,11 +180,11 @@ func TestToExpr(t *testing.T) {
 	assert.Equal(t, "lit(42)", toExpr(42).String())
 	assert.Equal(t, "lit(3.14)", toExpr(3.14).String())
 	assert.Equal(t, "lit(true)", toExpr(true).String())
-	
+
 	// Test passing expression directly
 	col := Col("x")
 	assert.Equal(t, col, toExpr(col))
-	
+
 	// Test passing column expr
 	col2 := Col("y")
 	assert.Equal(t, col2, toExpr(col2))

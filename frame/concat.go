@@ -53,7 +53,7 @@ func concatVertical(frames []*DataFrame, options ConcatOptions) (*DataFrame, err
 	// Collect all unique column names
 	columnSet := make(map[string]datatypes.DataType)
 	columnOrder := make([]string, 0)
-	
+
 	for _, df := range frames {
 		for _, col := range df.columns {
 			if existingType, exists := columnSet[col.Name()]; exists {
@@ -101,12 +101,12 @@ func concatVertical(frames []*DataFrame, options ConcatOptions) (*DataFrame, err
 
 	// Build concatenated series for each column
 	resultColumns := make([]series.Series, len(finalColumns))
-	
+
 	for i, colName := range finalColumns {
 		// Collect series from each DataFrame
 		seriesList := make([]series.Series, 0, len(frames))
 		totalRows := 0
-		
+
 		for _, df := range frames {
 			if df.HasColumn(colName) {
 				col, _ := df.Column(colName)
@@ -120,7 +120,7 @@ func concatVertical(frames []*DataFrame, options ConcatOptions) (*DataFrame, err
 				totalRows += nullCount
 			}
 		}
-		
+
 		// Concatenate series
 		concatenated := concatenateSeries(colName, seriesList)
 		resultColumns[i] = concatenated
@@ -143,11 +143,11 @@ func concatHorizontal(frames []*DataFrame, options ConcatOptions) (*DataFrame, e
 	// Collect all columns
 	allColumns := make([]series.Series, 0)
 	columnNames := make(map[string]int) // Track duplicate column names
-	
+
 	for _, df := range frames {
 		for _, col := range df.columns {
 			colName := col.Name()
-			
+
 			// Handle duplicate column names
 			if count, exists := columnNames[colName]; exists {
 				// Rename duplicate columns
@@ -158,7 +158,7 @@ func concatHorizontal(frames []*DataFrame, options ConcatOptions) (*DataFrame, e
 			} else {
 				columnNames[colName] = 1
 			}
-			
+
 			allColumns = append(allColumns, col)
 		}
 	}
@@ -171,7 +171,7 @@ func concatenateSeries(name string, seriesList []series.Series) series.Series {
 	if len(seriesList) == 0 {
 		return nil
 	}
-	
+
 	// Get the data type from the first non-null series
 	var dataType datatypes.DataType
 	for _, s := range seriesList {
@@ -180,19 +180,19 @@ func concatenateSeries(name string, seriesList []series.Series) series.Series {
 			break
 		}
 	}
-	
+
 	// Count total length
 	totalLen := 0
 	for _, s := range seriesList {
 		totalLen += s.Len()
 	}
-	
+
 	// Build concatenated data based on type
 	switch dataType.(type) {
 	case datatypes.Int64:
 		values := make([]int64, 0, totalLen)
 		validity := make([]bool, 0, totalLen)
-		
+
 		for _, s := range seriesList {
 			for i := 0; i < s.Len(); i++ {
 				if s.IsNull(i) {
@@ -204,13 +204,13 @@ func concatenateSeries(name string, seriesList []series.Series) series.Series {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, dataType)
-		
+
 	case datatypes.Float64:
 		values := make([]float64, 0, totalLen)
 		validity := make([]bool, 0, totalLen)
-		
+
 		for _, s := range seriesList {
 			for i := 0; i < s.Len(); i++ {
 				if s.IsNull(i) {
@@ -222,13 +222,13 @@ func concatenateSeries(name string, seriesList []series.Series) series.Series {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, dataType)
-		
+
 	case datatypes.String:
 		values := make([]string, 0, totalLen)
 		validity := make([]bool, 0, totalLen)
-		
+
 		for _, s := range seriesList {
 			for i := 0; i < s.Len(); i++ {
 				if s.IsNull(i) {
@@ -240,9 +240,9 @@ func concatenateSeries(name string, seriesList []series.Series) series.Series {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, dataType)
-		
+
 	default:
 		// Handle other types generically
 		return concatenateSeriesGeneric(name, seriesList, dataType)
@@ -255,11 +255,11 @@ func concatenateSeriesGeneric(name string, seriesList []series.Series, dataType 
 	for _, s := range seriesList {
 		totalLen += s.Len()
 	}
-	
+
 	// Use interface{} slice for generic handling
 	values := make([]interface{}, 0, totalLen)
 	validity := make([]bool, 0, totalLen)
-	
+
 	for _, s := range seriesList {
 		for i := 0; i < s.Len(); i++ {
 			if s.IsNull(i) {
@@ -271,7 +271,7 @@ func concatenateSeriesGeneric(name string, seriesList []series.Series, dataType 
 			}
 		}
 	}
-	
+
 	// Convert to appropriate type
 	return createSeriesFromInterface(name, values, validity, dataType)
 }
@@ -279,7 +279,7 @@ func concatenateSeriesGeneric(name string, seriesList []series.Series, dataType 
 // Helper to create a null series of specified type and length
 func createNullSeriesForConcat(name string, length int, dataType datatypes.DataType) series.Series {
 	validity := make([]bool, length) // All false
-	
+
 	switch dataType.(type) {
 	case datatypes.Int64:
 		values := make([]int64, length)
@@ -311,11 +311,11 @@ func renameSeriesForConcat(s series.Series, newName string) series.Series {
 	// Extract data and validity
 	length := s.Len()
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		validity[i] = !s.IsNull(i)
 	}
-	
+
 	// Create new series with same data but different name
 	switch s.DataType().(type) {
 	case datatypes.Int64:
@@ -326,7 +326,7 @@ func renameSeriesForConcat(s series.Series, newName string) series.Series {
 			}
 		}
 		return series.NewSeriesWithValidity(newName, values, validity, s.DataType())
-		
+
 	case datatypes.Float64:
 		values := make([]float64, length)
 		for i := 0; i < length; i++ {
@@ -335,7 +335,7 @@ func renameSeriesForConcat(s series.Series, newName string) series.Series {
 			}
 		}
 		return series.NewSeriesWithValidity(newName, values, validity, s.DataType())
-		
+
 	case datatypes.String:
 		values := make([]string, length)
 		for i := 0; i < length; i++ {
@@ -344,7 +344,7 @@ func renameSeriesForConcat(s series.Series, newName string) series.Series {
 			}
 		}
 		return series.NewSeriesWithValidity(newName, values, validity, s.DataType())
-		
+
 	default:
 		// Generic handling
 		values := make([]interface{}, length)

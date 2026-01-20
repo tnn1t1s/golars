@@ -42,7 +42,7 @@ func init() {
 func createRightDataFrame(df *frame.DataFrame, nRows int) *frame.DataFrame {
 	// Take a subset and modify slightly to create join data
 	subset := df.Head(nRows)
-	
+
 	// For simplicity, just return the subset
 	// In a real benchmark, we'd want to modify the data
 	return subset

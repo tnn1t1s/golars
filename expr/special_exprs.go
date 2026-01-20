@@ -3,7 +3,7 @@ package expr
 import (
 	"fmt"
 	"strings"
-	
+
 	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 

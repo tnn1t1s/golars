@@ -59,10 +59,10 @@ func (se *StringExpr) EndsWith(pattern string) Expr {
 // Replace replaces occurrences of pattern with replacement
 func (se *StringExpr) Replace(pattern, replacement string) Expr {
 	return &TernaryExpr{
-		expr:   se.expr,
-		arg1:   Lit(pattern),
-		arg2:   Lit(replacement),
-		op:     OpStrReplace,
+		expr: se.expr,
+		arg1: Lit(pattern),
+		arg2: Lit(replacement),
+		op:   OpStrReplace,
 	}
 }
 

@@ -11,11 +11,11 @@ import (
 
 // H2OAIConfig configures the H2O.ai benchmark data generation
 type H2OAIConfig struct {
-	NRows      int
-	NGroups    int
-	NullRatio  float64
-	Seed       int64
-	Sort       bool
+	NRows     int
+	NGroups   int
+	NullRatio float64
+	Seed      int64
+	Sort      bool
 }
 
 // Preset configurations matching Polars benchmarks
@@ -65,7 +65,7 @@ var (
 // This matches the Python implementation in datagen_groupby.py
 func GenerateH2OAIData(config H2OAIConfig) (*frame.DataFrame, error) {
 	rng := rand.New(rand.NewSource(config.Seed))
-	
+
 	N := config.NRows
 	K := config.NGroups
 

@@ -225,7 +225,6 @@ func (c *ColumnExpr) Median() *AggExpr {
 	}
 }
 
-
 // First returns the first value
 func (c *ColumnExpr) First() *AggExpr {
 	return &AggExpr{

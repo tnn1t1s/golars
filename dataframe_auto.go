@@ -3,9 +3,9 @@ package golars
 import (
 	"fmt"
 	"reflect"
-	
-	"github.com/tnn1t1s/golars/internal/datatypes"
+
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -35,17 +35,17 @@ func WithSchema(columns []string) DataFrameOption {
 // This is the main constructor that mimics Polars' pl.DataFrame()
 // Accepts:
 // - map[string]interface{}: column name to slice of values
-// - []map[string]interface{}: list of records  
+// - []map[string]interface{}: list of records
 // - [][]interface{}: list of rows (requires WithSchema option)
 func NewDataFrameAuto(data interface{}, options ...DataFrameOption) (*frame.DataFrame, error) {
 	cfg := &dataFrameConfig{
 		orient: "col", // default to column orientation
 	}
-	
+
 	for _, opt := range options {
 		opt(cfg)
 	}
-	
+
 	switch d := data.(type) {
 	case map[string]interface{}:
 		return dataFrameFromMap(d)
@@ -69,12 +69,12 @@ func dataFrameFromMap(data map[string]interface{}) (*frame.DataFrame, error) {
 	if len(data) == 0 {
 		return frame.NewDataFrame()
 	}
-	
+
 	columns := make([]Series, 0, len(data))
-	
+
 	for name, values := range data {
 		var s Series
-		
+
 		// Check if values is already a Series
 		if existingSeries, ok := values.(Series); ok {
 			s = existingSeries
@@ -84,17 +84,17 @@ func dataFrameFromMap(data map[string]interface{}) (*frame.DataFrame, error) {
 			if err != nil {
 				return nil, fmt.Errorf("column %s: %w", name, err)
 			}
-			
+
 			// Create series with type inference
 			s, err = createSeriesWithInference(name, interfaceValues)
 			if err != nil {
 				return nil, fmt.Errorf("column %s: %w", name, err)
 			}
 		}
-		
+
 		columns = append(columns, s)
 	}
-	
+
 	return frame.NewDataFrame(columns...)
 }
 
@@ -103,7 +103,7 @@ func dataFrameFromRecords(records []map[string]interface{}) (*frame.DataFrame, e
 	if len(records) == 0 {
 		return frame.NewDataFrame()
 	}
-	
+
 	// Collect all unique column names
 	columnSet := make(map[string]bool)
 	for _, record := range records {
@@ -111,13 +111,13 @@ func dataFrameFromRecords(records []map[string]interface{}) (*frame.DataFrame, e
 			columnSet[col] = true
 		}
 	}
-	
+
 	// Create column data
 	columnData := make(map[string][]interface{})
 	for col := range columnSet {
 		columnData[col] = make([]interface{}, 0, len(records))
 	}
-	
+
 	// Fill column data from records
 	for _, record := range records {
 		for col := range columnSet {
@@ -128,7 +128,7 @@ func dataFrameFromRecords(records []map[string]interface{}) (*frame.DataFrame, e
 			}
 		}
 	}
-	
+
 	// Create DataFrame from column data
 	resultData := make(map[string]interface{})
 	for k, v := range columnData {
@@ -148,7 +148,7 @@ func dataFrameFromRows(rows [][]interface{}, schema []string, orient string) (*f
 		}
 		return frame.NewDataFrame(columns...)
 	}
-	
+
 	if orient == "row" {
 		// Validate row lengths
 		expectedLen := len(schema)
@@ -157,7 +157,7 @@ func dataFrameFromRows(rows [][]interface{}, schema []string, orient string) (*f
 				return nil, fmt.Errorf("row %d has %d values, expected %d", i, len(row), expectedLen)
 			}
 		}
-		
+
 		// Transpose to column-oriented data
 		columnData := make(map[string][]interface{})
 		for i, name := range schema {
@@ -166,7 +166,7 @@ func dataFrameFromRows(rows [][]interface{}, schema []string, orient string) (*f
 				columnData[name][j] = row[i]
 			}
 		}
-		
+
 		resultData := make(map[string]interface{})
 		for k, v := range columnData {
 			resultData[k] = v
@@ -177,7 +177,7 @@ func dataFrameFromRows(rows [][]interface{}, schema []string, orient string) (*f
 		if len(rows) != len(schema) {
 			return nil, fmt.Errorf("number of data rows (%d) doesn't match schema length (%d)", len(rows), len(schema))
 		}
-		
+
 		columnData := make(map[string][]interface{})
 		for i, name := range schema {
 			columnData[name] = make([]interface{}, len(rows[i]))
@@ -185,7 +185,7 @@ func dataFrameFromRows(rows [][]interface{}, schema []string, orient string) (*f
 				columnData[name][j] = val
 			}
 		}
-		
+
 		resultData := make(map[string]interface{})
 		for k, v := range columnData {
 			resultData[k] = v
@@ -199,25 +199,25 @@ func toInterfaceSlice(values interface{}) ([]interface{}, error) {
 	if values == nil {
 		return []interface{}{}, nil
 	}
-	
+
 	// Check if already []interface{}
 	if iface, ok := values.([]interface{}); ok {
 		return iface, nil
 	}
-	
+
 	// Use reflection for other slice types
 	v := reflect.ValueOf(values)
 	if v.Kind() != reflect.Slice {
 		return nil, fmt.Errorf("expected slice, got %T", values)
 	}
-	
+
 	length := v.Len()
 	result := make([]interface{}, length)
-	
+
 	for i := 0; i < length; i++ {
 		result[i] = v.Index(i).Interface()
 	}
-	
+
 	return result, nil
 }
 
@@ -228,13 +228,13 @@ func createSeriesWithInference(name string, values []interface{}) (Series, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to infer type: %w", err)
 	}
-	
+
 	// Convert values to the appropriate type
 	typedValues, validity, err := convertToType(values, dtype)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert values: %w", err)
 	}
-	
+
 	// Check if any values are null
 	hasNulls := false
 	for _, v := range validity {
@@ -243,7 +243,7 @@ func createSeriesWithInference(name string, values []interface{}) (Series, error
 			break
 		}
 	}
-	
+
 	// Create the series based on the inferred type
 	switch dt := dtype.(type) {
 	case datatypes.Boolean:
@@ -252,56 +252,56 @@ func createSeriesWithInference(name string, values []interface{}) (Series, error
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewBooleanSeries(name, vals), nil
-		
+
 	case datatypes.Int8:
 		vals := typedValues.([]int8)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewInt8Series(name, vals), nil
-		
+
 	case datatypes.Int16:
 		vals := typedValues.([]int16)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewInt16Series(name, vals), nil
-		
+
 	case datatypes.Int32:
 		vals := typedValues.([]int32)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewInt32Series(name, vals), nil
-		
+
 	case datatypes.Int64:
 		vals := typedValues.([]int64)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewInt64Series(name, vals), nil
-		
+
 	case datatypes.Float32:
 		vals := typedValues.([]float32)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewFloat32Series(name, vals), nil
-		
+
 	case datatypes.Float64:
 		vals := typedValues.([]float64)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewFloat64Series(name, vals), nil
-		
+
 	case datatypes.String:
 		vals := typedValues.([]string)
 		if hasNulls {
 			return series.NewSeriesWithValidity(name, vals, validity, dt), nil
 		}
 		return series.NewStringSeries(name, vals), nil
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported data type for series creation: %v", dtype)
 	}
@@ -312,10 +312,10 @@ func inferType(values []interface{}) (datatypes.DataType, error) {
 	if len(values) == 0 {
 		return datatypes.Null{}, nil
 	}
-	
+
 	// Track type occurrences
 	typeCounts := make(map[reflect.Type]int)
-	
+
 	// First pass: count non-null types
 	for _, v := range values {
 		if v == nil {
@@ -323,12 +323,12 @@ func inferType(values []interface{}) (datatypes.DataType, error) {
 		}
 		typeCounts[reflect.TypeOf(v)]++
 	}
-	
+
 	// If all values are null, return appropriate type
 	if len(typeCounts) == 0 {
 		return datatypes.Null{}, nil
 	}
-	
+
 	// Find the most common type
 	var dominantType reflect.Type
 	maxCount := 0
@@ -338,7 +338,7 @@ func inferType(values []interface{}) (datatypes.DataType, error) {
 			dominantType = t
 		}
 	}
-	
+
 	// Map Go types to Golars data types
 	switch dominantType.Kind() {
 	case reflect.Bool:
@@ -374,7 +374,7 @@ func inferType(values []interface{}) (datatypes.DataType, error) {
 			return datatypes.Binary{}, nil
 		}
 	}
-	
+
 	// If we can't determine the type, check if all values can be converted to float64
 	allNumeric := true
 	for _, v := range values {
@@ -389,11 +389,11 @@ func inferType(values []interface{}) (datatypes.DataType, error) {
 			break
 		}
 	}
-	
+
 	if allNumeric {
 		return datatypes.Float64{}, nil
 	}
-	
+
 	// Default to string type if nothing else matches
 	return datatypes.String{}, nil
 }
@@ -401,7 +401,7 @@ func inferType(values []interface{}) (datatypes.DataType, error) {
 // convertToType converts a slice of interface{} to the specific type needed for series creation
 func convertToType(values []interface{}, dtype datatypes.DataType) (interface{}, []bool, error) {
 	validity := make([]bool, len(values))
-	
+
 	switch dtype.(type) {
 	case datatypes.Boolean:
 		result := make([]bool, len(values))
@@ -416,7 +416,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.Int8:
 		result := make([]int8, len(values))
 		for i, v := range values {
@@ -441,7 +441,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.Int16:
 		result := make([]int16, len(values))
 		for i, v := range values {
@@ -468,7 +468,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.Int32:
 		result := make([]int32, len(values))
 		for i, v := range values {
@@ -495,7 +495,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.Int64:
 		result := make([]int64, len(values))
 		for i, v := range values {
@@ -522,7 +522,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.Float32:
 		result := make([]float32, len(values))
 		for i, v := range values {
@@ -551,7 +551,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.Float64:
 		result := make([]float64, len(values))
 		for i, v := range values {
@@ -580,7 +580,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	case datatypes.String:
 		result := make([]string, len(values))
 		for i, v := range values {
@@ -597,7 +597,7 @@ func convertToType(values []interface{}, dtype datatypes.DataType) (interface{},
 			}
 		}
 		return result, validity, nil
-		
+
 	default:
 		return nil, nil, fmt.Errorf("unsupported data type: %v", dtype)
 	}

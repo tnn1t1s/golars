@@ -4,13 +4,13 @@
 package golars
 
 import (
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/window"
 	"github.com/tnn1t1s/golars/io"
 	"github.com/tnn1t1s/golars/io/parquet"
 	"github.com/tnn1t1s/golars/series"
-	"github.com/tnn1t1s/golars/internal/window"
 )
 
 // Re-export main types for convenient access
@@ -63,7 +63,6 @@ func NewDataFrameFromMap(data map[string]interface{}) (*DataFrame, error) {
 func DataFrameFrom(data interface{}, options ...DataFrameOption) (*DataFrame, error) {
 	return NewDataFrameAuto(data, options...)
 }
-
 
 // Re-export Series constructors
 
@@ -327,6 +326,3 @@ func Max(column string) window.WindowFunc {
 func Count(column string) window.WindowFunc {
 	return window.Count(column)
 }
-
-
-

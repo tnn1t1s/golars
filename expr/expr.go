@@ -10,16 +10,16 @@ import (
 type Expr interface {
 	// String returns a string representation of the expression
 	String() string
-	
+
 	// DataType returns the expected output data type (may return Unknown if not yet determined)
 	DataType() datatypes.DataType
-	
+
 	// Alias gives the expression a name
 	Alias(name string) Expr
-	
+
 	// IsColumn returns true if this is a column reference
 	IsColumn() bool
-	
+
 	// Name returns the name of the expression (for columns and aliases)
 	Name() string
 }
@@ -110,14 +110,14 @@ const (
 
 // AggExpr represents an aggregation
 type AggExpr struct {
-	expr   Expr
-	aggOp  AggOp
+	expr  Expr
+	aggOp AggOp
 }
 
 // TopKExpr represents a top-k aggregation
 type TopKExpr struct {
-	expr Expr
-	k    int
+	expr    Expr
+	k       int
 	largest bool // true for top-k, false for bottom-k
 }
 
@@ -204,7 +204,7 @@ func Col(name string) *ColumnExpr {
 // Lit creates a literal expression
 func Lit(value interface{}) Expr {
 	var dt datatypes.DataType
-	
+
 	switch v := value.(type) {
 	case bool:
 		dt = datatypes.Boolean{}
@@ -240,7 +240,7 @@ func Lit(value interface{}) Expr {
 	default:
 		dt = datatypes.Unknown{}
 	}
-	
+
 	return &LiteralExpr{value: value, dataType: dt}
 }
 
@@ -510,12 +510,11 @@ func (e *AggExpr) Name() string {
 	return ""
 }
 
-
 // Implementation of Expr interface for WhenThenExpr
 
 func (e *WhenThenExpr) String() string {
 	if e.otherwise != nil {
-		return fmt.Sprintf("when(%s).then(%s).otherwise(%s)", 
+		return fmt.Sprintf("when(%s).then(%s).otherwise(%s)",
 			e.when.String(), e.then.String(), e.otherwise.String())
 	}
 	return fmt.Sprintf("when(%s).then(%s)", e.when.String(), e.then.String())

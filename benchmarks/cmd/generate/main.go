@@ -16,13 +16,13 @@ import (
 
 func main() {
 	var (
-		size       = flag.String("size", "medium", "Data size: small, medium, large, xlarge")
-		format     = flag.String("format", "parquet", "Output format: csv or parquet")
-		output     = flag.String("output", "", "Output file path (default: data/h2oai_<size>.<format>)")
-		nullRatio  = flag.Float64("null", 0.05, "Null ratio (0.0 to 1.0)")
-		seed       = flag.Int64("seed", 0, "Random seed")
-		sort       = flag.Bool("sort", false, "Sort the data by group columns")
-		showInfo   = flag.Bool("info", false, "Show data size information and exit")
+		size      = flag.String("size", "medium", "Data size: small, medium, large, xlarge")
+		format    = flag.String("format", "parquet", "Output format: csv or parquet")
+		output    = flag.String("output", "", "Output file path (default: data/h2oai_<size>.<format>)")
+		nullRatio = flag.Float64("null", 0.05, "Null ratio (0.0 to 1.0)")
+		seed      = flag.Int64("seed", 0, "Random seed")
+		sort      = flag.Bool("sort", false, "Sort the data by group columns")
+		showInfo  = flag.Bool("info", false, "Show data size information and exit")
 	)
 	flag.Parse()
 
@@ -115,7 +115,7 @@ func showDataInfo() {
 	fmt.Println()
 	fmt.Printf("%-10s %15s %15s %20s\n", "Size", "Rows", "Groups", "Approx. Size")
 	fmt.Printf("%-10s %15s %15s %20s\n", "----", "----", "------", "------------")
-	
+
 	for _, info := range data.GetDataSizeInfo() {
 		sizeMB := float64(info.SizeInBytes) / (1024 * 1024)
 		fmt.Printf("%-10s %15s %15s %20s\n",
@@ -124,7 +124,7 @@ func showDataInfo() {
 			formatNumber(info.Groups),
 			fmt.Sprintf("%.1f MB", sizeMB))
 	}
-	
+
 	fmt.Println()
 	fmt.Println("Column Schema:")
 	fmt.Println("  id1, id2, id3: String grouping columns")
