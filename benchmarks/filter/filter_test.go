@@ -1,10 +1,10 @@
-// Package filter contains filter operation benchmarks.
+// Package filter contains exact translations of Polars benchmark tests.
 //
-// Polars Comparable: BenchmarkFilter1, BenchmarkFilter2
-// These match: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_filter.py
+// Source: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_filter.py
 //
-// Golars Additional: BenchmarkFilterNumeric, BenchmarkFilterCompound, BenchmarkFilterOr
-// These are additional benchmarks not in the Polars test suite.
+// Data configuration matches Polars conftest.py:
+//
+//	groupby_data = generate_group_by_data(10_000, 100, null_ratio=0.05)
 package filter
 
 import (
@@ -15,136 +15,96 @@ import (
 	"github.com/tnn1t1s/golars/frame"
 )
 
-var testData struct {
-	small  *frame.DataFrame
-	medium *frame.DataFrame
-}
+// testData matches Polars' groupby_data fixture from conftest.py
+// Default: 10,000 rows, 100 groups, 5% null ratio
+var testData *frame.DataFrame
 
 func init() {
-	small, err := data.GenerateH2OAIData(data.H2OAISmall)
+	var err error
+	testData, err = data.GenerateH2OAIData(data.H2OAISmall)
 	if err != nil {
 		panic(err)
 	}
-	testData.small = small
-
-	medium, err := data.GenerateH2OAIData(data.H2OAIMediumSafe)
-	if err != nil {
-		panic(err)
-	}
-	testData.medium = medium
 }
 
 // =============================================================================
-// Polars-Comparable Benchmarks (match test_filter.py)
+// Polars test_filter.py - Exact Translations
 // =============================================================================
 
-// BenchmarkFilter1 - Matches Polars test_filter1
-// Polars: df.lazy().filter(pl.col("id1").eq_missing(pl.lit("id046"))).select(...).collect()
-// Note: Polars also does aggregation after filter; golars tests filter only
-func BenchmarkFilter1_Small(b *testing.B) {
-	benchmarkFilter1(b, testData.small)
-}
-
-func BenchmarkFilter1_Medium(b *testing.B) {
-	benchmarkFilter1(b, testData.medium)
-}
-
-func benchmarkFilter1(b *testing.B, df *frame.DataFrame) {
+// BenchmarkFilter1 matches test_filter1
+// Polars:
+//
+//	groupby_data.lazy()
+//	.filter(pl.col("id1").eq_missing(pl.lit("id046")))
+//	.select(
+//	    pl.col("id6").cast(pl.Int64).sum(),
+//	    pl.col("v3").sum(),
+//	)
+//	.collect()
+//
+// Note: golars uses Eq() instead of eq_missing() which handles nulls differently
+// Note: golars Filter returns a DataFrame, then we aggregate columns directly
+func BenchmarkFilter1(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(expr.Col("id1").Eq(expr.Lit("id046")))
+		// Filter
+		filtered, err := testData.Filter(expr.Col("id1").Eq(expr.Lit("id046")))
 		if err != nil {
 			b.Fatal(err)
 		}
-		_ = result
+
+		// Select and aggregate: id6.cast(Int64).sum() and v3.sum()
+		id6, err := filtered.Column("id6")
+		if err != nil {
+			b.Fatal(err)
+		}
+		v3, err := filtered.Column("v3")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		// Polars does cast(Int64).sum() on id6; golars id6 is already Int32, Sum returns float64
+		id6Sum := id6.Sum()
+		v3Sum := v3.Sum()
+
+		_, _ = id6Sum, v3Sum
 	}
 }
 
-// BenchmarkFilter2 - Matches Polars test_filter2
-// Polars: df.lazy().filter(~(pl.col("id1").eq_missing(pl.lit("id046")))).select(...).collect()
-func BenchmarkFilter2_Small(b *testing.B) {
-	benchmarkFilter2(b, testData.small)
-}
-
-func BenchmarkFilter2_Medium(b *testing.B) {
-	benchmarkFilter2(b, testData.medium)
-}
-
-func benchmarkFilter2(b *testing.B, df *frame.DataFrame) {
+// BenchmarkFilter2 matches test_filter2
+// Polars:
+//
+//	groupby_data.lazy()
+//	.filter(~(pl.col("id1").eq_missing(pl.lit("id046"))))
+//	.select(
+//	    pl.col("id6").cast(pl.Int64).sum(),
+//	    pl.col("v3").sum(),
+//	)
+//	.collect()
+//
+// Note: Polars uses ~ (not) on eq_missing; golars uses Ne() for not-equal
+func BenchmarkFilter2(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(expr.Col("id1").Ne(expr.Lit("id046")))
+		// Filter with negation (not equal)
+		filtered, err := testData.Filter(expr.Col("id1").Ne(expr.Lit("id046")))
 		if err != nil {
 			b.Fatal(err)
 		}
-		_ = result
-	}
-}
 
-// =============================================================================
-// Additional Benchmarks (not in Polars test suite)
-// =============================================================================
-
-// BenchmarkFilterNumeric - Filter on numeric column
-func BenchmarkFilterNumeric_Small(b *testing.B) {
-	benchmarkFilterNumeric(b, testData.small)
-}
-
-func BenchmarkFilterNumeric_Medium(b *testing.B) {
-	benchmarkFilterNumeric(b, testData.medium)
-}
-
-func benchmarkFilterNumeric(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(expr.Col("v1").Gt(3))
+		// Select and aggregate: id6.cast(Int64).sum() and v3.sum()
+		id6, err := filtered.Column("id6")
 		if err != nil {
 			b.Fatal(err)
 		}
-		_ = result
-	}
-}
-
-// BenchmarkFilterCompound - Compound filter with AND
-func BenchmarkFilterCompound_Small(b *testing.B) {
-	benchmarkFilterCompound(b, testData.small)
-}
-
-func BenchmarkFilterCompound_Medium(b *testing.B) {
-	benchmarkFilterCompound(b, testData.medium)
-}
-
-func benchmarkFilterCompound(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(
-			expr.Col("v1").Gt(3).And(expr.Col("v2").Lt(10)),
-		)
+		v3, err := filtered.Column("v3")
 		if err != nil {
 			b.Fatal(err)
 		}
-		_ = result
-	}
-}
 
-// BenchmarkFilterOr - Filter with OR condition
-func BenchmarkFilterOr_Small(b *testing.B) {
-	benchmarkFilterOr(b, testData.small)
-}
+		id6Sum := id6.Sum()
+		v3Sum := v3.Sum()
 
-func BenchmarkFilterOr_Medium(b *testing.B) {
-	benchmarkFilterOr(b, testData.medium)
-}
-
-func benchmarkFilterOr(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(
-			expr.Col("v1").Gt(3).Or(expr.Col("v2").Lt(5)),
-		)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = result
+		_, _ = id6Sum, v3Sum
 	}
 }

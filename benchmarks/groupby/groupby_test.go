@@ -1,3 +1,13 @@
+// Package groupby contains exact translations of Polars benchmark tests.
+//
+// Source: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_group_by.py
+//
+// These tests are based on the H2O.ai database benchmark.
+// See: https://h2oai.github.io/db-benchmark/
+//
+// Data configuration matches Polars conftest.py:
+//
+//	groupby_data = generate_group_by_data(10_000, 100, null_ratio=0.05)
 package groupby
 
 import (
@@ -8,52 +18,33 @@ import (
 	"github.com/tnn1t1s/golars/frame"
 )
 
-// Global variable to store test data
-var testData struct {
-	small  *frame.DataFrame
-	medium *frame.DataFrame
-	large  *frame.DataFrame
-}
+// testData matches Polars' groupby_data fixture from conftest.py
+// Default: 10,000 rows, 100 groups, 5% null ratio
+var testData *frame.DataFrame
 
-// init loads the test data once
 func init() {
-	// Load small dataset
-	small, err := data.GenerateH2OAIData(data.H2OAISmall)
+	var err error
+	testData, err = data.GenerateH2OAIData(data.H2OAISmall)
 	if err != nil {
 		panic(err)
 	}
-	testData.small = small
-
-	// Load medium dataset
-	medium, err := data.GenerateH2OAIData(data.H2OAIMedium)
-	if err != nil {
-		panic(err)
-	}
-	testData.medium = medium
-
-	// Note: Large dataset is commented out by default to avoid memory issues
-	// Uncomment when needed for large-scale benchmarks
-	// large, err := data.GenerateH2OAIData(data.H2OAILarge)
-	// if err != nil {
-	//     panic(err)
-	// }
-	// testData.large = large
 }
 
-// BenchmarkGroupByQ1 - Simple group by single column with sum
-// Polars: df.group_by("id1").agg(pl.sum("v1").alias("v1_sum"))
-func BenchmarkGroupByQ1_Small(b *testing.B) {
-	benchmarkGroupByQ1(b, testData.small)
-}
+// =============================================================================
+// Polars test_group_by.py - Exact Translations
+// =============================================================================
 
-func BenchmarkGroupByQ1_Medium(b *testing.B) {
-	benchmarkGroupByQ1(b, testData.medium)
-}
-
-func benchmarkGroupByQ1(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q1 matches test_groupby_h2oai_q1
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id1")
+//	.agg(pl.sum("v1").alias("v1_sum"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q1(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id1")
+		groupBy, err := testData.GroupBy("id1")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -67,20 +58,17 @@ func benchmarkGroupByQ1(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkGroupByQ2 - Group by two columns with sum
-// Polars: df.group_by("id1", "id2").agg(pl.sum("v1").alias("v1_sum"))
-func BenchmarkGroupByQ2_Small(b *testing.B) {
-	benchmarkGroupByQ2(b, testData.small)
-}
-
-func BenchmarkGroupByQ2_Medium(b *testing.B) {
-	benchmarkGroupByQ2(b, testData.medium)
-}
-
-func benchmarkGroupByQ2(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q2 matches test_groupby_h2oai_q2
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id1", "id2")
+//	.agg(pl.sum("v1").alias("v1_sum"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q2(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id1", "id2")
+		groupBy, err := testData.GroupBy("id1", "id2")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -94,20 +82,17 @@ func benchmarkGroupByQ2(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkGroupByQ3 - Group by with sum and mean
-// Polars: df.group_by("id3").agg([pl.sum("v1").alias("v1_sum"), pl.mean("v3").alias("v3_mean")])
-func BenchmarkGroupByQ3_Small(b *testing.B) {
-	benchmarkGroupByQ3(b, testData.small)
-}
-
-func BenchmarkGroupByQ3_Medium(b *testing.B) {
-	benchmarkGroupByQ3(b, testData.medium)
-}
-
-func benchmarkGroupByQ3(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q3 matches test_groupby_h2oai_q3
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id3")
+//	.agg(pl.sum("v1").alias("v1_sum"), pl.mean("v3").alias("v3_mean"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q3(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id3")
+		groupBy, err := testData.GroupBy("id3")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -122,20 +107,17 @@ func benchmarkGroupByQ3(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkGroupByQ4 - Group by with multiple means
-// Polars: df.group_by("id4").agg([pl.mean("v1").alias("v1_mean"), pl.mean("v2").alias("v2_mean"), pl.mean("v3").alias("v3_mean")])
-func BenchmarkGroupByQ4_Small(b *testing.B) {
-	benchmarkGroupByQ4(b, testData.small)
-}
-
-func BenchmarkGroupByQ4_Medium(b *testing.B) {
-	benchmarkGroupByQ4(b, testData.medium)
-}
-
-func benchmarkGroupByQ4(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q4 matches test_groupby_h2oai_q4
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id4")
+//	.agg(pl.mean("v1").alias("v1_mean"), pl.mean("v2").alias("v2_mean"), pl.mean("v3").alias("v3_mean"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q4(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id4")
+		groupBy, err := testData.GroupBy("id4")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -151,20 +133,17 @@ func benchmarkGroupByQ4(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkGroupByQ5 - Group by with multiple sums
-// Polars: df.group_by("id6").agg([pl.sum("v1").alias("v1_sum"), pl.sum("v2").alias("v2_sum"), pl.sum("v3").alias("v3_sum")])
-func BenchmarkGroupByQ5_Small(b *testing.B) {
-	benchmarkGroupByQ5(b, testData.small)
-}
-
-func BenchmarkGroupByQ5_Medium(b *testing.B) {
-	benchmarkGroupByQ5(b, testData.medium)
-}
-
-func benchmarkGroupByQ5(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q5 matches test_groupby_h2oai_q5
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id6")
+//	.agg(pl.sum("v1").alias("v1_sum"), pl.sum("v2").alias("v2_sum"), pl.sum("v3").alias("v3_sum"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q5(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id6")
+		groupBy, err := testData.GroupBy("id6")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -180,20 +159,17 @@ func benchmarkGroupByQ5(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkGroupByQ6 - Group by two columns with median and std
-// Polars: df.group_by("id4", "id5").agg([pl.median("v3").alias("v3_median"), pl.std("v3").alias("v3_std")])
-func BenchmarkGroupByQ6_Small(b *testing.B) {
-	benchmarkGroupByQ6(b, testData.small)
-}
-
-func BenchmarkGroupByQ6_Medium(b *testing.B) {
-	benchmarkGroupByQ6(b, testData.medium)
-}
-
-func benchmarkGroupByQ6(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q6 matches test_groupby_h2oai_q6
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id4", "id5")
+//	.agg(pl.median("v3").alias("v3_median"), pl.std("v3").alias("v3_std"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q6(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id4", "id5")
+		groupBy, err := testData.GroupBy("id4", "id5")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -208,32 +184,59 @@ func benchmarkGroupByQ6(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// =============================================================================
-// Q7, Q8, Q9 are SKIPPED - NOT COMPARABLE with Polars
-// =============================================================================
-// These benchmarks require operations not yet implemented in golars:
-// - Q7: Expression arithmetic in aggregations (max - min)
-// - Q8: top_k, drop_nulls, explode operations
-// - Q9: correlation function
+// BenchmarkGroupByH2OAI_Q7 matches test_groupby_h2oai_q7
+// Polars:
 //
-// Including simplified versions would produce misleading benchmark comparisons.
-// See: https://github.com/tnn1t1s/golars/issues/1 (Advanced Data Types)
-// =============================================================================
-
-// BenchmarkGroupByQ10 - Group by all ID columns with sum and count
-// Polars: df.group_by("id1", "id2", "id3", "id4", "id5", "id6").agg([pl.sum("v3").alias("v3_sum"), pl.count("v1").alias("v1_count")])
-func BenchmarkGroupByQ10_Small(b *testing.B) {
-	benchmarkGroupByQ10(b, testData.small)
+//	groupby_data.lazy()
+//	.group_by("id3")
+//	.agg((pl.max("v1") - pl.min("v2")).alias("range_v1_v2"))
+//	.collect()
+//
+// SKIPPED: Requires expression arithmetic in aggregations (max - min)
+// golars does not yet support combining aggregation results within agg()
+func BenchmarkGroupByH2OAI_Q7(b *testing.B) {
+	b.Skip("FEATURE GAP: Requires expression arithmetic in aggregations (pl.max - pl.min)")
 }
 
-func BenchmarkGroupByQ10_Medium(b *testing.B) {
-	benchmarkGroupByQ10(b, testData.medium)
+// BenchmarkGroupByH2OAI_Q8 matches test_groupby_h2oai_q8
+// Polars:
+//
+//	groupby_data.lazy()
+//	.drop_nulls("v3")
+//	.group_by("id6")
+//	.agg(pl.col("v3").top_k(2).alias("largest2_v3"))
+//	.explode("largest2_v3")
+//	.collect()
+//
+// SKIPPED: Requires top_k aggregation and explode operation
+func BenchmarkGroupByH2OAI_Q8(b *testing.B) {
+	b.Skip("FEATURE GAP: Requires top_k(2) aggregation and explode() operation")
 }
 
-func benchmarkGroupByQ10(b *testing.B, df *frame.DataFrame) {
+// BenchmarkGroupByH2OAI_Q9 matches test_groupby_h2oai_q9
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id2", "id4")
+//	.agg((pl.corr("v1", "v2") ** 2).alias("r2"))
+//	.collect()
+//
+// SKIPPED: Requires correlation function in aggregations
+func BenchmarkGroupByH2OAI_Q9(b *testing.B) {
+	b.Skip("FEATURE GAP: Requires pl.corr() function in aggregations")
+}
+
+// BenchmarkGroupByH2OAI_Q10 matches test_groupby_h2oai_q10
+// Polars:
+//
+//	groupby_data.lazy()
+//	.group_by("id1", "id2", "id3", "id4", "id5", "id6")
+//	.agg(pl.sum("v3").alias("v3_sum"), pl.count("v1").alias("v1_count"))
+//	.collect()
+func BenchmarkGroupByH2OAI_Q10(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id1", "id2", "id3", "id4", "id5", "id6")
+		groupBy, err := testData.GroupBy("id1", "id2", "id3", "id4", "id5", "id6")
 		if err != nil {
 			b.Fatal(err)
 		}

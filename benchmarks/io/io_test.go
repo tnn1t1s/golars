@@ -1,3 +1,10 @@
+// Package io contains exact translations of Polars benchmark tests.
+//
+// Source: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_io.py
+//
+// Data configuration matches Polars conftest.py:
+//
+//	groupby_data = generate_group_by_data(10_000, 100, null_ratio=0.05)
 package io
 
 import (
@@ -7,78 +14,97 @@ import (
 
 	"github.com/tnn1t1s/golars"
 	"github.com/tnn1t1s/golars/benchmarks/data"
+	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/frame"
 )
 
-// Global variable to store test data
-var testData struct {
-	small   *frame.DataFrame
-	medium  *frame.DataFrame
-	tempDir string
-}
+// testData matches Polars' groupby_data fixture from conftest.py
+// Default: 10,000 rows, 100 groups, 5% null ratio
+var testData *frame.DataFrame
+var tempDir string
 
-// init loads the test data once
 func init() {
+	var err error
+	testData, err = data.GenerateH2OAIData(data.H2OAISmall)
+	if err != nil {
+		panic(err)
+	}
+
 	// Create temp directory for I/O tests
-	tempDir, err := os.MkdirTemp("", "golars_bench_io_*")
+	tempDir, err = os.MkdirTemp("", "golars_bench_io_*")
 	if err != nil {
 		panic(err)
 	}
-	testData.tempDir = tempDir
+}
 
-	// Load small dataset
-	small, err := data.GenerateH2OAIData(data.H2OAISmall)
+// =============================================================================
+// Polars test_io.py - Exact Translations
+// =============================================================================
+
+// BenchmarkWriteReadFilterCSV matches test_write_read_scan_large_csv
+// Polars:
+//
+//	tmp_path.mkdir(exist_ok=True)
+//	data_path = tmp_path / "data.csv"
+//	groupby_data.write_csv(data_path)
+//	predicate = pl.col("v2") < 5
+//	shape_eager = pl.read_csv(data_path).filter(predicate).shape
+//	shape_lazy = pl.scan_csv(data_path).filter(predicate).collect().shape
+//	assert shape_lazy == shape_eager
+//
+// Note: golars does not have scan_csv (lazy evaluation), so we only test eager read
+func BenchmarkWriteReadFilterCSV(b *testing.B) {
+	dataPath := filepath.Join(tempDir, "data.csv")
+
+	// Write CSV once
+	err := golars.WriteCSV(testData, dataPath)
 	if err != nil {
-		panic(err)
+		b.Fatal(err)
 	}
-	testData.small = small
-
-	// Load medium dataset
-	medium, err := data.GenerateH2OAIData(data.H2OAIMedium)
-	if err != nil {
-		panic(err)
-	}
-	testData.medium = medium
-}
-
-// BenchmarkWriteCSV - Write DataFrame to CSV
-func BenchmarkWriteCSV_Small(b *testing.B) {
-	benchmarkWriteCSV(b, testData.small, "small.csv")
-}
-
-func BenchmarkWriteCSV_Medium(b *testing.B) {
-	benchmarkWriteCSV(b, testData.medium, "medium.csv")
-}
-
-func benchmarkWriteCSV(b *testing.B, df *frame.DataFrame, filename string) {
-	path := filepath.Join(testData.tempDir, filename)
+	defer os.Remove(dataPath)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := golars.WriteCSV(df, path)
+		// Read CSV (eager)
+		df, err := golars.ReadCSV(dataPath)
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		// Clean up after each iteration
+		// Filter: v2 < 5
+		filtered, err := df.Filter(expr.Col("v2").Lt(5))
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		_, _ = filtered.Shape()
+	}
+}
+
+// =============================================================================
+// Additional I/O Benchmarks (not in Polars test_io.py but useful for comparison)
+// =============================================================================
+
+// BenchmarkWriteCSV benchmarks CSV write performance
+func BenchmarkWriteCSV(b *testing.B) {
+	path := filepath.Join(tempDir, "write_bench.csv")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := golars.WriteCSV(testData, path)
+		if err != nil {
+			b.Fatal(err)
+		}
 		os.Remove(path)
 	}
 }
 
-// BenchmarkReadCSV - Read DataFrame from CSV
-func BenchmarkReadCSV_Small(b *testing.B) {
-	benchmarkReadCSV(b, testData.small, "small_read.csv")
-}
+// BenchmarkReadCSV benchmarks CSV read performance
+func BenchmarkReadCSV(b *testing.B) {
+	path := filepath.Join(tempDir, "read_bench.csv")
 
-func BenchmarkReadCSV_Medium(b *testing.B) {
-	benchmarkReadCSV(b, testData.medium, "medium_read.csv")
-}
-
-func benchmarkReadCSV(b *testing.B, df *frame.DataFrame, filename string) {
-	path := filepath.Join(testData.tempDir, filename)
-
-	// Write the file once for reading
-	err := golars.WriteCSV(df, path)
+	// Write once for reading
+	err := golars.WriteCSV(testData, path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -86,52 +112,34 @@ func benchmarkReadCSV(b *testing.B, df *frame.DataFrame, filename string) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := golars.ReadCSV(path)
+		df, err := golars.ReadCSV(path)
 		if err != nil {
 			b.Fatal(err)
 		}
-		_ = result
+		_ = df
 	}
 }
 
-// BenchmarkWriteParquet - Write DataFrame to Parquet
-func BenchmarkWriteParquet_Small(b *testing.B) {
-	benchmarkWriteParquet(b, testData.small, "small.parquet")
-}
-
-func BenchmarkWriteParquet_Medium(b *testing.B) {
-	benchmarkWriteParquet(b, testData.medium, "medium.parquet")
-}
-
-func benchmarkWriteParquet(b *testing.B, df *frame.DataFrame, filename string) {
-	path := filepath.Join(testData.tempDir, filename)
+// BenchmarkWriteParquet benchmarks Parquet write performance
+func BenchmarkWriteParquet(b *testing.B) {
+	path := filepath.Join(tempDir, "write_bench.parquet")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := golars.WriteParquet(df, path)
+		err := golars.WriteParquet(testData, path)
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		// Clean up after each iteration
 		os.Remove(path)
 	}
 }
 
-// BenchmarkReadParquet - Read DataFrame from Parquet
-func BenchmarkReadParquet_Small(b *testing.B) {
-	benchmarkReadParquet(b, testData.small, "small_read.parquet")
-}
+// BenchmarkReadParquet benchmarks Parquet read performance
+func BenchmarkReadParquet(b *testing.B) {
+	path := filepath.Join(tempDir, "read_bench.parquet")
 
-func BenchmarkReadParquet_Medium(b *testing.B) {
-	benchmarkReadParquet(b, testData.medium, "medium_read.parquet")
-}
-
-func benchmarkReadParquet(b *testing.B, df *frame.DataFrame, filename string) {
-	path := filepath.Join(testData.tempDir, filename)
-
-	// Write the file once for reading
-	err := golars.WriteParquet(df, path)
+	// Write once for reading
+	err := golars.WriteParquet(testData, path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -139,20 +147,19 @@ func benchmarkReadParquet(b *testing.B, df *frame.DataFrame, filename string) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := golars.ReadParquet(path)
+		df, err := golars.ReadParquet(path)
 		if err != nil {
 			b.Fatal(err)
 		}
-		_ = result
+		_ = df
 	}
 }
 
-// Cleanup temp directory
+// TestMain cleans up temp directory
 func TestMain(m *testing.M) {
 	code := m.Run()
-	// Clean up temp directory
-	if testData.tempDir != "" {
-		os.RemoveAll(testData.tempDir)
+	if tempDir != "" {
+		os.RemoveAll(tempDir)
 	}
 	os.Exit(code)
 }
