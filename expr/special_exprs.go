@@ -13,6 +13,11 @@ type CastExpr struct {
 	dataType datatypes.DataType
 }
 
+// Cast wraps an expression in a cast operation.
+func Cast(expr Expr, dataType datatypes.DataType) *CastExpr {
+	return &CastExpr{expr: expr, dataType: dataType}
+}
+
 func (e *CastExpr) String() string {
 	return fmt.Sprintf("%s.cast(%v)", e.expr.String(), e.dataType)
 }

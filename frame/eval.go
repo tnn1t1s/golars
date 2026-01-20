@@ -35,6 +35,16 @@ func (df *DataFrame) evaluateExpr(e expr.Expr) (series.Series, error) {
 	case *expr.UnaryExpr:
 		// Handle unary expressions
 		return df.evaluateUnaryOpExpr(ex)
+	case *expr.CastExpr:
+		// Handle cast expressions
+		input, err := df.evaluateExpr(ex.Expr())
+		if err != nil {
+			return nil, err
+		}
+		return input.Cast(ex.TargetType())
+	case *expr.AliasExpr:
+		// Handle alias expressions
+		return df.evaluateExpr(ex.Expr())
 
 	default:
 		return nil, fmt.Errorf("unsupported expression type: %T", e)

@@ -202,6 +202,26 @@ func (df *DataFrame) evaluateExprValues(e expr.Expr) ([]interface{}, error) {
 			values[i] = ex.Value()
 		}
 		return values, nil
+	case *expr.CastExpr:
+		values, err := df.evaluateExprValues(ex.Expr())
+		if err != nil {
+			return nil, err
+		}
+		casted := make([]interface{}, len(values))
+		for i, value := range values {
+			if value == nil {
+				casted[i] = nil
+				continue
+			}
+			converted, err := castValue(value, ex.TargetType())
+			if err != nil {
+				return nil, err
+			}
+			casted[i] = converted
+		}
+		return casted, nil
+	case *expr.AliasExpr:
+		return df.evaluateExprValues(ex.Expr())
 
 	default:
 		return nil, fmt.Errorf("unsupported expression type for value evaluation: %T", e)
@@ -422,4 +442,373 @@ func compareLess(left, right interface{}) bool {
 		}
 	}
 	return false
+}
+
+func castValue(value interface{}, target datatypes.DataType) (interface{}, error) {
+	switch target.(type) {
+	case datatypes.Int64:
+		v, ok := castToInt64(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to int64", value)
+		}
+		return v, nil
+	case datatypes.Int32:
+		v, ok := castToInt32(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to int32", value)
+		}
+		return v, nil
+	case datatypes.Int16:
+		v, ok := castToInt16(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to int16", value)
+		}
+		return v, nil
+	case datatypes.Int8:
+		v, ok := castToInt8(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to int8", value)
+		}
+		return v, nil
+	case datatypes.UInt64:
+		v, ok := castToUInt64(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to uint64", value)
+		}
+		return v, nil
+	case datatypes.UInt32:
+		v, ok := castToUInt32(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to uint32", value)
+		}
+		return v, nil
+	case datatypes.UInt16:
+		v, ok := castToUInt16(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to uint16", value)
+		}
+		return v, nil
+	case datatypes.UInt8:
+		v, ok := castToUInt8(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to uint8", value)
+		}
+		return v, nil
+	case datatypes.Float64:
+		v, ok := castToFloat64(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to float64", value)
+		}
+		return v, nil
+	case datatypes.Float32:
+		v, ok := castToFloat32(value)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to float32", value)
+		}
+		return v, nil
+	case datatypes.Boolean:
+		v, ok := value.(bool)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to bool", value)
+		}
+		return v, nil
+	case datatypes.String:
+		v, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast %T to string", value)
+		}
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unsupported cast type %s", target.String())
+	}
+}
+
+func castToInt64(v interface{}) (int64, bool) {
+	switch val := v.(type) {
+	case int:
+		return int64(val), true
+	case int8:
+		return int64(val), true
+	case int16:
+		return int64(val), true
+	case int32:
+		return int64(val), true
+	case int64:
+		return val, true
+	case uint8:
+		return int64(val), true
+	case uint16:
+		return int64(val), true
+	case uint32:
+		return int64(val), true
+	case uint64:
+		return int64(val), true
+	case float32:
+		return int64(val), true
+	case float64:
+		return int64(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToInt32(v interface{}) (int32, bool) {
+	switch val := v.(type) {
+	case int:
+		return int32(val), true
+	case int8:
+		return int32(val), true
+	case int16:
+		return int32(val), true
+	case int32:
+		return val, true
+	case int64:
+		return int32(val), true
+	case uint8:
+		return int32(val), true
+	case uint16:
+		return int32(val), true
+	case uint32:
+		return int32(val), true
+	case uint64:
+		return int32(val), true
+	case float32:
+		return int32(val), true
+	case float64:
+		return int32(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToInt16(v interface{}) (int16, bool) {
+	switch val := v.(type) {
+	case int:
+		return int16(val), true
+	case int8:
+		return int16(val), true
+	case int16:
+		return val, true
+	case int32:
+		return int16(val), true
+	case int64:
+		return int16(val), true
+	case uint8:
+		return int16(val), true
+	case uint16:
+		return int16(val), true
+	case uint32:
+		return int16(val), true
+	case uint64:
+		return int16(val), true
+	case float32:
+		return int16(val), true
+	case float64:
+		return int16(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToInt8(v interface{}) (int8, bool) {
+	switch val := v.(type) {
+	case int:
+		return int8(val), true
+	case int8:
+		return val, true
+	case int16:
+		return int8(val), true
+	case int32:
+		return int8(val), true
+	case int64:
+		return int8(val), true
+	case uint8:
+		return int8(val), true
+	case uint16:
+		return int8(val), true
+	case uint32:
+		return int8(val), true
+	case uint64:
+		return int8(val), true
+	case float32:
+		return int8(val), true
+	case float64:
+		return int8(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToUInt64(v interface{}) (uint64, bool) {
+	switch val := v.(type) {
+	case int:
+		return uint64(val), true
+	case int8:
+		return uint64(val), true
+	case int16:
+		return uint64(val), true
+	case int32:
+		return uint64(val), true
+	case int64:
+		return uint64(val), true
+	case uint8:
+		return uint64(val), true
+	case uint16:
+		return uint64(val), true
+	case uint32:
+		return uint64(val), true
+	case uint64:
+		return val, true
+	case float32:
+		return uint64(val), true
+	case float64:
+		return uint64(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToUInt32(v interface{}) (uint32, bool) {
+	switch val := v.(type) {
+	case int:
+		return uint32(val), true
+	case int8:
+		return uint32(val), true
+	case int16:
+		return uint32(val), true
+	case int32:
+		return uint32(val), true
+	case int64:
+		return uint32(val), true
+	case uint8:
+		return uint32(val), true
+	case uint16:
+		return uint32(val), true
+	case uint32:
+		return val, true
+	case uint64:
+		return uint32(val), true
+	case float32:
+		return uint32(val), true
+	case float64:
+		return uint32(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToUInt16(v interface{}) (uint16, bool) {
+	switch val := v.(type) {
+	case int:
+		return uint16(val), true
+	case int8:
+		return uint16(val), true
+	case int16:
+		return uint16(val), true
+	case int32:
+		return uint16(val), true
+	case int64:
+		return uint16(val), true
+	case uint8:
+		return uint16(val), true
+	case uint16:
+		return val, true
+	case uint32:
+		return uint16(val), true
+	case uint64:
+		return uint16(val), true
+	case float32:
+		return uint16(val), true
+	case float64:
+		return uint16(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToUInt8(v interface{}) (uint8, bool) {
+	switch val := v.(type) {
+	case int:
+		return uint8(val), true
+	case int8:
+		return uint8(val), true
+	case int16:
+		return uint8(val), true
+	case int32:
+		return uint8(val), true
+	case int64:
+		return uint8(val), true
+	case uint8:
+		return val, true
+	case uint16:
+		return uint8(val), true
+	case uint32:
+		return uint8(val), true
+	case uint64:
+		return uint8(val), true
+	case float32:
+		return uint8(val), true
+	case float64:
+		return uint8(val), true
+	default:
+		return 0, false
+	}
+}
+
+func castToFloat64(v interface{}) (float64, bool) {
+	switch val := v.(type) {
+	case int:
+		return float64(val), true
+	case int8:
+		return float64(val), true
+	case int16:
+		return float64(val), true
+	case int32:
+		return float64(val), true
+	case int64:
+		return float64(val), true
+	case uint8:
+		return float64(val), true
+	case uint16:
+		return float64(val), true
+	case uint32:
+		return float64(val), true
+	case uint64:
+		return float64(val), true
+	case float32:
+		return float64(val), true
+	case float64:
+		return val, true
+	default:
+		return 0, false
+	}
+}
+
+func castToFloat32(v interface{}) (float32, bool) {
+	switch val := v.(type) {
+	case int:
+		return float32(val), true
+	case int8:
+		return float32(val), true
+	case int16:
+		return float32(val), true
+	case int32:
+		return float32(val), true
+	case int64:
+		return float32(val), true
+	case uint8:
+		return float32(val), true
+	case uint16:
+		return float32(val), true
+	case uint32:
+		return float32(val), true
+	case uint64:
+		return float32(val), true
+	case float32:
+		return val, true
+	case float64:
+		return float32(val), true
+	default:
+		return 0, false
+	}
 }

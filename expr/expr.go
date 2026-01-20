@@ -48,6 +48,11 @@ type AliasExpr struct {
 	alias string
 }
 
+// Expr returns the wrapped expression.
+func (e *AliasExpr) Expr() Expr {
+	return e.expr
+}
+
 // BinaryExpr represents a binary operation
 type BinaryExpr struct {
 	left  Expr
