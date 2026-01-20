@@ -1,139 +1,135 @@
 # golars Benchmarks
 
-This directory contains benchmarks that are **exact translations** of Polars' benchmark suite, enabling direct performance comparison.
+This directory contains the **complete Polars benchmark suite** implemented in golars.
 
-## Polars Source Mapping
+## Polars Source
 
-All benchmarks are direct translations from the Polars repository:
+All benchmarks are direct implementations of the Polars test suite:
 - **Source**: https://github.com/pola-rs/polars/tree/main/py-polars/tests/benchmark
-- **Data Config**: `generate_group_by_data(10_000, 100, null_ratio=0.05)` from `conftest.py`
 
-### Benchmark Comparability Matrix
+## Complete Benchmark Mapping
 
-| golars Benchmark | Polars Test | Status | Notes |
-|------------------|-------------|--------|-------|
-| `BenchmarkGroupByH2OAI_Q1` | `test_groupby_h2oai_q1` | Comparable | group_by("id1").agg(sum("v1")) |
-| `BenchmarkGroupByH2OAI_Q2` | `test_groupby_h2oai_q2` | Comparable | group_by("id1", "id2").agg(sum("v1")) |
-| `BenchmarkGroupByH2OAI_Q3` | `test_groupby_h2oai_q3` | Comparable | group_by("id3").agg(sum("v1"), mean("v3")) |
-| `BenchmarkGroupByH2OAI_Q4` | `test_groupby_h2oai_q4` | Comparable | group_by("id4").agg(mean("v1"), mean("v2"), mean("v3")) |
-| `BenchmarkGroupByH2OAI_Q5` | `test_groupby_h2oai_q5` | Comparable | group_by("id6").agg(sum("v1"), sum("v2"), sum("v3")) |
-| `BenchmarkGroupByH2OAI_Q6` | `test_groupby_h2oai_q6` | Comparable | group_by("id4", "id5").agg(median("v3"), std("v3")) |
-| `BenchmarkGroupByH2OAI_Q7` | `test_groupby_h2oai_q7` | **SKIPPED** | Requires expression arithmetic (max-min) |
-| `BenchmarkGroupByH2OAI_Q8` | `test_groupby_h2oai_q8` | **SKIPPED** | Requires top_k, drop_nulls, explode |
-| `BenchmarkGroupByH2OAI_Q9` | `test_groupby_h2oai_q9` | **SKIPPED** | Requires correlation in aggregations |
-| `BenchmarkGroupByH2OAI_Q10` | `test_groupby_h2oai_q10` | Comparable | group_by(all_ids).agg(sum("v3"), count("v1")) |
-| `BenchmarkFilter1` | `test_filter1` | Comparable | filter(id1 == "id046") with aggregation |
-| `BenchmarkFilter2` | `test_filter2` | Comparable | filter(id1 != "id046") with aggregation |
-| `BenchmarkWriteReadFilterCSV` | `test_write_read_scan_large_csv` | Partial | No lazy scan_csv equivalent |
+### test_group_by.py
 
-### Feature Gaps
+| Polars Test | golars Benchmark | Status |
+|-------------|------------------|--------|
+| `test_groupby_h2oai_q1` | `BenchmarkGroupByH2OAI_Q1` | Comparable |
+| `test_groupby_h2oai_q2` | `BenchmarkGroupByH2OAI_Q2` | Comparable |
+| `test_groupby_h2oai_q3` | `BenchmarkGroupByH2OAI_Q3` | Comparable |
+| `test_groupby_h2oai_q4` | `BenchmarkGroupByH2OAI_Q4` | Comparable |
+| `test_groupby_h2oai_q5` | `BenchmarkGroupByH2OAI_Q5` | Comparable |
+| `test_groupby_h2oai_q6` | `BenchmarkGroupByH2OAI_Q6` | Comparable |
+| `test_groupby_h2oai_q7` | `BenchmarkGroupByH2OAI_Q7` | **SKIPPED** |
+| `test_groupby_h2oai_q8` | `BenchmarkGroupByH2OAI_Q8` | **SKIPPED** |
+| `test_groupby_h2oai_q9` | `BenchmarkGroupByH2OAI_Q9` | **SKIPPED** |
+| `test_groupby_h2oai_q10` | `BenchmarkGroupByH2OAI_Q10` | Comparable |
 
-Benchmarks Q7, Q8, Q9 are skipped because golars does not yet support:
+### test_filter.py
 
-- **Q7**: Expression arithmetic in aggregations (`pl.max("v1") - pl.min("v2")`)
-- **Q8**: `top_k()` aggregation and `explode()` operation
-- **Q9**: `corr()` function in aggregation context
+| Polars Test | golars Benchmark | Status |
+|-------------|------------------|--------|
+| `test_filter1` | `BenchmarkFilter1` | Comparable |
+| `test_filter2` | `BenchmarkFilter2` | Comparable |
 
-These skips are intentional to show feature parity gaps clearly.
+### test_io.py
 
-## Directory Structure
+| Polars Test | golars Benchmark | Status |
+|-------------|------------------|--------|
+| `test_write_read_scan_large_csv` | `BenchmarkWriteReadFilterCSV` | Partial (no lazy scan) |
 
-```
-benchmarks/
-├── data/          # H2O.ai data generation (matches Polars datagen_groupby.py)
-├── groupby/       # Polars test_group_by.py translations
-├── filter/        # Polars test_filter.py translations
-├── io/            # Polars test_io.py translations
-├── join/          # Join operation benchmarks
-├── sort/          # Sort benchmarks
-└── agg/           # Direct aggregation benchmarks
-```
+### test_join_where.py
+
+| Polars Test | golars Benchmark | Status |
+|-------------|------------------|--------|
+| `test_strict_inequalities` | `BenchmarkStrictInequalities` | **SKIPPED** |
+| `test_non_strict_inequalities` | `BenchmarkNonStrictInequalities` | **SKIPPED** |
+| `test_single_inequality` | `BenchmarkSingleInequality` | **SKIPPED** |
+
+### test_with_columns.py
+
+| Polars Test | golars Benchmark | Status |
+|-------------|------------------|--------|
+| `test_with_columns_quadratic_19503` | `BenchmarkWithColumnsQuadratic` | Comparable |
+
+### interop/test_numpy.py
+
+| Polars Test | golars Benchmark | Status |
+|-------------|------------------|--------|
+| `test_to_numpy_series_zero_copy` | `BenchmarkToNumpySeriesZeroCopy` | **SKIPPED** |
+| `test_to_numpy_series_with_nulls` | `BenchmarkToNumpySeriesWithNulls` | **SKIPPED** |
+| `test_to_numpy_series_chunked` | `BenchmarkToNumpySeriesChunked` | **SKIPPED** |
+
+## Feature Gaps
+
+Skipped benchmarks clearly show golars feature gaps:
+
+| Feature | golars Status | Polars Equivalent |
+|---------|---------------|-------------------|
+| Expression arithmetic in agg | Missing | `pl.max() - pl.min()` |
+| top_k aggregation | Missing | `col.top_k(2)` |
+| explode operation | Missing | `.explode()` |
+| Correlation in agg | Missing | `pl.corr()` |
+| Inequality joins | Missing | `.join_where()` |
+| NumPy interop | N/A (Go) | `.to_numpy()` |
+| Lazy evaluation | Missing | `.lazy().collect()` |
 
 ## Running Benchmarks
 
-### Quick Start
-
 ```bash
-# Run all comparable benchmarks
+# Run ALL Polars-equivalent benchmarks
 go test -bench=. ./benchmarks/... -benchmem
 
 # Run specific suite
 go test -bench=. ./benchmarks/groupby -benchmem
 go test -bench=. ./benchmarks/filter -benchmem
 go test -bench=. ./benchmarks/io -benchmem
+go test -bench=. ./benchmarks/join_where -v  # Shows skipped tests
+go test -bench=. ./benchmarks/with_columns -benchmem
+go test -bench=. ./benchmarks/interop -v  # Shows skipped tests
+
+# Show all skipped benchmarks (feature gaps)
+go test -bench=. ./benchmarks/... -v 2>&1 | grep -E "SKIP|FEATURE GAP|LANGUAGE GAP"
 ```
 
-### With Multiple Iterations
+## Directory Structure
 
-```bash
-# Statistical accuracy (5 runs, 10 iterations each)
-go test -bench=. ./benchmarks/groupby -benchmem -count=5 -benchtime=10x
 ```
-
-### Show Skipped Benchmarks
-
-```bash
-# See which benchmarks are skipped and why
-go test -bench=. ./benchmarks/groupby -v 2>&1 | grep -E "(SKIP|FEATURE GAP)"
+benchmarks/
+├── groupby/       # test_group_by.py (Q1-Q10)
+├── filter/        # test_filter.py
+├── io/            # test_io.py
+├── join_where/    # test_join_where.py (all skipped)
+├── with_columns/  # test_with_columns.py
+├── interop/       # interop/test_numpy.py (all skipped)
+├── data/          # H2O.ai data generation
+├── agg/           # Additional aggregation benchmarks
+├── sort/          # Additional sort benchmarks
+└── join/          # Additional equality join benchmarks
 ```
 
 ## Data Configuration
 
-All benchmarks use the same data configuration as Polars:
+Matches Polars `conftest.py`:
 
-```go
-// From benchmarks/data/h2oai.go
-H2OAISmall = H2OAIConfig{
-    NRows:     10_000,   // Matches Polars conftest.py
-    NGroups:   100,      // Matches Polars conftest.py
-    NullRatio: 0.05,     // 5% nulls
-    Seed:      0,
-}
+```python
+# Polars
+groupby_data = generate_group_by_data(10_000, 100, null_ratio=0.05)
 ```
 
-This matches Polars' `conftest.py`:
-```python
-@pytest.fixture(scope="session")
-def groupby_data() -> pl.DataFrame:
-    return generate_group_by_data(10_000, 100, null_ratio=0.05)
+```go
+// golars
+H2OAISmall = H2OAIConfig{
+    NRows:     10_000,
+    NGroups:   100,
+    NullRatio: 0.05,
+}
 ```
 
 ## Running Polars Benchmarks
 
-To compare with Polars, run their benchmark suite:
+To get Polars numbers for comparison:
 
 ```bash
 cd /path/to/polars/py-polars
-pytest tests/benchmark/test_group_by.py --benchmark-only -v
-pytest tests/benchmark/test_filter.py --benchmark-only -v
-pytest tests/benchmark/test_io.py --benchmark-only -v
+pytest tests/benchmark/ --benchmark-only -v
 ```
-
-## Understanding Results
-
-### Go Benchmark Output
-
-```
-BenchmarkGroupByH2OAI_Q1-10    306    3492280 ns/op    890327 B/op    41158 allocs/op
-```
-
-- `Q1-10`: Benchmark name, 10 CPUs
-- `306`: Iterations run
-- `3492280 ns/op`: ~3.5ms per operation
-- `890327 B/op`: ~870KB allocated per operation
-- `41158 allocs/op`: Number of heap allocations
-
-### Comparing with Polars
-
-Polars pytest-benchmark outputs JSON with `mean`, `median`, `stddev` statistics. Convert golars nanoseconds to seconds for direct comparison:
-
-- golars `3492280 ns/op` = `0.00349s` = `3.49ms`
-- Polars `mean: 0.00312` = `3.12ms`
-
-## Known Differences
-
-1. **Lazy vs Eager**: Polars uses lazy evaluation (`.lazy().collect()`); golars is eager
-2. **Null Handling**: Polars `eq_missing()` treats null=null as true; golars `Eq()` does not
-3. **Memory Model**: Go GC vs Rust ownership affects allocation patterns
-
-These differences are documented in each benchmark file with comments.
