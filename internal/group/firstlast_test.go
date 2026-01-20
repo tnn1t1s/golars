@@ -3,8 +3,8 @@ package group
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -20,10 +20,10 @@ func TestFirstLastAggregation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"first_value": expr.Col("value").First(),
-		"last_value": expr.Col("value").Last(),
+		"last_value":  expr.Col("value").Last(),
 	})
 	if err != nil {
 		t.Fatalf("First/Last aggregation failed: %v", err)
@@ -40,13 +40,13 @@ func TestFirstLastAggregation(t *testing.T) {
 	if len(result.Columns) != 3 {
 		t.Fatalf("Expected 3 columns, got %d", len(result.Columns))
 	}
-	
+
 	// Create a map of actual results grouped by group value
 	type groupResult struct {
 		first, last float64
 	}
 	actualResults := make(map[string]groupResult)
-	
+
 	// First column should be the group column
 	groupCol := result.Columns[0]
 	for i := 0; i < groupCol.Len(); i++ {
@@ -63,13 +63,13 @@ func TestFirstLastAggregation(t *testing.T) {
 		}
 		actualResults[groupVal] = groupResult{first: first, last: last}
 	}
-	
+
 	// Check expected values
 	expected := map[string]groupResult{
 		"A": {first: 1.0, last: 3.0},
 		"B": {first: 4.0, last: 6.0},
 	}
-	
+
 	for group, exp := range expected {
 		if actual, ok := actualResults[group]; ok {
 			if actual.first != exp.first {
@@ -88,7 +88,7 @@ func TestFirstLastWithNulls(t *testing.T) {
 	// Create test data with null values
 	values := []float64{0.0, 1.0, 2.0, 0.0, 3.0, 4.0}
 	validity := []bool{false, true, true, false, true, true}
-	
+
 	df := newMockDataFrame(
 		series.NewStringSeries("group", []string{"A", "A", "A", "B", "B", "B"}),
 		series.NewSeriesWithValidity("value", values, validity, datatypes.Float64{}),
@@ -99,10 +99,10 @@ func TestFirstLastWithNulls(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"first_value": expr.Col("value").First(),
-		"last_value": expr.Col("value").Last(),
+		"last_value":  expr.Col("value").Last(),
 	})
 	if err != nil {
 		t.Fatalf("First/Last aggregation with nulls failed: %v", err)
@@ -111,18 +111,18 @@ func TestFirstLastWithNulls(t *testing.T) {
 	// Check values - should skip nulls
 	// Group A: [null, 1, 2] -> first = 1, last = 2
 	// Group B: [null, 3, 4] -> first = 3, last = 4
-	
+
 	// Result should have group column and aggregation columns
 	if len(result.Columns) != 3 {
 		t.Fatalf("Expected 3 columns, got %d", len(result.Columns))
 	}
-	
+
 	// Create a map of actual results grouped by group value
 	type groupResult struct {
 		first, last float64
 	}
 	actualResults := make(map[string]groupResult)
-	
+
 	// First column should be the group column
 	groupCol := result.Columns[0]
 	for i := 0; i < groupCol.Len(); i++ {
@@ -139,13 +139,13 @@ func TestFirstLastWithNulls(t *testing.T) {
 		}
 		actualResults[groupVal] = groupResult{first: first, last: last}
 	}
-	
+
 	// Check expected values
 	expected := map[string]groupResult{
 		"A": {first: 1.0, last: 2.0},
 		"B": {first: 3.0, last: 4.0},
 	}
-	
+
 	for group, exp := range expected {
 		if actual, ok := actualResults[group]; ok {
 			if actual.first != exp.first {
@@ -164,7 +164,7 @@ func TestFirstLastAllNulls(t *testing.T) {
 	// Create test data with all null values
 	values := []float64{0.0, 0.0}
 	validity := []bool{false, false}
-	
+
 	df := newMockDataFrame(
 		series.NewStringSeries("group", []string{"A", "A"}),
 		series.NewSeriesWithValidity("value", values, validity, datatypes.Float64{}),
@@ -174,10 +174,10 @@ func TestFirstLastAllNulls(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"first_value": expr.Col("value").First(),
-		"last_value": expr.Col("value").Last(),
+		"last_value":  expr.Col("value").Last(),
 	})
 	if err != nil {
 		t.Fatalf("First/Last aggregation failed: %v", err)
@@ -186,11 +186,11 @@ func TestFirstLastAllNulls(t *testing.T) {
 	// Both should be null
 	firstCol := result.Columns[1]
 	lastCol := result.Columns[2]
-	
+
 	if !firstCol.IsNull(0) {
 		t.Errorf("Expected first to be null with all null values, got %v", firstCol.Get(0))
 	}
-	
+
 	if !lastCol.IsNull(0) {
 		t.Errorf("Expected last to be null with all null values, got %v", lastCol.Get(0))
 	}

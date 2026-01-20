@@ -5,13 +5,13 @@ import (
 
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/memory"
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestNewChunkedArray(t *testing.T) {
 	ca := NewChunkedArray[int32]("test", datatypes.Int32{})
-	
+
 	assert.Equal(t, "test", ca.Name())
 	assert.Equal(t, datatypes.Int32{}, ca.DataType())
 	assert.Equal(t, int64(0), ca.Len())
@@ -25,10 +25,10 @@ func TestAppendSlice(t *testing.T) {
 
 	values := []int32{1, 2, 3, 4, 5}
 	validity := []bool{true, true, false, true, true}
-	
+
 	err := ca.AppendSlice(values, validity)
 	assert.NoError(t, err)
-	
+
 	assert.Equal(t, int64(5), ca.Len())
 	assert.Equal(t, int64(1), ca.NullCount())
 	assert.Equal(t, 1, ca.NumChunks())
@@ -46,7 +46,7 @@ func TestAppendArray(t *testing.T) {
 
 	err := ca.AppendArray(arr)
 	assert.NoError(t, err)
-	
+
 	assert.Equal(t, int64(3), ca.Len())
 	assert.Equal(t, int64(1), ca.NullCount())
 }
@@ -58,7 +58,7 @@ func TestGet(t *testing.T) {
 	// Add first chunk
 	err := ca.AppendSlice([]string{"hello", "world", "foo"}, []bool{true, true, false})
 	assert.NoError(t, err)
-	
+
 	// Add second chunk
 	err = ca.AppendSlice([]string{"bar", "baz"}, []bool{true, true})
 	assert.NoError(t, err)
@@ -70,11 +70,11 @@ func TestGet(t *testing.T) {
 	}{
 		{0, "hello", true},
 		{1, "world", true},
-		{2, "", false},      // null value
-		{3, "bar", true},    // from second chunk
+		{2, "", false},   // null value
+		{3, "bar", true}, // from second chunk
 		{4, "baz", true},
-		{5, "", false},      // out of bounds
-		{-1, "", false},     // negative index
+		{5, "", false},  // out of bounds
+		{-1, "", false}, // negative index
 	}
 
 	for _, test := range tests {
@@ -125,10 +125,10 @@ func TestSlice(t *testing.T) {
 	// Test invalid slices
 	_, err := ca.Slice(-1, 5)
 	assert.Error(t, err)
-	
+
 	_, err = ca.Slice(0, 10)
 	assert.Error(t, err)
-	
+
 	_, err = ca.Slice(5, 3)
 	assert.Error(t, err)
 }
@@ -148,10 +148,10 @@ func TestToSlice(t *testing.T) {
 	assert.NoError(t, err)
 
 	resultValues, resultValidity := ca.ToSlice()
-	
+
 	expectedValues := []bool{true, false, true, false, true}
 	expectedValidity := []bool{true, false, true, true, true}
-	
+
 	assert.Equal(t, expectedValues, resultValues)
 	assert.Equal(t, expectedValidity, resultValidity)
 }
@@ -192,7 +192,7 @@ func TestMultipleChunks(t *testing.T) {
 	for i := int64(0); i < 10; i++ {
 		val, valid := ca.Get(i)
 		assert.True(t, valid)
-		expected := float32(i/2)
+		expected := float32(i / 2)
 		if i%2 == 1 {
 			expected += 0.5
 		}
@@ -213,7 +213,7 @@ func TestDifferentTypes(t *testing.T) {
 	t.Run("UInt64", func(t *testing.T) {
 		ca := NewChunkedArray[uint64]("u64", datatypes.UInt64{})
 		defer ca.Release()
-		values := []uint64{0, 1<<32, 1<<63}
+		values := []uint64{0, 1 << 32, 1 << 63}
 		err := ca.AppendSlice(values, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(3), ca.Len())

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestCSVReader(t *testing.T) {

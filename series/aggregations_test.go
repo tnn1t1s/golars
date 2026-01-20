@@ -3,7 +3,7 @@ package series_test
 import (
 	"math"
 	"testing"
-	
+
 	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 	"github.com/tnn1t1s/golars/testutil"
@@ -11,17 +11,17 @@ import (
 
 func TestSeriesAggregations(t *testing.T) {
 	tests := []struct {
-		name         string
-		series       series.Series
-		wantSum      float64
-		wantMean     float64
-		wantMin      interface{}
-		wantMax      interface{}
-		wantCount    int
-		wantStd      float64
-		wantVar      float64
-		wantMedian   float64
-		skipStd      bool // Skip std/var checks for some types
+		name       string
+		series     series.Series
+		wantSum    float64
+		wantMean   float64
+		wantMin    interface{}
+		wantMax    interface{}
+		wantCount  int
+		wantStd    float64
+		wantVar    float64
+		wantMedian float64
+		skipStd    bool // Skip std/var checks for some types
 	}{
 		{
 			name:       "int32_series",
@@ -55,8 +55,8 @@ func TestSeriesAggregations(t *testing.T) {
 				[]bool{true, false, true, false, true},
 				datatypes.Int32{},
 			),
-			wantSum:    9.0,  // 1 + 3 + 5
-			wantMean:   3.0,  // (1 + 3 + 5) / 3
+			wantSum:    9.0, // 1 + 3 + 5
+			wantMean:   3.0, // (1 + 3 + 5) / 3
 			wantMin:    int32(1),
 			wantMax:    int32(5),
 			wantCount:  3,
@@ -123,7 +123,7 @@ func TestSeriesAggregations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// t.Parallel() - disabled due to variable capture issue
-			
+
 			// Test Sum
 			gotSum := tt.series.Sum()
 			if math.IsNaN(tt.wantSum) {
@@ -133,7 +133,7 @@ func TestSeriesAggregations(t *testing.T) {
 			} else if gotSum != tt.wantSum {
 				t.Errorf("Sum() = %v, want %v", gotSum, tt.wantSum)
 			}
-			
+
 			// Test Mean
 			gotMean := tt.series.Mean()
 			if math.IsNaN(tt.wantMean) {
@@ -143,24 +143,24 @@ func TestSeriesAggregations(t *testing.T) {
 			} else {
 				testutil.AssertInDelta(t, tt.wantMean, gotMean, 0.0001, "Mean()")
 			}
-			
+
 			// Test Min
 			gotMin := tt.series.Min()
 			if gotMin != tt.wantMin {
 				t.Errorf("Min() = %v, want %v", gotMin, tt.wantMin)
 			}
-			
+
 			// Test Max
 			gotMax := tt.series.Max()
 			if gotMax != tt.wantMax {
 				t.Errorf("Max() = %v, want %v", gotMax, tt.wantMax)
 			}
-			
+
 			// Test Count
 			if got := tt.series.Count(); got != tt.wantCount {
 				t.Errorf("Count() = %v, want %v", got, tt.wantCount)
 			}
-			
+
 			// Test Std and Var (skip for types that don't support it)
 			if !tt.skipStd {
 				gotStd := tt.series.Std()
@@ -171,7 +171,7 @@ func TestSeriesAggregations(t *testing.T) {
 				} else {
 					testutil.AssertInDelta(t, tt.wantStd, gotStd, 0.0001, "Std()")
 				}
-				
+
 				gotVar := tt.series.Var()
 				if math.IsNaN(tt.wantVar) {
 					if !math.IsNaN(gotVar) {
@@ -181,7 +181,7 @@ func TestSeriesAggregations(t *testing.T) {
 					testutil.AssertInDelta(t, tt.wantVar, gotVar, 0.0001, "Var()")
 				}
 			}
-			
+
 			// Test Median
 			gotMedian := tt.series.Median()
 			if math.IsNaN(tt.wantMedian) {
@@ -241,12 +241,12 @@ func TestMedianEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// t.Parallel() - disabled due to variable capture issue
-			
+
 			got := tt.series.Median()
 			// Debug output
-			t.Logf("Test %s: series length=%d, count=%d, median=%v, expected=%v", 
+			t.Logf("Test %s: series length=%d, count=%d, median=%v, expected=%v",
 				tt.name, tt.series.Len(), tt.series.Count(), got, tt.wantMedian)
-			
+
 			if math.IsNaN(tt.wantMedian) {
 				if !math.IsNaN(got) {
 					t.Errorf("Median() = %v, want NaN", got)
@@ -263,38 +263,38 @@ func TestAggregationsWithSpecialValues(t *testing.T) {
 		// Test series with special float values
 		values := []float64{1.0, 2.0, math.Inf(1), math.NaN(), 3.0}
 		s := series.NewFloat64Series("special", values)
-		
+
 		// Most aggregations should handle Inf and NaN appropriately
 		if got := s.Count(); got != 5 {
 			t.Errorf("Count() = %v, want 5", got)
 		}
-		
+
 		// Sum with NaN should be NaN (NaN propagates)
 		if got := s.Sum(); !math.IsNaN(got) {
 			t.Errorf("Sum() = %v, want NaN", got)
 		}
-		
+
 		// Mean with NaN should be NaN (NaN propagates)
 		if got := s.Mean(); !math.IsNaN(got) {
 			t.Errorf("Mean() = %v, want NaN", got)
 		}
 	})
-	
+
 	t.Run("negative_values", func(t *testing.T) {
 		s := series.NewInt32Series("negative", []int32{-5, -3, -1, 0, 2})
-		
+
 		if got := s.Sum(); got != -7.0 {
 			t.Errorf("Sum() = %v, want -7", got)
 		}
-		
+
 		if got := s.Min(); got != int32(-5) {
 			t.Errorf("Min() = %v, want -5", got)
 		}
-		
+
 		if got := s.Max(); got != int32(2) {
 			t.Errorf("Max() = %v, want 2", got)
 		}
-		
+
 		testutil.AssertInDelta(t, -1.4, s.Mean(), 0.0001, "Mean()")
 	})
 }
@@ -302,31 +302,31 @@ func TestAggregationsWithSpecialValues(t *testing.T) {
 // Benchmarks for aggregation methods
 func BenchmarkSeriesAggregations(b *testing.B) {
 	sizes := []int{100, 1000, 10000, 100000}
-	
+
 	for _, size := range sizes {
 		// Generate test data
 		gen := testutil.NewDataGenerator(42)
 		values := gen.GenerateFloats(size, 0, 1000)
 		s := series.NewFloat64Series("bench", values)
-		
+
 		b.Run("Sum/"+string(rune(size)), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				_ = s.Sum()
 			}
 		})
-		
+
 		b.Run("Mean/"+string(rune(size)), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				_ = s.Mean()
 			}
 		})
-		
+
 		b.Run("Median/"+string(rune(size)), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				_ = s.Median()
 			}
 		})
-		
+
 		b.Run("Std/"+string(rune(size)), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				_ = s.Std()

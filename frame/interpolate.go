@@ -23,7 +23,7 @@ func (df *DataFrame) Interpolate(options InterpolateOptions) (*DataFrame, error)
 	if options.Method == "" {
 		options.Method = "linear"
 	}
-	
+
 	// Validate method
 	validMethods := map[string]bool{
 		"linear": true, "nearest": true, "zero": true,
@@ -32,7 +32,7 @@ func (df *DataFrame) Interpolate(options InterpolateOptions) (*DataFrame, error)
 	if !validMethods[options.Method] {
 		return nil, fmt.Errorf("invalid interpolation method: %s", options.Method)
 	}
-	
+
 	// Get columns to interpolate
 	columnsToInterp := options.Columns
 	if len(columnsToInterp) == 0 {
@@ -41,20 +41,20 @@ func (df *DataFrame) Interpolate(options InterpolateOptions) (*DataFrame, error)
 		for _, col := range df.columns {
 			switch col.DataType().(type) {
 			case datatypes.Int8, datatypes.Int16, datatypes.Int32, datatypes.Int64,
-			     datatypes.UInt8, datatypes.UInt16, datatypes.UInt32, datatypes.UInt64,
-			     datatypes.Float32, datatypes.Float64:
+				datatypes.UInt8, datatypes.UInt16, datatypes.UInt32, datatypes.UInt64,
+				datatypes.Float32, datatypes.Float64:
 				columnsToInterp = append(columnsToInterp, col.Name())
 			}
 		}
 	}
-	
+
 	// Create result columns
 	resultColumns := make([]series.Series, len(df.columns))
-	
+
 	// Process each column
 	for i, col := range df.columns {
 		colName := col.Name()
-		
+
 		// Check if this column should be interpolated
 		shouldInterp := false
 		for _, name := range columnsToInterp {
@@ -63,7 +63,7 @@ func (df *DataFrame) Interpolate(options InterpolateOptions) (*DataFrame, error)
 				break
 			}
 		}
-		
+
 		if shouldInterp {
 			// Interpolate based on method
 			switch options.Method {
@@ -82,7 +82,7 @@ func (df *DataFrame) Interpolate(options InterpolateOptions) (*DataFrame, error)
 			resultColumns[i] = col
 		}
 	}
-	
+
 	return NewDataFrame(resultColumns...)
 }
 
@@ -91,7 +91,7 @@ func linearInterpolate(s series.Series, limit int, limitArea string) series.Seri
 	length := s.Len()
 	values := make([]interface{}, length)
 	validity := make([]bool, length)
-	
+
 	// First pass: copy all valid values
 	validIndices := make([]int, 0)
 	for i := 0; i < length; i++ {
@@ -101,13 +101,13 @@ func linearInterpolate(s series.Series, limit int, limitArea string) series.Seri
 			validIndices = append(validIndices, i)
 		}
 	}
-	
+
 	// Second pass: interpolate null values
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			// Find surrounding valid values
 			prevIdx, nextIdx := -1, -1
-			
+
 			// Find previous valid value
 			for j := len(validIndices) - 1; j >= 0; j-- {
 				if validIndices[j] < i {
@@ -115,7 +115,7 @@ func linearInterpolate(s series.Series, limit int, limitArea string) series.Seri
 					break
 				}
 			}
-			
+
 			// Find next valid value
 			for _, idx := range validIndices {
 				if idx > i {
@@ -123,7 +123,7 @@ func linearInterpolate(s series.Series, limit int, limitArea string) series.Seri
 					break
 				}
 			}
-			
+
 			// Check limit area constraints
 			if limitArea == "inside" && (prevIdx == -1 || nextIdx == -1) {
 				continue
@@ -131,7 +131,7 @@ func linearInterpolate(s series.Series, limit int, limitArea string) series.Seri
 			if limitArea == "outside" && prevIdx != -1 && nextIdx != -1 {
 				continue
 			}
-			
+
 			// Interpolate
 			if prevIdx != -1 && nextIdx != -1 {
 				// Check consecutive null limit
@@ -139,19 +139,19 @@ func linearInterpolate(s series.Series, limit int, limitArea string) series.Seri
 				if limit > 0 && nullCount > limit {
 					continue
 				}
-				
+
 				// Linear interpolation
 				prevVal := toFloat64Value(s.Get(prevIdx))
 				nextVal := toFloat64Value(s.Get(nextIdx))
 				fraction := float64(i-prevIdx) / float64(nextIdx-prevIdx)
 				interpVal := prevVal + fraction*(nextVal-prevVal)
-				
+
 				values[i] = convertToOriginalType(interpVal, s.DataType())
 				validity[i] = true
 			}
 		}
 	}
-	
+
 	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
 }
 
@@ -160,20 +160,20 @@ func nearestInterpolate(s series.Series, limit int, limitArea string) series.Ser
 	length := s.Len()
 	values := make([]interface{}, length)
 	validity := make([]bool, length)
-	
+
 	// Copy all values
 	for i := 0; i < length; i++ {
 		values[i] = s.Get(i)
 		validity[i] = !s.IsNull(i)
 	}
-	
+
 	// Find null ranges and interpolate
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			// Find nearest valid values
 			prevDist, nextDist := length, length
 			prevIdx, nextIdx := -1, -1
-			
+
 			// Search backward
 			for j := i - 1; j >= 0; j-- {
 				if !s.IsNull(j) {
@@ -182,7 +182,7 @@ func nearestInterpolate(s series.Series, limit int, limitArea string) series.Ser
 					break
 				}
 			}
-			
+
 			// Search forward
 			for j := i + 1; j < length; j++ {
 				if !s.IsNull(j) {
@@ -191,7 +191,7 @@ func nearestInterpolate(s series.Series, limit int, limitArea string) series.Ser
 					break
 				}
 			}
-			
+
 			// Check limit area constraints
 			if limitArea == "inside" && (prevIdx == -1 || nextIdx == -1) {
 				continue
@@ -199,7 +199,7 @@ func nearestInterpolate(s series.Series, limit int, limitArea string) series.Ser
 			if limitArea == "outside" && prevIdx != -1 && nextIdx != -1 {
 				continue
 			}
-			
+
 			// Choose nearest
 			if prevIdx != -1 && (nextIdx == -1 || prevDist <= nextDist) {
 				// Check limit
@@ -216,7 +216,7 @@ func nearestInterpolate(s series.Series, limit int, limitArea string) series.Ser
 			}
 		}
 	}
-	
+
 	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
 }
 

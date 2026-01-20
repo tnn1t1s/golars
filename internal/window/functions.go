@@ -26,7 +26,7 @@ func (f *rowNumberFunc) SetSpec(spec *Spec) {
 func (f *rowNumberFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
 	result := make([]int64, size)
-	
+
 	if partition.IsOrdered() {
 		// Use the order indices
 		orderIndices := partition.OrderIndices()
@@ -45,7 +45,7 @@ func (f *rowNumberFunc) Compute(partition Partition) (series.Series, error) {
 			result[i] = int64(i + 1)
 		}
 	}
-	
+
 	return series.NewInt64Series("row_number", result), nil
 }
 
@@ -85,16 +85,16 @@ func (f *rankFunc) Compute(partition Partition) (series.Series, error) {
 	if !partition.IsOrdered() {
 		return nil, fmt.Errorf("RANK() requires ORDER BY clause")
 	}
-	
+
 	size := partition.Size()
 	result := make([]int64, size)
 	orderIndices := partition.OrderIndices()
-	
+
 	// Get the ORDER BY columns for tie detection
 	if f.spec == nil || !f.spec.HasOrderBy() {
 		return nil, fmt.Errorf("RANK() requires window specification with ORDER BY")
 	}
-	
+
 	// Extract values from ORDER BY columns for comparison
 	orderByValues := make([][]interface{}, size)
 	for i, idx := range orderIndices {
@@ -108,9 +108,9 @@ func (f *rankFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	currentRank := int64(1)
-	
+
 	for i, idx := range orderIndices {
 		// Check if this row has the same values as the previous row (tie)
 		if i > 0 && f.valuesEqual(orderByValues[i-1], orderByValues[i]) {
@@ -120,7 +120,7 @@ func (f *rankFunc) Compute(partition Partition) (series.Series, error) {
 			// Different values, update rank to current position + 1
 			currentRank = int64(i + 1)
 		}
-		
+
 		// Map back to original position
 		for j, origIdx := range partition.Indices() {
 			if origIdx == idx {
@@ -129,7 +129,7 @@ func (f *rankFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	return series.NewInt64Series("rank", result), nil
 }
 
@@ -155,7 +155,7 @@ func (f *rankFunc) compareValues(a, b interface{}) bool {
 	if a == nil || b == nil {
 		return false
 	}
-	
+
 	// Use fmt.Sprintf for generic comparison
 	// In a production implementation, we'd use type-specific comparisons
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
@@ -199,16 +199,16 @@ func (f *denseRankFunc) Compute(partition Partition) (series.Series, error) {
 	if !partition.IsOrdered() {
 		return nil, fmt.Errorf("DENSE_RANK() requires ORDER BY clause")
 	}
-	
+
 	size := partition.Size()
 	result := make([]int64, size)
 	orderIndices := partition.OrderIndices()
-	
+
 	// Get the ORDER BY columns for tie detection
 	if f.spec == nil || !f.spec.HasOrderBy() {
 		return nil, fmt.Errorf("DENSE_RANK() requires window specification with ORDER BY")
 	}
-	
+
 	// Extract values from ORDER BY columns for comparison
 	orderByValues := make([][]interface{}, size)
 	for i, idx := range orderIndices {
@@ -222,9 +222,9 @@ func (f *denseRankFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	currentRank := int64(1)
-	
+
 	for i, idx := range orderIndices {
 		// Check if this row has different values than the previous row
 		if i > 0 && !f.valuesEqual(orderByValues[i-1], orderByValues[i]) {
@@ -232,7 +232,7 @@ func (f *denseRankFunc) Compute(partition Partition) (series.Series, error) {
 			currentRank++
 		}
 		// If values are equal (tie), keep the same rank
-		
+
 		// Map back to original position
 		for j, origIdx := range partition.Indices() {
 			if origIdx == idx {
@@ -241,7 +241,7 @@ func (f *denseRankFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	return series.NewInt64Series("dense_rank", result), nil
 }
 
@@ -251,7 +251,7 @@ func (f *denseRankFunc) valuesEqual(a, b []interface{}) bool {
 		return false
 	}
 	for i := range a {
-		if !f.compareValues(a[i], b[i])  {
+		if !f.compareValues(a[i], b[i]) {
 			return false
 		}
 	}
@@ -267,7 +267,7 @@ func (f *denseRankFunc) compareValues(a, b interface{}) bool {
 	if a == nil || b == nil {
 		return false
 	}
-	
+
 	// Use fmt.Sprintf for generic comparison
 	// In a production implementation, we'd use type-specific comparisons
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
@@ -311,21 +311,21 @@ func (f *percentRankFunc) Compute(partition Partition) (series.Series, error) {
 	if !partition.IsOrdered() {
 		return nil, fmt.Errorf("PERCENT_RANK() requires ORDER BY clause")
 	}
-	
+
 	size := partition.Size()
 	if size == 1 {
 		// Single row always gets 0.0
 		return series.NewFloat64Series("percent_rank", []float64{0.0}), nil
 	}
-	
+
 	result := make([]float64, size)
 	orderIndices := partition.OrderIndices()
-	
+
 	// Get the ORDER BY columns for tie detection
 	if f.spec == nil || !f.spec.HasOrderBy() {
 		return nil, fmt.Errorf("PERCENT_RANK() requires window specification with ORDER BY")
 	}
-	
+
 	// Extract values from ORDER BY columns for comparison
 	orderByValues := make([][]interface{}, size)
 	for i, idx := range orderIndices {
@@ -339,11 +339,11 @@ func (f *percentRankFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	// First pass: compute ranks with tie handling
 	ranks := make([]int64, size)
 	currentRank := int64(1)
-	
+
 	for i := range orderIndices {
 		if i > 0 && f.valuesEqual(orderByValues[i-1], orderByValues[i]) {
 			// Same rank as previous row (tie)
@@ -353,12 +353,12 @@ func (f *percentRankFunc) Compute(partition Partition) (series.Series, error) {
 		}
 		ranks[i] = currentRank
 	}
-	
+
 	// Second pass: convert ranks to percent ranks
 	// percent_rank = (rank - 1) / (total_rows - 1)
 	for i, idx := range orderIndices {
-		percentRank := float64(ranks[i] - 1) / float64(size - 1)
-		
+		percentRank := float64(ranks[i]-1) / float64(size-1)
+
 		// Map back to original position
 		for j, origIdx := range partition.Indices() {
 			if origIdx == idx {
@@ -367,7 +367,7 @@ func (f *percentRankFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	return series.NewFloat64Series("percent_rank", result), nil
 }
 
@@ -393,7 +393,7 @@ func (f *percentRankFunc) compareValues(a, b interface{}) bool {
 	if a == nil || b == nil {
 		return false
 	}
-	
+
 	// Use fmt.Sprintf for generic comparison
 	// In a production implementation, we'd use type-specific comparisons
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
@@ -475,21 +475,21 @@ func (f *ntileFunc) SetSpec(spec *Spec) {
 func (f *ntileFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
 	result := make([]int64, size)
-	
+
 	if partition.IsOrdered() {
 		orderIndices := partition.OrderIndices()
-		
+
 		// Calculate base size and remainder
 		baseSize := size / f.buckets
 		remainder := size % f.buckets
-		
+
 		currentBucket := 1
 		rowsInCurrentBucket := 0
 		bucketSize := baseSize
 		if remainder > 0 {
 			bucketSize++
 		}
-		
+
 		for _, idx := range orderIndices {
 			// Map back to original position
 			for j, origIdx := range partition.Indices() {
@@ -498,14 +498,14 @@ func (f *ntileFunc) Compute(partition Partition) (series.Series, error) {
 					break
 				}
 			}
-			
+
 			rowsInCurrentBucket++
-			
+
 			// Check if we need to move to next bucket
 			if rowsInCurrentBucket >= bucketSize {
 				currentBucket++
 				rowsInCurrentBucket = 0
-				
+
 				// Adjust bucket size for remaining buckets
 				if currentBucket-1 == remainder {
 					bucketSize = baseSize
@@ -516,29 +516,29 @@ func (f *ntileFunc) Compute(partition Partition) (series.Series, error) {
 		// No ordering, distribute evenly
 		baseSize := size / f.buckets
 		remainder := size % f.buckets
-		
+
 		currentBucket := 1
 		rowsInCurrentBucket := 0
 		bucketSize := baseSize
 		if remainder > 0 {
 			bucketSize++
 		}
-		
+
 		for i := 0; i < size; i++ {
 			result[i] = int64(currentBucket)
 			rowsInCurrentBucket++
-			
+
 			if rowsInCurrentBucket >= bucketSize {
 				currentBucket++
 				rowsInCurrentBucket = 0
-				
+
 				if currentBucket-1 == remainder {
 					bucketSize = baseSize
 				}
 			}
 		}
 	}
-	
+
 	return series.NewInt64Series("ntile", result), nil
 }
 
@@ -578,25 +578,25 @@ func (f *lagFunc) SetSpec(spec *Spec) {
 // Compute calculates lag values for each row in the partition
 func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column to lag
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	if partition.IsOrdered() {
 		orderIndices := partition.OrderIndices()
-		
+
 		// Create a mapping from original index to position in ordered sequence
 		positionMap := make(map[int]int)
 		for pos, idx := range orderIndices {
 			positionMap[idx] = pos
 		}
-		
+
 		// Build result based on data type
 		switch dataType.String() {
 		case "i32":
@@ -609,11 +609,11 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = int32(v)
 				}
 			}
-			
+
 			for i, idx := range partition.Indices() {
 				pos := positionMap[idx]
 				lagPos := pos - f.offset
-				
+
 				if lagPos >= 0 && lagPos < len(orderIndices) {
 					lagIdx := orderIndices[lagPos]
 					result[i] = columnSeries.Get(lagIdx).(int32)
@@ -622,7 +622,7 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewInt32Series("lag", result), nil
-			
+
 		case "i64":
 			result := make([]int64, size)
 			defaultVal := int64(0)
@@ -633,11 +633,11 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = int64(v)
 				}
 			}
-			
+
 			for i, idx := range partition.Indices() {
 				pos := positionMap[idx]
 				lagPos := pos - f.offset
-				
+
 				if lagPos >= 0 && lagPos < len(orderIndices) {
 					lagIdx := orderIndices[lagPos]
 					result[i] = columnSeries.Get(lagIdx).(int64)
@@ -646,7 +646,7 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewInt64Series("lag", result), nil
-			
+
 		case "str":
 			result := make([]string, size)
 			defaultVal := ""
@@ -655,11 +655,11 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = v
 				}
 			}
-			
+
 			for i, idx := range partition.Indices() {
 				pos := positionMap[idx]
 				lagPos := pos - f.offset
-				
+
 				if lagPos >= 0 && lagPos < len(orderIndices) {
 					lagIdx := orderIndices[lagPos]
 					result[i] = columnSeries.Get(lagIdx).(string)
@@ -668,7 +668,7 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewStringSeries("lag", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for LAG: %s", dataType)
 		}
@@ -685,7 +685,7 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = int32(v)
 				}
 			}
-			
+
 			for i := 0; i < size; i++ {
 				lagIdx := i - f.offset
 				if lagIdx >= 0 && lagIdx < size {
@@ -695,7 +695,7 @@ func (f *lagFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewInt32Series("lag", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for LAG: %s", dataType)
 		}
@@ -738,25 +738,25 @@ func (f *leadFunc) SetSpec(spec *Spec) {
 // Compute calculates lead values for each row in the partition
 func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column to lead
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	if partition.IsOrdered() {
 		orderIndices := partition.OrderIndices()
-		
+
 		// Create a mapping from original index to position in ordered sequence
 		positionMap := make(map[int]int)
 		for pos, idx := range orderIndices {
 			positionMap[idx] = pos
 		}
-		
+
 		// Build result based on data type
 		switch dataType.String() {
 		case "i32":
@@ -769,11 +769,11 @@ func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = int32(v)
 				}
 			}
-			
+
 			for i, idx := range partition.Indices() {
 				pos := positionMap[idx]
 				leadPos := pos + f.offset // LEAD looks forward
-				
+
 				if leadPos >= 0 && leadPos < len(orderIndices) {
 					leadIdx := orderIndices[leadPos]
 					result[i] = columnSeries.Get(leadIdx).(int32)
@@ -782,7 +782,7 @@ func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewInt32Series("lead", result), nil
-			
+
 		case "i64":
 			result := make([]int64, size)
 			defaultVal := int64(0)
@@ -793,11 +793,11 @@ func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = int64(v)
 				}
 			}
-			
+
 			for i, idx := range partition.Indices() {
 				pos := positionMap[idx]
 				leadPos := pos + f.offset
-				
+
 				if leadPos >= 0 && leadPos < len(orderIndices) {
 					leadIdx := orderIndices[leadPos]
 					result[i] = columnSeries.Get(leadIdx).(int64)
@@ -806,7 +806,7 @@ func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewInt64Series("lead", result), nil
-			
+
 		case "str":
 			result := make([]string, size)
 			defaultVal := ""
@@ -815,11 +815,11 @@ func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 					defaultVal = v
 				}
 			}
-			
+
 			for i, idx := range partition.Indices() {
 				pos := positionMap[idx]
 				leadPos := pos + f.offset
-				
+
 				if leadPos >= 0 && leadPos < len(orderIndices) {
 					leadIdx := orderIndices[leadPos]
 					result[i] = columnSeries.Get(leadIdx).(string)
@@ -828,7 +828,7 @@ func (f *leadFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 			return series.NewStringSeries("lead", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for LEAD: %s", dataType)
 		}
@@ -867,26 +867,26 @@ func (f *firstValueFunc) SetSpec(spec *Spec) {
 // Compute returns the first value in the window frame
 func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	if partition.IsOrdered() {
 		orderIndices := partition.OrderIndices()
 		if len(orderIndices) == 0 {
 			return nil, fmt.Errorf("empty partition")
 		}
-		
+
 		// Get the first value in ordered sequence
 		firstIdx := orderIndices[0]
 		firstValue := columnSeries.Get(firstIdx)
-		
+
 		// Build result based on data type
 		switch dataType.String() {
 		case "i32":
@@ -896,7 +896,7 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt32Series("first_value", result), nil
-			
+
 		case "i64":
 			result := make([]int64, size)
 			val := firstValue.(int64)
@@ -904,7 +904,7 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt64Series("first_value", result), nil
-			
+
 		case "str":
 			result := make([]string, size)
 			val := firstValue.(string)
@@ -912,7 +912,7 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewStringSeries("first_value", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for FIRST_VALUE: %s", dataType)
 		}
@@ -921,9 +921,9 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 		if size == 0 {
 			return nil, fmt.Errorf("empty partition")
 		}
-		
+
 		firstValue := columnSeries.Get(partition.Indices()[0])
-		
+
 		switch dataType.String() {
 		case "i32":
 			result := make([]int32, size)
@@ -932,7 +932,7 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt32Series("first_value", result), nil
-			
+
 		case "i64":
 			result := make([]int64, size)
 			val := firstValue.(int64)
@@ -940,7 +940,7 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt64Series("first_value", result), nil
-			
+
 		case "str":
 			result := make([]string, size)
 			val := firstValue.(string)
@@ -948,7 +948,7 @@ func (f *firstValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewStringSeries("first_value", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for FIRST_VALUE: %s", dataType)
 		}
@@ -983,26 +983,26 @@ func (f *lastValueFunc) SetSpec(spec *Spec) {
 // Compute returns the last value in the window frame
 func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	if partition.IsOrdered() {
 		orderIndices := partition.OrderIndices()
 		if len(orderIndices) == 0 {
 			return nil, fmt.Errorf("empty partition")
 		}
-		
+
 		// Get the last value in ordered sequence
 		lastIdx := orderIndices[len(orderIndices)-1]
 		lastValue := columnSeries.Get(lastIdx)
-		
+
 		// Build result based on data type
 		switch dataType.String() {
 		case "i32":
@@ -1012,7 +1012,7 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt32Series("last_value", result), nil
-			
+
 		case "i64":
 			result := make([]int64, size)
 			val := lastValue.(int64)
@@ -1020,7 +1020,7 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt64Series("last_value", result), nil
-			
+
 		case "str":
 			result := make([]string, size)
 			val := lastValue.(string)
@@ -1028,7 +1028,7 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewStringSeries("last_value", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for LAST_VALUE: %s", dataType)
 		}
@@ -1037,9 +1037,9 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 		if size == 0 {
 			return nil, fmt.Errorf("empty partition")
 		}
-		
+
 		lastValue := columnSeries.Get(partition.Indices()[size-1])
-		
+
 		switch dataType.String() {
 		case "i32":
 			result := make([]int32, size)
@@ -1048,7 +1048,7 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt32Series("last_value", result), nil
-			
+
 		case "i64":
 			result := make([]int64, size)
 			val := lastValue.(int64)
@@ -1056,7 +1056,7 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewInt64Series("last_value", result), nil
-			
+
 		case "str":
 			result := make([]string, size)
 			val := lastValue.(string)
@@ -1064,7 +1064,7 @@ func (f *lastValueFunc) Compute(partition Partition) (series.Series, error) {
 				result[i] = val
 			}
 			return series.NewStringSeries("last_value", result), nil
-			
+
 		default:
 			return nil, fmt.Errorf("unsupported data type for LAST_VALUE: %s", dataType)
 		}
@@ -1136,19 +1136,19 @@ func (f *nthValueFunc) Compute(partition Partition) (series.Series, error) {
 	// Build result based on data type
 	dataType := col.DataType()
 	size := partition.Size()
-	
+
 	switch dataType.(type) {
 	case datatypes.Int32:
 		values := make([]int32, size)
 		validity := make([]bool, size)
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
-			
+
 			// Calculate the actual position
 			// n is 1-based, so nth=1 means first value
 			targetIdx := start + f.n - 1
-			
+
 			// Check if the nth position is within the window
 			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
 				actualIdx := orderIndices[targetIdx]
@@ -1158,17 +1158,17 @@ func (f *nthValueFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
-		
+
 	case datatypes.Int64:
 		values := make([]int64, size)
 		validity := make([]bool, size)
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
 			targetIdx := start + f.n - 1
-			
+
 			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
 				actualIdx := orderIndices[targetIdx]
 				if !col.IsNull(actualIdx) {
@@ -1177,17 +1177,17 @@ func (f *nthValueFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
-		
+
 	case datatypes.Float64:
 		values := make([]float64, size)
 		validity := make([]bool, size)
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
 			targetIdx := start + f.n - 1
-			
+
 			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
 				actualIdx := orderIndices[targetIdx]
 				if !col.IsNull(actualIdx) {
@@ -1196,17 +1196,17 @@ func (f *nthValueFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
-		
+
 	case datatypes.String:
 		values := make([]string, size)
 		validity := make([]bool, size)
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
 			targetIdx := start + f.n - 1
-			
+
 			if targetIdx >= start && targetIdx < end && targetIdx < len(orderIndices) {
 				actualIdx := orderIndices[targetIdx]
 				if !col.IsNull(actualIdx) {
@@ -1215,9 +1215,9 @@ func (f *nthValueFunc) Compute(partition Partition) (series.Series, error) {
 				}
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(col.Name()+"_nth_value", values, validity, dataType), nil
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported data type for NTH_VALUE: %v", dataType)
 	}

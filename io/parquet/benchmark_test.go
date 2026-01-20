@@ -16,7 +16,7 @@ func createBenchmarkDataFrame(size int) *frame.DataFrame {
 	scores := make([]float64, size)
 	active := make([]bool, size)
 	categories := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		ids[i] = int64(i)
 		names[i] = "User" + string(rune('A'+i%26))
@@ -24,7 +24,7 @@ func createBenchmarkDataFrame(size int) *frame.DataFrame {
 		active[i] = i%2 == 0
 		categories[i] = []string{"A", "B", "C", "D", "E"}[i%5]
 	}
-	
+
 	df, _ := frame.NewDataFrame(
 		series.NewInt64Series("id", ids),
 		series.NewStringSeries("name", names),
@@ -32,19 +32,19 @@ func createBenchmarkDataFrame(size int) *frame.DataFrame {
 		series.NewBooleanSeries("active", active),
 		series.NewStringSeries("category", categories),
 	)
-	
+
 	return df
 }
 
 func BenchmarkParquetWrite(b *testing.B) {
 	sizes := []int{1000, 10000, 100000}
-	
+
 	for _, size := range sizes {
 		df := createBenchmarkDataFrame(size)
-		
+
 		b.Run("Size"+string(rune(size)), func(b *testing.B) {
 			tmpDir := b.TempDir()
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				filename := filepath.Join(tmpDir, "bench.parquet")
@@ -61,19 +61,19 @@ func BenchmarkParquetWrite(b *testing.B) {
 
 func BenchmarkParquetRead(b *testing.B) {
 	sizes := []int{1000, 10000, 100000}
-	
+
 	for _, size := range sizes {
 		df := createBenchmarkDataFrame(size)
 		tmpDir := b.TempDir()
 		filename := filepath.Join(tmpDir, "bench.parquet")
-		
+
 		// Write once
 		writer := NewWriter(DefaultWriterOptions())
 		err := writer.WriteFile(df, filename)
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		b.Run("Size"+string(rune(size)), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -90,16 +90,16 @@ func BenchmarkParquetRead(b *testing.B) {
 func BenchmarkParquetVsCSV(b *testing.B) {
 	df := createBenchmarkDataFrame(10000)
 	tmpDir := b.TempDir()
-	
+
 	parquetFile := filepath.Join(tmpDir, "data.parquet")
 	csvFile := filepath.Join(tmpDir, "data.csv")
-	
+
 	// Write both formats once
 	err := WriteParquet(df, parquetFile)
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	csvWriter := csv.NewWriter(nil, csv.DefaultWriteOptions())
 	f, _ := os.Create(csvFile)
 	csvWriter = csv.NewWriter(f, csv.DefaultWriteOptions())
@@ -108,14 +108,14 @@ func BenchmarkParquetVsCSV(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	// Compare file sizes
 	parquetInfo, _ := os.Stat(parquetFile)
 	csvInfo, _ := os.Stat(csvFile)
-	b.Logf("Parquet size: %d bytes, CSV size: %d bytes (%.2f%% of CSV)", 
-		parquetInfo.Size(), csvInfo.Size(), 
+	b.Logf("Parquet size: %d bytes, CSV size: %d bytes (%.2f%% of CSV)",
+		parquetInfo.Size(), csvInfo.Size(),
 		float64(parquetInfo.Size())/float64(csvInfo.Size())*100)
-	
+
 	b.Run("ParquetWrite", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -125,7 +125,7 @@ func BenchmarkParquetVsCSV(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("CSVWrite", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -138,7 +138,7 @@ func BenchmarkParquetVsCSV(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ParquetRead", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -148,7 +148,7 @@ func BenchmarkParquetVsCSV(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("CSVRead", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -166,7 +166,7 @@ func BenchmarkParquetVsCSV(b *testing.B) {
 func BenchmarkCompressionTypes(b *testing.B) {
 	df := createBenchmarkDataFrame(10000)
 	tmpDir := b.TempDir()
-	
+
 	compressionTypes := []struct {
 		name        string
 		compression CompressionType
@@ -175,11 +175,11 @@ func BenchmarkCompressionTypes(b *testing.B) {
 		{"Snappy", CompressionSnappy},
 		{"Gzip", CompressionGzip},
 	}
-	
+
 	for _, tc := range compressionTypes {
 		b.Run(tc.name, func(b *testing.B) {
 			filename := filepath.Join(tmpDir, "bench_"+tc.name+".parquet")
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				writer := NewWriter(WriterOptions{
@@ -190,7 +190,7 @@ func BenchmarkCompressionTypes(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
-			
+
 			// Report file size
 			info, _ := os.Stat(filename)
 			b.ReportMetric(float64(info.Size()), "bytes")
@@ -206,7 +206,7 @@ func BenchmarkColumnSelection(b *testing.B) {
 	scores := make([]float64, size)
 	active := make([]bool, size)
 	categories := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		ids[i] = int64(i)
 		names[i] = "User" + string(rune('A'+i%26))
@@ -214,7 +214,7 @@ func BenchmarkColumnSelection(b *testing.B) {
 		active[i] = i%2 == 0
 		categories[i] = []string{"A", "B", "C", "D", "E"}[i%5]
 	}
-	
+
 	manyCols := []series.Series{
 		series.NewInt64Series("id", ids),
 		series.NewStringSeries("name", names),
@@ -222,7 +222,7 @@ func BenchmarkColumnSelection(b *testing.B) {
 		series.NewBooleanSeries("active", active),
 		series.NewStringSeries("category", categories),
 	}
-	
+
 	// Add more columns
 	for i := 0; i < 10; i++ {
 		values := make([]float64, size)
@@ -231,18 +231,18 @@ func BenchmarkColumnSelection(b *testing.B) {
 		}
 		manyCols = append(manyCols, series.NewFloat64Series("extra"+string(rune('0'+i)), values))
 	}
-	
+
 	df, _ := frame.NewDataFrame(manyCols...)
-	
+
 	tmpDir := b.TempDir()
 	filename := filepath.Join(tmpDir, "many_columns.parquet")
-	
+
 	// Write once
 	err := WriteParquet(df, filename)
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	b.Run("AllColumns", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -253,7 +253,7 @@ func BenchmarkColumnSelection(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("SelectThreeColumns", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -271,17 +271,17 @@ func BenchmarkColumnSelection(b *testing.B) {
 func BenchmarkRowGroupSize(b *testing.B) {
 	df := createBenchmarkDataFrame(100000)
 	tmpDir := b.TempDir()
-	
+
 	rowGroupSizes := []int64{
-		10 * 1024 * 1024,   // 10MB
-		50 * 1024 * 1024,   // 50MB
-		128 * 1024 * 1024,  // 128MB (default)
+		10 * 1024 * 1024,  // 10MB
+		50 * 1024 * 1024,  // 50MB
+		128 * 1024 * 1024, // 128MB (default)
 	}
-	
+
 	for _, rgSize := range rowGroupSizes {
 		b.Run("RG"+string(rune(rgSize/(1024*1024)))+"MB", func(b *testing.B) {
 			filename := filepath.Join(tmpDir, "bench_rg.parquet")
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				writer := NewWriter(WriterOptions{

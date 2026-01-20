@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tnn1t1s/golars/frame"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestJSONWriter(t *testing.T) {
@@ -112,7 +112,7 @@ func TestJSONWriter(t *testing.T) {
 		assert.Equal(t, float64(1), records[0]["id"])
 		assert.Equal(t, "Alice", records[0]["name"])
 		assert.Equal(t, float64(2), records[1]["id"]) // 2 is written as-is
-		assert.Equal(t, "", records[1]["name"]) // empty string is written as-is
+		assert.Equal(t, "", records[1]["name"])       // empty string is written as-is
 		assert.Equal(t, float64(3), records[2]["id"])
 		assert.Equal(t, "Charlie", records[2]["name"])
 	})
@@ -233,7 +233,7 @@ func TestNDJSONWriter(t *testing.T) {
 	t.Run("null values in NDJSON", func(t *testing.T) {
 		// Create DataFrame with nulls - simplified version
 		nullDf, err := frame.NewDataFrame(
-			series.NewInt64Series("id", []int64{1, 0, 3}), // 0 represents null
+			series.NewInt64Series("id", []int64{1, 0, 3}),                    // 0 represents null
 			series.NewStringSeries("name", []string{"Alice", "", "Charlie"}), // empty string represents null
 		)
 		require.NoError(t, err)
@@ -268,7 +268,7 @@ func TestNDJSONWriter(t *testing.T) {
 	t.Run("NDJSON file with compression", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		filename := filepath.Join(tmpDir, "test.ndjson.gz")
-		
+
 		writer := NewNDJSONWriter()
 		err := writer.WriteFile(df, filename)
 		require.NoError(t, err)
@@ -309,7 +309,7 @@ func TestNDJSONWriter(t *testing.T) {
 func TestWriterOptions(t *testing.T) {
 	t.Run("option functions", func(t *testing.T) {
 		opts := DefaultWriteOptions()
-		
+
 		WithPretty(true)(&opts)
 		assert.True(t, opts.Pretty)
 

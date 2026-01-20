@@ -18,7 +18,7 @@ func (so *StringOps) Encode(encoding string) (series.Series, error) {
 		return applyUnaryOp(so.s, func(str string) interface{} {
 			return []byte(str)
 		}, "encode_utf8"), nil
-		
+
 	case "utf16", "utf-16":
 		return applyUnaryOp(so.s, func(str string) interface{} {
 			runes := []rune(str)
@@ -30,17 +30,17 @@ func (so *StringOps) Encode(encoding string) (series.Series, error) {
 			}
 			return bytes
 		}, "encode_utf16"), nil
-		
+
 	case "base64":
 		return applyUnaryOp(so.s, func(str string) interface{} {
 			return base64.StdEncoding.EncodeToString([]byte(str))
 		}, "encode_base64"), nil
-		
+
 	case "hex":
 		return applyUnaryOp(so.s, func(str string) interface{} {
 			return hex.EncodeToString([]byte(str))
 		}, "encode_hex"), nil
-		
+
 	case "ascii":
 		return applyUnaryOpWithError(so.s, func(str string) (interface{}, error) {
 			// Check if string is ASCII
@@ -51,7 +51,7 @@ func (so *StringOps) Encode(encoding string) (series.Series, error) {
 			}
 			return []byte(str), nil
 		}, "encode_ascii")
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported encoding: %s", encoding)
 	}
@@ -68,7 +68,7 @@ func (so *StringOps) Decode(encoding string) (series.Series, error) {
 			}
 			return str, nil
 		}, "decode_utf8")
-		
+
 	case "base64":
 		return applyUnaryOpWithError(so.s, func(str string) (interface{}, error) {
 			decoded, err := base64.StdEncoding.DecodeString(str)
@@ -77,7 +77,7 @@ func (so *StringOps) Decode(encoding string) (series.Series, error) {
 			}
 			return string(decoded), nil
 		}, "decode_base64")
-		
+
 	case "hex":
 		return applyUnaryOpWithError(so.s, func(str string) (interface{}, error) {
 			decoded, err := hex.DecodeString(str)
@@ -86,7 +86,7 @@ func (so *StringOps) Decode(encoding string) (series.Series, error) {
 			}
 			return string(decoded), nil
 		}, "decode_hex")
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported encoding: %s", encoding)
 	}

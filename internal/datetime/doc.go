@@ -15,7 +15,7 @@
 //	        time.Now().Add(48 * time.Hour),
 //	    }),
 //	)
-//	
+//
 //	result := df.WithColumn("year",
 //	    golars.Col("timestamp").Dt().Year(),
 //	).WithColumn("is_weekend",

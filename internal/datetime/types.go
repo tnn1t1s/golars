@@ -160,7 +160,7 @@ func (d Duration) IsZero() bool {
 
 // DateTime represents a point in time with timezone information
 type DateTime struct {
-	timestamp int64           // nanoseconds since Unix epoch
+	timestamp int64          // nanoseconds since Unix epoch
 	timezone  *time.Location // nil means UTC
 }
 
@@ -181,7 +181,6 @@ func (dt DateTime) Time() time.Time {
 	return t
 }
 
-
 // ToTimezone converts the DateTime to a different timezone (different instant)
 func (dt DateTime) ToTimezone(tz *time.Location) DateTime {
 	t := dt.Time()
@@ -192,22 +191,22 @@ func (dt DateTime) ToTimezone(tz *time.Location) DateTime {
 // Add adds a duration to the DateTime
 func (dt DateTime) Add(d Duration) DateTime {
 	t := dt.Time()
-	
+
 	// Add months first
 	if d.months != 0 {
 		t = t.AddDate(0, int(d.months), 0)
 	}
-	
+
 	// Then add days
 	if d.days != 0 {
 		t = t.AddDate(0, 0, int(d.days))
 	}
-	
+
 	// Finally add nanoseconds
 	if d.nanoseconds != 0 {
 		t = t.Add(time.Duration(d.nanoseconds))
 	}
-	
+
 	return NewDateTime(t)
 }
 

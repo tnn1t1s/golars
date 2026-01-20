@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/tnn1t1s/golars/frame"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestJSONRoundTrip(t *testing.T) {
@@ -51,7 +51,7 @@ func TestJSONRoundTrip(t *testing.T) {
 				// Type conversion might occur (int64 -> float64 in JSON)
 				origVal := origSeries.Get(i)
 				loadedVal := loadedSeries.Get(i)
-				
+
 				// JSON doesn't distinguish between int and float, so numbers might change type
 				switch origVal.(type) {
 				case int64:
@@ -129,11 +129,11 @@ func TestJSONOrientations(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	orientations := []string{"records", "columns", "values"}
-	
+
 	for _, orient := range orientations {
 		t.Run(orient+" orientation", func(t *testing.T) {
 			filename := filepath.Join(tmpDir, orient+".json")
-			
+
 			// Write with specific orientation
 			err := WriteJSON(df, filename, WithOrient(orient))
 			require.NoError(t, err)
@@ -159,7 +159,7 @@ func TestLargeDataset(t *testing.T) {
 	ids := make([]int64, size)
 	names := make([]string, size)
 	scores := make([]float64, size)
-	
+
 	for i := 0; i < size; i++ {
 		ids[i] = int64(i)
 		names[i] = fmt.Sprintf("User%c", rune(i%26+'A'))
@@ -177,19 +177,19 @@ func TestLargeDataset(t *testing.T) {
 
 	t.Run("large JSON", func(t *testing.T) {
 		filename := filepath.Join(tmpDir, "large.json")
-		
+
 		err := WriteJSON(large, filename)
 		require.NoError(t, err)
 
 		loaded, err := ReadJSON(filename)
 		require.NoError(t, err)
-		
+
 		assert.Equal(t, size, dfLen(loaded))
 	})
 
 	t.Run("large NDJSON streaming", func(t *testing.T) {
 		filename := filepath.Join(tmpDir, "large.ndjson")
-		
+
 		// Write as NDJSON
 		err := WriteNDJSON(large, filename)
 		require.NoError(t, err)
@@ -208,7 +208,7 @@ func TestLargeDataset(t *testing.T) {
 			chunkCount++
 			return nil
 		})
-		
+
 		require.NoError(t, err)
 		assert.Equal(t, size, totalRows)
 		assert.Equal(t, 10, chunkCount) // 10000 rows / 1000 chunk size
@@ -217,7 +217,7 @@ func TestLargeDataset(t *testing.T) {
 
 func TestNestedJSONHandling(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	// Create nested JSON file
 	nestedJSON := `[
 		{
@@ -253,7 +253,7 @@ func TestNestedJSONHandling(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 2, dfLen(df))
-		
+
 		// Check flattened columns exist
 		assert.True(t, hasColumn(df, "id"))
 		assert.True(t, hasColumn(df, "user.name"))
@@ -267,12 +267,12 @@ func TestNestedJSONHandling(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 2, dfLen(df))
-		
+
 		// Nested objects become string representations
 		assert.True(t, hasColumn(df, "id"))
 		assert.True(t, hasColumn(df, "user"))
 		assert.True(t, hasColumn(df, "scores"))
-		
+
 		// user column contains string representation of nested object
 		userCol := getColumn(df, "user")
 		userVal := userCol.Get(0).(string)
@@ -337,7 +337,7 @@ func TestAPIConvenience(t *testing.T) {
 
 	t.Run("JSON API", func(t *testing.T) {
 		filename := filepath.Join(tmpDir, "api_test.json")
-		
+
 		// Test package-level functions
 		err := WriteJSON(df, filename, WithPretty(true))
 		require.NoError(t, err)
@@ -349,7 +349,7 @@ func TestAPIConvenience(t *testing.T) {
 
 	t.Run("NDJSON API", func(t *testing.T) {
 		filename := filepath.Join(tmpDir, "api_test.ndjson")
-		
+
 		err := WriteNDJSON(df, filename)
 		require.NoError(t, err)
 

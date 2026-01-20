@@ -10,10 +10,10 @@ import (
 
 // FillNullOptions configures null filling operations
 type FillNullOptions struct {
-	Value    interface{}      // Value to fill nulls with
-	Method   string          // Method: "forward", "backward", "value"
-	Limit    int             // Maximum number of consecutive nulls to fill
-	Columns  []string        // Specific columns to fill (empty means all)
+	Value   interface{} // Value to fill nulls with
+	Method  string      // Method: "forward", "backward", "value"
+	Limit   int         // Maximum number of consecutive nulls to fill
+	Columns []string    // Specific columns to fill (empty means all)
 }
 
 // FillNull fills null values in the DataFrame
@@ -31,11 +31,11 @@ func (df *DataFrame) FillNull(options FillNullOptions) (*DataFrame, error) {
 
 	// Create result columns
 	resultColumns := make([]series.Series, len(df.columns))
-	
+
 	// Process each column
 	for i, col := range df.columns {
 		colName := col.Name()
-		
+
 		// Check if this column should be filled
 		shouldFill := false
 		if len(options.Columns) == 0 {
@@ -48,7 +48,7 @@ func (df *DataFrame) FillNull(options FillNullOptions) (*DataFrame, error) {
 				}
 			}
 		}
-		
+
 		if shouldFill {
 			// Fill nulls based on method
 			switch options.Method {
@@ -66,7 +66,7 @@ func (df *DataFrame) FillNull(options FillNullOptions) (*DataFrame, error) {
 			resultColumns[i] = col
 		}
 	}
-	
+
 	return NewDataFrame(resultColumns...)
 }
 
@@ -89,14 +89,14 @@ func (df *DataFrame) BackwardFill(columns ...string) (*DataFrame, error) {
 // Helper function to forward fill a series
 func forwardFillSeries(s series.Series, limit int) series.Series {
 	length := s.Len()
-	
+
 	// Collect values
 	values := make([]interface{}, length)
 	validity := make([]bool, length)
-	
+
 	var lastValidValue interface{}
 	consecutiveNulls := 0
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			consecutiveNulls++
@@ -114,21 +114,21 @@ func forwardFillSeries(s series.Series, limit int) series.Series {
 			consecutiveNulls = 0
 		}
 	}
-	
+
 	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
 }
 
 // Helper function to backward fill a series
 func backwardFillSeries(s series.Series, limit int) series.Series {
 	length := s.Len()
-	
+
 	// Collect values
 	values := make([]interface{}, length)
 	validity := make([]bool, length)
-	
+
 	var nextValidValue interface{}
 	consecutiveNulls := 0
-	
+
 	// Process from end to start
 	for i := length - 1; i >= 0; i-- {
 		if s.IsNull(i) {
@@ -147,18 +147,18 @@ func backwardFillSeries(s series.Series, limit int) series.Series {
 			consecutiveNulls = 0
 		}
 	}
-	
+
 	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
 }
 
 // Helper function to fill with a specific value
 func valueFillSeries(s series.Series, fillValue interface{}) series.Series {
 	length := s.Len()
-	
+
 	// Collect values
 	values := make([]interface{}, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			values[i] = fillValue
@@ -168,7 +168,7 @@ func valueFillSeries(s series.Series, fillValue interface{}) series.Series {
 			validity[i] = true
 		}
 	}
-	
+
 	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
 }
 
@@ -181,7 +181,7 @@ func createSeriesFromInterface(name string, values []interface{}, validity []boo
 			validity[i] = true
 		}
 	}
-	
+
 	switch dataType.(type) {
 	case datatypes.Int64:
 		intVals := make([]int64, len(values))
@@ -202,7 +202,7 @@ func createSeriesFromInterface(name string, values []interface{}, validity []boo
 			return series.NewSeriesWithValidity(name, intVals, validity, datatypes.Int64{})
 		}
 		return series.NewInt64Series(name, intVals)
-		
+
 	case datatypes.Float64:
 		floatVals := make([]float64, len(values))
 		for i, v := range values {
@@ -222,7 +222,7 @@ func createSeriesFromInterface(name string, values []interface{}, validity []boo
 			return series.NewSeriesWithValidity(name, floatVals, validity, datatypes.Float64{})
 		}
 		return series.NewFloat64Series(name, floatVals)
-		
+
 	case datatypes.String:
 		strVals := make([]string, len(values))
 		for i, v := range values {
@@ -242,7 +242,7 @@ func createSeriesFromInterface(name string, values []interface{}, validity []boo
 			return series.NewSeriesWithValidity(name, strVals, validity, datatypes.String{})
 		}
 		return series.NewStringSeries(name, strVals)
-		
+
 	case datatypes.Boolean:
 		boolVals := make([]bool, len(values))
 		for i, v := range values {
@@ -262,7 +262,7 @@ func createSeriesFromInterface(name string, values []interface{}, validity []boo
 			return series.NewSeriesWithValidity(name, boolVals, validity, datatypes.Boolean{})
 		}
 		return series.NewBooleanSeries(name, boolVals)
-		
+
 	default:
 		// Convert to string
 		strVals := make([]string, len(values))
@@ -282,13 +282,13 @@ func (df *DataFrame) DropNull(subset ...string) (*DataFrame, error) {
 	if len(checkColumns) == 0 {
 		checkColumns = df.Columns()
 	}
-	
+
 	// Find column indices
 	columnMap := make(map[string]int)
 	for i, name := range df.Columns() {
 		columnMap[name] = i
 	}
-	
+
 	checkIndices := make([]int, 0, len(checkColumns))
 	for _, name := range checkColumns {
 		idx, exists := columnMap[name]
@@ -297,7 +297,7 @@ func (df *DataFrame) DropNull(subset ...string) (*DataFrame, error) {
 		}
 		checkIndices = append(checkIndices, idx)
 	}
-	
+
 	// Find rows to keep
 	keepRows := make([]int, 0, df.Height())
 	for i := 0; i < df.Height(); i++ {
@@ -312,7 +312,7 @@ func (df *DataFrame) DropNull(subset ...string) (*DataFrame, error) {
 			keepRows = append(keepRows, i)
 		}
 	}
-	
+
 	// Create new columns with only kept rows
 	resultColumns := make([]series.Series, len(df.columns))
 	for i, col := range df.columns {
@@ -324,7 +324,7 @@ func (df *DataFrame) DropNull(subset ...string) (*DataFrame, error) {
 		}
 		resultColumns[i] = createSeriesFromInterface(col.Name(), values, validity, col.DataType())
 	}
-	
+
 	return NewDataFrame(resultColumns...)
 }
 
@@ -340,24 +340,24 @@ func (df *DataFrame) DropDuplicates(options DropDuplicatesOptions) (*DataFrame, 
 	if options.Keep == "" {
 		options.Keep = "first"
 	}
-	
+
 	// Validate keep option
 	if options.Keep != "first" && options.Keep != "last" && options.Keep != "none" {
 		return nil, fmt.Errorf("invalid keep option: %s (must be 'first', 'last', or 'none')", options.Keep)
 	}
-	
+
 	// Determine which columns to check
 	checkColumns := options.Subset
 	if len(checkColumns) == 0 {
 		checkColumns = df.Columns()
 	}
-	
+
 	// Find column indices
 	columnMap := make(map[string]int)
 	for i, name := range df.Columns() {
 		columnMap[name] = i
 	}
-	
+
 	checkIndices := make([]int, 0, len(checkColumns))
 	for _, name := range checkColumns {
 		idx, exists := columnMap[name]
@@ -366,10 +366,10 @@ func (df *DataFrame) DropDuplicates(options DropDuplicatesOptions) (*DataFrame, 
 		}
 		checkIndices = append(checkIndices, idx)
 	}
-	
+
 	// Track seen rows and which to keep
 	seen := make(map[string][]int) // Maps row key to indices where it appears
-	
+
 	for i := 0; i < df.Height(); i++ {
 		// Build key from subset columns
 		keyParts := make([]interface{}, len(checkIndices))
@@ -381,17 +381,17 @@ func (df *DataFrame) DropDuplicates(options DropDuplicatesOptions) (*DataFrame, 
 			}
 		}
 		key := fmt.Sprintf("%v", keyParts)
-		
+
 		if indices, exists := seen[key]; exists {
 			seen[key] = append(indices, i)
 		} else {
 			seen[key] = []int{i}
 		}
 	}
-	
+
 	// Determine which rows to keep based on keep option
 	keepRows := make([]int, 0, df.Height())
-	
+
 	for _, indices := range seen {
 		switch options.Keep {
 		case "first":
@@ -405,10 +405,10 @@ func (df *DataFrame) DropDuplicates(options DropDuplicatesOptions) (*DataFrame, 
 			}
 		}
 	}
-	
+
 	// Sort keepRows to maintain order
 	sort.Ints(keepRows)
-	
+
 	// Create new columns with only kept rows
 	resultColumns := make([]series.Series, len(df.columns))
 	for i, col := range df.columns {
@@ -420,7 +420,7 @@ func (df *DataFrame) DropDuplicates(options DropDuplicatesOptions) (*DataFrame, 
 		}
 		resultColumns[i] = createSeriesFromInterface(col.Name(), values, validity, col.DataType())
 	}
-	
+
 	return NewDataFrame(resultColumns...)
 }
 

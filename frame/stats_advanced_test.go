@@ -4,10 +4,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestMode(t *testing.T) {
@@ -178,9 +178,9 @@ func TestValueCounts(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check normalized frequencies
-		assert.InDelta(t, 0.5, countCol.Get(0), 0.001)    // 3 appears 3/6 times
-		assert.InDelta(t, 0.333, countCol.Get(1), 0.001)  // 2 appears 2/6 times
-		assert.InDelta(t, 0.167, countCol.Get(2), 0.001)  // 1 appears 1/6 times
+		assert.InDelta(t, 0.5, countCol.Get(0), 0.001)   // 3 appears 3/6 times
+		assert.InDelta(t, 0.333, countCol.Get(1), 0.001) // 2 appears 2/6 times
+		assert.InDelta(t, 0.167, countCol.Get(2), 0.001) // 1 appears 1/6 times
 	})
 
 	t.Run("Value counts with nulls", func(t *testing.T) {
@@ -263,7 +263,7 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Values: [3, 1, 4, 1, 5]
 		// Sorted: [1, 1, 3, 4, 5]
 		// Ranks:  [1.5, 1.5, 3, 4, 5]
@@ -289,7 +289,7 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Min rank for ties
 		assert.Equal(t, 3.0, col.Get(0))
 		assert.Equal(t, 1.0, col.Get(1)) // Min rank for tie
@@ -312,7 +312,7 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Max rank for ties
 		assert.Equal(t, 3.0, col.Get(0))
 		assert.Equal(t, 2.0, col.Get(1)) // Max rank for tie
@@ -335,7 +335,7 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Dense ranking (no gaps)
 		// Unique values: 1, 3, 4, 5 -> ranks 1, 2, 3, 4
 		assert.Equal(t, 2.0, col.Get(0)) // 3 -> rank 2
@@ -359,7 +359,7 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Ordinal ranking (unique ranks, first come first served)
 		assert.Equal(t, 3.0, col.Get(0)) // 3rd smallest
 		assert.Equal(t, 1.0, col.Get(1)) // 1st smallest (first 1)
@@ -382,13 +382,13 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Descending order
-		assert.Equal(t, 3.0, col.Get(0))   // 3 is 3rd largest
-		assert.Equal(t, 4.5, col.Get(1))   // 1 is tied for 4th/5th
-		assert.Equal(t, 2.0, col.Get(2))   // 4 is 2nd largest
-		assert.Equal(t, 4.5, col.Get(3))   // 1 is tied for 4th/5th
-		assert.Equal(t, 1.0, col.Get(4))   // 5 is largest
+		assert.Equal(t, 3.0, col.Get(0)) // 3 is 3rd largest
+		assert.Equal(t, 4.5, col.Get(1)) // 1 is tied for 4th/5th
+		assert.Equal(t, 2.0, col.Get(2)) // 4 is 2nd largest
+		assert.Equal(t, 4.5, col.Get(3)) // 1 is tied for 4th/5th
+		assert.Equal(t, 1.0, col.Get(4)) // 5 is largest
 	})
 
 	t.Run("Rank with nulls", func(t *testing.T) {
@@ -409,12 +409,12 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
-		assert.Equal(t, 1.0, col.Get(0))   // 3 is smallest
-		assert.True(t, col.IsNull(1))      // Null kept as null
-		assert.Equal(t, 2.0, col.Get(2))   // 4 is 2nd
-		assert.True(t, col.IsNull(3))      // Null kept as null
-		assert.Equal(t, 3.0, col.Get(4))   // 5 is 3rd
+
+		assert.Equal(t, 1.0, col.Get(0)) // 3 is smallest
+		assert.True(t, col.IsNull(1))    // Null kept as null
+		assert.Equal(t, 2.0, col.Get(2)) // 4 is 2nd
+		assert.True(t, col.IsNull(3))    // Null kept as null
+		assert.Equal(t, 3.0, col.Get(4)) // 5 is 3rd
 	})
 
 	t.Run("Rank - percentile ranks", func(t *testing.T) {
@@ -432,12 +432,12 @@ func TestRank(t *testing.T) {
 
 		col, err := ranked.Column("vals")
 		require.NoError(t, err)
-		
+
 		// Percentile ranks
-		assert.Equal(t, 0.2, col.Get(0))  // 1/5
-		assert.Equal(t, 0.4, col.Get(1))  // 2/5
-		assert.Equal(t, 0.6, col.Get(2))  // 3/5
-		assert.Equal(t, 0.8, col.Get(3))  // 4/5
-		assert.Equal(t, 1.0, col.Get(4))  // 5/5
+		assert.Equal(t, 0.2, col.Get(0)) // 1/5
+		assert.Equal(t, 0.4, col.Get(1)) // 2/5
+		assert.Equal(t, 0.6, col.Get(2)) // 3/5
+		assert.Equal(t, 0.8, col.Get(3)) // 4/5
+		assert.Equal(t, 1.0, col.Get(4)) // 5/5
 	})
 }

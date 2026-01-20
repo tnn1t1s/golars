@@ -3,17 +3,17 @@ package strings
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestStringEncoding(t *testing.T) {
 	t.Run("Base64 encode/decode", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello", "world", "test"})
 		ops := NewStringOps(s)
-		
+
 		// Encode
 		encoded, err := ops.Encode("base64")
 		require.NoError(t, err)
@@ -21,7 +21,7 @@ func TestStringEncoding(t *testing.T) {
 		assert.Equal(t, "aGVsbG8=", encoded.Get(0))
 		assert.Equal(t, "d29ybGQ=", encoded.Get(1))
 		assert.Equal(t, "dGVzdA==", encoded.Get(2))
-		
+
 		// Decode
 		encodedOps := NewStringOps(encoded)
 		decoded, err := encodedOps.Decode("base64")
@@ -35,7 +35,7 @@ func TestStringEncoding(t *testing.T) {
 	t.Run("Hex encode/decode", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"abc", "123", "xyz"})
 		ops := NewStringOps(s)
-		
+
 		// Encode
 		encoded, err := ops.Encode("hex")
 		require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestStringEncoding(t *testing.T) {
 		assert.Equal(t, "616263", encoded.Get(0))
 		assert.Equal(t, "313233", encoded.Get(1))
 		assert.Equal(t, "78797a", encoded.Get(2))
-		
+
 		// Decode
 		encodedOps := NewStringOps(encoded)
 		decoded, err := encodedOps.Decode("hex")
@@ -59,7 +59,7 @@ func TestStringEncoding(t *testing.T) {
 		validity := []bool{true, true, true, true}
 		s := series.NewSeriesWithValidity("text", values, validity, datatypes.String{})
 		ops := NewStringOps(s)
-		
+
 		// Check ASCII
 		isAscii := ops.IsASCII()
 		assert.Equal(t, 4, isAscii.Len())
@@ -72,7 +72,7 @@ func TestStringEncoding(t *testing.T) {
 	t.Run("UTF-8 validation", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello", "世界", "café"})
 		ops := NewStringOps(s)
-		
+
 		isUtf8 := ops.IsUTF8()
 		assert.Equal(t, 3, isUtf8.Len())
 		assert.Equal(t, true, isUtf8.Get(0))
@@ -83,12 +83,12 @@ func TestStringEncoding(t *testing.T) {
 	t.Run("Byte length", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello", "世界", "café"})
 		ops := NewStringOps(s)
-		
+
 		lengths := ops.ByteLength()
 		assert.Equal(t, 3, lengths.Len())
-		assert.Equal(t, int32(5), lengths.Get(0))  // "hello" = 5 bytes
-		assert.Equal(t, int32(6), lengths.Get(1))  // "世界" = 6 bytes (3 bytes per character)
-		assert.Equal(t, int32(5), lengths.Get(2))  // "café" = 5 bytes (é is 2 bytes)
+		assert.Equal(t, int32(5), lengths.Get(0)) // "hello" = 5 bytes
+		assert.Equal(t, int32(6), lengths.Get(1)) // "世界" = 6 bytes (3 bytes per character)
+		assert.Equal(t, int32(5), lengths.Get(2)) // "café" = 5 bytes (é is 2 bytes)
 	})
 
 	t.Run("Encoding with nulls", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestStringEncoding(t *testing.T) {
 		validity := []bool{true, false, true}
 		s := series.NewSeriesWithValidity("text", values, validity, datatypes.String{})
 		ops := NewStringOps(s)
-		
+
 		encoded, err := ops.Encode("base64")
 		require.NoError(t, err)
 		assert.Equal(t, 3, encoded.Len())

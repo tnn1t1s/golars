@@ -3,9 +3,9 @@ package window
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestLag(t *testing.T) {
@@ -105,10 +105,10 @@ func TestLag(t *testing.T) {
 				size:      2,
 				isOrdered: false,
 			},
-			spec:     &Spec{},
-			column:   "missing",
-			offset:   1,
-			wantErr:  true,
+			spec:    &Spec{},
+			column:  "missing",
+			offset:  1,
+			wantErr: true,
 		},
 	}
 
@@ -121,14 +121,14 @@ func TestLag(t *testing.T) {
 				spec:         tt.spec,
 			}
 			result, err := f.Compute(tt.partition)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expected.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -225,9 +225,9 @@ func TestLead(t *testing.T) {
 				spec:         tt.spec,
 			}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expected.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -311,9 +311,9 @@ func TestFirstValue(t *testing.T) {
 				spec:   tt.spec,
 			}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expected.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -397,9 +397,9 @@ func TestLastValue(t *testing.T) {
 				spec:   tt.spec,
 			}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expected.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -450,7 +450,7 @@ func TestOffsetWithReorderedPartition(t *testing.T) {
 		size:         5,
 		isOrdered:    true,
 	}
-	
+
 	spec := &Spec{
 		orderBy: []OrderClause{{Column: "value", Ascending: true}},
 	}
@@ -463,7 +463,7 @@ func TestOffsetWithReorderedPartition(t *testing.T) {
 			spec:         spec,
 		}
 		result, err := f.Compute(partition)
-		
+
 		require.NoError(t, err)
 		// Expected: Original positions get lagged values from sorted order
 		// Position 0 (value=50, last in order) -> lag=40
@@ -472,7 +472,7 @@ func TestOffsetWithReorderedPartition(t *testing.T) {
 		// Position 3 (value=10, first in order) -> lag=-1 (default)
 		// Position 4 (value=20, second in order) -> lag=10
 		expected := []int32{40, 20, 30, -1, 10}
-		
+
 		for i, v := range expected {
 			assert.Equal(t, v, result.Get(i))
 		}

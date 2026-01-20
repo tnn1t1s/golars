@@ -17,12 +17,12 @@ func (so *StringOps) ToInteger(base ...int) (series.Series, error) {
 	if len(base) > 0 {
 		b = base[0]
 	}
-	
+
 	// Count valid values first to determine output type
 	var maxVal int64
 	var minVal int64
 	first := true
-	
+
 	for i := 0; i < so.s.Len(); i++ {
 		if !so.s.IsNull(i) {
 			str := so.s.Get(i).(string)
@@ -30,7 +30,7 @@ func (so *StringOps) ToInteger(base ...int) (series.Series, error) {
 			if str == "" {
 				continue
 			}
-			
+
 			val, err := strconv.ParseInt(str, b, 64)
 			if err == nil {
 				if first {
@@ -48,7 +48,7 @@ func (so *StringOps) ToInteger(base ...int) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	// Choose appropriate integer type
 	var dtype datatypes.DataType
 	if minVal >= 0 && maxVal <= 255 {
@@ -66,24 +66,24 @@ func (so *StringOps) ToInteger(base ...int) (series.Series, error) {
 	} else {
 		dtype = datatypes.Int64{}
 	}
-	
+
 	// Parse and convert
 	values := make([]interface{}, so.s.Len())
 	validity := make([]bool, so.s.Len())
-	
+
 	for i := 0; i < so.s.Len(); i++ {
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		str := so.s.Get(i).(string)
 		str = strings.TrimSpace(str)
 		if str == "" {
 			validity[i] = false
 			continue
 		}
-		
+
 		val, err := strconv.ParseInt(str, b, 64)
 		if err != nil {
 			validity[i] = false
@@ -108,7 +108,7 @@ func (so *StringOps) ToInteger(base ...int) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	// Create appropriate slice based on type
 	switch dtype.(type) {
 	case datatypes.UInt8:
@@ -174,20 +174,20 @@ func (so *StringOps) ToInteger(base ...int) (series.Series, error) {
 func (so *StringOps) ToFloat() (series.Series, error) {
 	values := make([]float64, so.s.Len())
 	validity := make([]bool, so.s.Len())
-	
+
 	for i := 0; i < so.s.Len(); i++ {
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		str := so.s.Get(i).(string)
 		str = strings.TrimSpace(str)
 		if str == "" {
 			validity[i] = false
 			continue
 		}
-		
+
 		// Handle special cases
 		switch strings.ToLower(str) {
 		case "inf", "+inf", "infinity", "+infinity":
@@ -209,7 +209,7 @@ func (so *StringOps) ToFloat() (series.Series, error) {
 			}
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(so.s.Name()+"_float", values, validity, datatypes.Float64{}), nil
 }
 
@@ -217,16 +217,16 @@ func (so *StringOps) ToFloat() (series.Series, error) {
 func (so *StringOps) ToBoolean() (series.Series, error) {
 	values := make([]bool, so.s.Len())
 	validity := make([]bool, so.s.Len())
-	
+
 	for i := 0; i < so.s.Len(); i++ {
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		str := so.s.Get(i).(string)
 		str = strings.TrimSpace(strings.ToLower(str))
-		
+
 		switch str {
 		case "true", "t", "yes", "y", "1", "on":
 			values[i] = true
@@ -238,7 +238,7 @@ func (so *StringOps) ToBoolean() (series.Series, error) {
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(so.s.Name()+"_bool", values, validity, datatypes.Boolean{}), nil
 }
 
@@ -257,38 +257,38 @@ func (so *StringOps) ToDateTime(format ...string) (series.Series, error) {
 			"02-Jan-2006",
 			"Jan 2, 2006",
 		}
-		
+
 		if len(format) > 0 && format[0] != "" {
 			// Convert Python/Polars format to Go format if needed
 			goFormat := convertPythonFormatToGo(format[0])
 			formats = []string{goFormat}
 		}
-		
+
 		for _, f := range formats {
 			if t, err := time.Parse(f, str); err == nil {
 				return t.UnixNano(), nil
 			}
 		}
-		
+
 		return 0, fmt.Errorf("unable to parse datetime: %s", str)
 	}
-	
+
 	values := make([]int64, so.s.Len())
 	validity := make([]bool, so.s.Len())
-	
+
 	for i := 0; i < so.s.Len(); i++ {
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		str := so.s.Get(i).(string)
 		str = strings.TrimSpace(str)
 		if str == "" {
 			validity[i] = false
 			continue
 		}
-		
+
 		ts, err := parseFunc(str)
 		if err != nil {
 			validity[i] = false
@@ -297,8 +297,8 @@ func (so *StringOps) ToDateTime(format ...string) (series.Series, error) {
 			validity[i] = true
 		}
 	}
-	
-	return series.NewSeriesWithValidity(so.s.Name()+"_datetime", values, validity, 
+
+	return series.NewSeriesWithValidity(so.s.Name()+"_datetime", values, validity,
 		datatypes.Datetime{Unit: datatypes.Nanoseconds}), nil
 }
 
@@ -309,24 +309,24 @@ func (so *StringOps) ToDate(format ...string) (series.Series, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert timestamps to days since epoch
 	values := make([]int32, dtSeries.Len())
 	validity := make([]bool, dtSeries.Len())
-	
+
 	for i := 0; i < dtSeries.Len(); i++ {
 		if dtSeries.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		ts := dtSeries.Get(i).(int64)
 		t := time.Unix(0, ts).UTC()
 		days := int32(t.Unix() / 86400)
 		values[i] = days
 		validity[i] = true
 	}
-	
+
 	return series.NewSeriesWithValidity(so.s.Name()+"_date", values, validity, datatypes.Date{}), nil
 }
 
@@ -342,39 +342,39 @@ func (so *StringOps) ToTime(format ...string) (series.Series, error) {
 			"3:04:05 PM",
 			"3:04 PM",
 		}
-		
+
 		if len(format) > 0 && format[0] != "" {
 			goFormat := convertPythonFormatToGo(format[0])
 			formats = []string{goFormat}
 		}
-		
+
 		for _, f := range formats {
 			if t, err := time.Parse(f, str); err == nil {
 				// Extract time as nanoseconds since midnight
-				return int64(t.Hour())*3600e9 + int64(t.Minute())*60e9 + 
+				return int64(t.Hour())*3600e9 + int64(t.Minute())*60e9 +
 					int64(t.Second())*1e9 + int64(t.Nanosecond()), nil
 			}
 		}
-		
+
 		return 0, fmt.Errorf("unable to parse time: %s", str)
 	}
-	
+
 	values := make([]int64, so.s.Len())
 	validity := make([]bool, so.s.Len())
-	
+
 	for i := 0; i < so.s.Len(); i++ {
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		str := so.s.Get(i).(string)
 		str = strings.TrimSpace(str)
 		if str == "" {
 			validity[i] = false
 			continue
 		}
-		
+
 		ns, err := parseFunc(str)
 		if err != nil {
 			validity[i] = false
@@ -383,39 +383,39 @@ func (so *StringOps) ToTime(format ...string) (series.Series, error) {
 			validity[i] = true
 		}
 	}
-	
-	return series.NewSeriesWithValidity(so.s.Name()+"_time", values, validity, 
+
+	return series.NewSeriesWithValidity(so.s.Name()+"_time", values, validity,
 		datatypes.Time{}), nil
 }
 
 // Helper function to convert Python/Polars format strings to Go format
 func convertPythonFormatToGo(format string) string {
 	replacements := map[string]string{
-		"%Y": "2006",
-		"%y": "06",
-		"%m": "01",
-		"%B": "January",
-		"%b": "Jan",
-		"%d": "02",
-		"%H": "15",
-		"%I": "03",
-		"%M": "04",
-		"%S": "05",
-		"%p": "PM",
-		"%f": "000000",
-		"%z": "-0700",
-		"%Z": "MST",
+		"%Y":  "2006",
+		"%y":  "06",
+		"%m":  "01",
+		"%B":  "January",
+		"%b":  "Jan",
+		"%d":  "02",
+		"%H":  "15",
+		"%I":  "03",
+		"%M":  "04",
+		"%S":  "05",
+		"%p":  "PM",
+		"%f":  "000000",
+		"%z":  "-0700",
+		"%Z":  "MST",
 		"%-d": "2",
 		"%-m": "1",
 		"%-I": "3",
 		"%-H": "15",
 	}
-	
+
 	result := format
 	for old, new := range replacements {
 		result = strings.ReplaceAll(result, old, new)
 	}
-	
+
 	return result
 }
 
@@ -426,7 +426,7 @@ func (so *StringOps) IsNumericStr() series.Series {
 		if str == "" {
 			return false
 		}
-		
+
 		// Try parsing as float (covers integers too)
 		_, err := strconv.ParseFloat(str, 64)
 		return err == nil

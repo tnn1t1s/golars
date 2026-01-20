@@ -57,13 +57,13 @@ func (so *StringOps) Count(pattern string) series.Series {
 func (so *StringOps) Split(separator string) series.Series {
 	pool := memory.NewGoAllocator()
 	length := so.s.Len()
-	
+
 	// Build list of string arrays
 	listBuilder := array.NewListBuilder(pool, arrow.BinaryTypes.String)
 	defer listBuilder.Release()
-	
+
 	valueBuilder := listBuilder.ValueBuilder().(*array.StringBuilder)
-	
+
 	for i := 0; i < length; i++ {
 		if so.s.IsNull(i) {
 			listBuilder.AppendNull()
@@ -80,14 +80,14 @@ func (so *StringOps) Split(separator string) series.Series {
 			}
 		}
 	}
-	
+
 	arr := listBuilder.NewArray()
-	
+
 	// For now, return a string series with the first element of each split
 	// TODO: Implement proper List series type
 	result := make([]string, length)
 	listArr := arr.(*array.List)
-	
+
 	for i := 0; i < length; i++ {
 		if listArr.IsNull(i) {
 			result[i] = ""
@@ -100,7 +100,7 @@ func (so *StringOps) Split(separator string) series.Series {
 			}
 		}
 	}
-	
+
 	return series.NewStringSeries("split", result)
 }
 
@@ -108,13 +108,13 @@ func (so *StringOps) Split(separator string) series.Series {
 func (so *StringOps) SplitN(separator string, n int) series.Series {
 	pool := memory.NewGoAllocator()
 	length := so.s.Len()
-	
+
 	// Build list of string arrays
 	listBuilder := array.NewListBuilder(pool, arrow.BinaryTypes.String)
 	defer listBuilder.Release()
-	
+
 	valueBuilder := listBuilder.ValueBuilder().(*array.StringBuilder)
-	
+
 	for i := 0; i < length; i++ {
 		if so.s.IsNull(i) {
 			listBuilder.AppendNull()
@@ -131,14 +131,14 @@ func (so *StringOps) SplitN(separator string, n int) series.Series {
 			}
 		}
 	}
-	
+
 	arr := listBuilder.NewArray()
-	
+
 	// For now, return a string series with the first element of each split
 	// TODO: Implement proper List series type
 	result := make([]string, length)
 	listArr := arr.(*array.List)
-	
+
 	for i := 0; i < length; i++ {
 		if listArr.IsNull(i) {
 			result[i] = ""
@@ -151,7 +151,7 @@ func (so *StringOps) SplitN(separator string, n int) series.Series {
 			}
 		}
 	}
-	
+
 	return series.NewStringSeries("split_n", result)
 }
 
@@ -168,7 +168,7 @@ func applyPatternOp(s series.Series, op func(string) bool, name string) series.S
 	length := s.Len()
 	builder := array.NewBooleanBuilder(pool)
 	defer builder.Release()
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -181,7 +181,7 @@ func applyPatternOp(s series.Series, op func(string) bool, name string) series.S
 			}
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	values := make([]bool, arr.Len())
 	boolArr := arr.(*array.Boolean)
@@ -190,7 +190,7 @@ func applyPatternOp(s series.Series, op func(string) bool, name string) series.S
 			values[i] = boolArr.Value(i)
 		}
 	}
-	
+
 	// Use the helper function for boolean results
 	return createBooleanSeries(name, values, boolArr)
 }
@@ -202,7 +202,7 @@ func createBooleanSeries(name string, values []bool, boolArr *array.Boolean) ser
 	for i := 0; i < len(values); i++ {
 		mask[i] = boolArr.IsNull(i)
 	}
-	
+
 	// Use NewBooleanSeries which should handle the values and mask appropriately
 	return series.NewBooleanSeries(name, values)
 }

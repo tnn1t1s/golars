@@ -3,10 +3,10 @@ package strings
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestStringFormat(t *testing.T) {
@@ -14,7 +14,7 @@ func TestStringFormat(t *testing.T) {
 		names := series.NewStringSeries("name", []string{"Alice", "Bob", "Charlie"})
 		ages := series.NewInt32Series("age", []int32{25, 30, 35})
 		ops := NewStringOps(names)
-		
+
 		formatted, err := ops.Format("%s is %d years old", ages)
 		require.NoError(t, err)
 		assert.Equal(t, 3, formatted.Len())
@@ -28,7 +28,7 @@ func TestStringFormat(t *testing.T) {
 		quantities := series.NewInt32Series("qty", []int32{5, 3, 7})
 		prices := series.NewFloat64Series("price", []float64{1.20, 0.50, 0.80})
 		ops := NewStringOps(items)
-		
+
 		formatted, err := ops.Format("%s: %d @ $%.2f each", quantities, prices)
 		require.NoError(t, err)
 		assert.Equal(t, 3, formatted.Len())
@@ -43,12 +43,12 @@ func TestStringFormat(t *testing.T) {
 		nameSeries := series.NewSeriesWithValidity("name", names, namesValidity, datatypes.String{})
 		ages := series.NewInt32Series("age", []int32{25, 30, 35})
 		ops := NewStringOps(nameSeries)
-		
+
 		formatted, err := ops.Format("%s is %d years old", ages)
 		require.NoError(t, err)
 		assert.Equal(t, 3, formatted.Len())
 		assert.False(t, formatted.IsNull(0))
-		assert.True(t, formatted.IsNull(1))  // Bob is null
+		assert.True(t, formatted.IsNull(1)) // Bob is null
 		assert.False(t, formatted.IsNull(2))
 		assert.Equal(t, "Alice is 25 years old", formatted.Get(0))
 		assert.Equal(t, "Charlie is 35 years old", formatted.Get(2))
@@ -60,7 +60,7 @@ func TestStringJoin(t *testing.T) {
 		first := series.NewStringSeries("first", []string{"John", "Jane", "Bob"})
 		last := series.NewStringSeries("last", []string{"Doe", "Smith", "Johnson"})
 		age := series.NewInt32Series("age", []int32{30, 25, 35})
-		
+
 		ops := NewStringOps(first)
 		joined, err := ops.Join(" ", last, age)
 		require.NoError(t, err)
@@ -76,7 +76,7 @@ func TestStringJoin(t *testing.T) {
 			series.NewStringSeries("p2", []string{"X", "Y", "Z"}),
 			series.NewStringSeries("p3", []string{"1", "2", "3"}),
 		}
-		
+
 		ops := NewStringOps(parts[0])
 		joined, err := ops.Join("-", parts[1], parts[2])
 		require.NoError(t, err)
@@ -91,13 +91,13 @@ func TestStringJustify(t *testing.T) {
 	t.Run("Center", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello", "hi", "world"})
 		ops := NewStringOps(s)
-		
+
 		centered := ops.Center(10)
 		assert.Equal(t, 3, centered.Len())
 		assert.Equal(t, "  hello   ", centered.Get(0))
 		assert.Equal(t, "    hi    ", centered.Get(1))
 		assert.Equal(t, "  world   ", centered.Get(2))
-		
+
 		// With custom fill char
 		centered2 := ops.Center(10, "*")
 		assert.Equal(t, "**hello***", centered2.Get(0))
@@ -108,13 +108,13 @@ func TestStringJustify(t *testing.T) {
 	t.Run("Left justify", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello", "hi", "world"})
 		ops := NewStringOps(s)
-		
+
 		ljust := ops.LJust(8)
 		assert.Equal(t, 3, ljust.Len())
 		assert.Equal(t, "hello   ", ljust.Get(0))
 		assert.Equal(t, "hi      ", ljust.Get(1))
 		assert.Equal(t, "world   ", ljust.Get(2))
-		
+
 		// With custom fill char
 		ljust2 := ops.LJust(8, ".")
 		assert.Equal(t, "hello...", ljust2.Get(0))
@@ -125,13 +125,13 @@ func TestStringJustify(t *testing.T) {
 	t.Run("Right justify", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello", "hi", "world"})
 		ops := NewStringOps(s)
-		
+
 		rjust := ops.RJust(8)
 		assert.Equal(t, 3, rjust.Len())
 		assert.Equal(t, "   hello", rjust.Get(0))
 		assert.Equal(t, "      hi", rjust.Get(1))
 		assert.Equal(t, "   world", rjust.Get(2))
-		
+
 		// With custom fill char
 		rjust2 := ops.RJust(8, "0")
 		assert.Equal(t, "000hello", rjust2.Get(0))
@@ -144,7 +144,7 @@ func TestStringExpandTabs(t *testing.T) {
 	t.Run("Default tab size", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"hello\tworld", "a\tb\tc", "no\ttabs\there"})
 		ops := NewStringOps(s)
-		
+
 		expanded := ops.ExpandTabs()
 		assert.Equal(t, 3, expanded.Len())
 		assert.Equal(t, "hello   world", expanded.Get(0))
@@ -155,7 +155,7 @@ func TestStringExpandTabs(t *testing.T) {
 	t.Run("Custom tab size", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"a\tb", "12\t34", "123\t456"})
 		ops := NewStringOps(s)
-		
+
 		expanded := ops.ExpandTabs(4)
 		assert.Equal(t, 3, expanded.Len())
 		assert.Equal(t, "a   b", expanded.Get(0))
@@ -172,17 +172,17 @@ func TestStringWrap(t *testing.T) {
 			"Another long string with many words that should be wrapped at word boundaries",
 		})
 		ops := NewStringOps(s)
-		
+
 		wrapped := ops.Wrap(20)
 		assert.Equal(t, 3, wrapped.Len())
-		
+
 		// First string should be wrapped
 		expected1 := "This is a long\nstring that needs to\nbe wrapped"
 		assert.Equal(t, expected1, wrapped.Get(0))
-		
+
 		// Short string unchanged
 		assert.Equal(t, "Short", wrapped.Get(1))
-		
+
 		// Third string wrapped
 		assert.Contains(t, wrapped.Get(2).(string), "\n")
 	})
@@ -190,7 +190,7 @@ func TestStringWrap(t *testing.T) {
 	t.Run("No spaces", func(t *testing.T) {
 		s := series.NewStringSeries("text", []string{"verylongstringwithoutspaces"})
 		ops := NewStringOps(s)
-		
+
 		wrapped := ops.Wrap(10)
 		assert.Equal(t, 1, wrapped.Len())
 		// Should return unchanged when no word boundaries
@@ -203,13 +203,13 @@ func TestStringTemplate(t *testing.T) {
 		names := series.NewStringSeries("name", []string{"Alice", "Bob", "Charlie"})
 		ages := series.NewInt32Series("age", []int32{25, 30, 35})
 		cities := series.NewStringSeries("city", []string{"NYC", "LA", "Chicago"})
-		
+
 		ops := NewStringOps(names)
 		data := map[string]series.Series{
 			"Age":  ages,
 			"City": cities,
 		}
-		
+
 		template := "{{.Value}} ({{.Age}}) lives in {{.City}}"
 		formatted, err := ops.FormatTemplate(template, data)
 		require.NoError(t, err)

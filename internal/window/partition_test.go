@@ -3,9 +3,9 @@ package window
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestWindowPartition(t *testing.T) {
@@ -124,7 +124,7 @@ func TestComplexPartitionScenarios(t *testing.T) {
 		// Verify size and indices
 		assert.Equal(t, 2, p.Size())
 		assert.Equal(t, []int{1, 3}, p.Indices())
-		
+
 		// Verify we can access the correct values
 		valueSeries, err := p.Column("value")
 		require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestComplexPartitionScenarios(t *testing.T) {
 		for _, idx := range p.Indices() {
 			s, _ := p.Column("group")
 			assert.Equal(t, "A", s.Get(idx))
-			
+
 			s, _ = p.Column("value")
 			expectedValue := int32(idx + 1) // Values are 1-based
 			assert.Equal(t, expectedValue, s.Get(idx))

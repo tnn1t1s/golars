@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -32,25 +32,25 @@ func (dts *DateTimeSeries) Resample(rule *ResampleRule) (*ResampleGrouper, error
 	if rule == nil {
 		return nil, fmt.Errorf("resample rule cannot be nil")
 	}
-	
+
 	// Parse frequency
 	duration, unit, err := parseFrequency(rule.Frequency)
 	if err != nil {
 		return nil, fmt.Errorf("invalid frequency %s: %w", rule.Frequency, err)
 	}
-	
+
 	// Create bins based on frequency
 	bins, err := createTimeBins(dts.s, duration, unit, rule)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &ResampleGrouper{
-		series:    dts.s,
-		bins:      bins,
-		rule:      rule,
-		duration:  duration,
-		unit:      unit,
+		series:   dts.s,
+		bins:     bins,
+		rule:     rule,
+		duration: duration,
+		unit:     unit,
 	}, nil
 }
 
@@ -67,7 +67,7 @@ type ResampleGrouper struct {
 func (rg *ResampleGrouper) Aggregate(agg string, targetSeries series.Series) (series.Series, error) {
 	// Group indices by bins
 	groups := make(map[int64][]int)
-	
+
 	for i := 0; i < rg.series.Len(); i++ {
 		if !rg.series.IsNull(i) {
 			val := rg.series.Get(i)
@@ -80,16 +80,16 @@ func (rg *ResampleGrouper) Aggregate(agg string, targetSeries series.Series) (se
 			groups[bin] = append(groups[bin], i)
 		}
 	}
-	
+
 	// Create result arrays
 	binKeys := make([]int64, 0, len(groups))
 	for k := range groups {
 		binKeys = append(binKeys, k)
 	}
-	
+
 	// Sort bins
 	sortInt64Slice(binKeys)
-	
+
 	// Apply aggregation
 	switch agg {
 	case "sum":
@@ -133,17 +133,17 @@ func parseFrequency(freq string) (int64, TimeUnit, error) {
 	if len(freq) < 1 {
 		return 0, Nanosecond, fmt.Errorf("frequency too short")
 	}
-	
+
 	// Extract number and unit
 	var num int64
 	var unitStr string
-	
+
 	// Find where the unit starts
 	i := 0
 	for i < len(freq) && (freq[i] >= '0' && freq[i] <= '9') {
 		i++
 	}
-	
+
 	if i == 0 {
 		num = 1
 		unitStr = freq
@@ -151,7 +151,7 @@ func parseFrequency(freq string) (int64, TimeUnit, error) {
 		fmt.Sscanf(freq[:i], "%d", &num)
 		unitStr = freq[i:]
 	}
-	
+
 	// Map unit string to TimeUnit
 	var unit TimeUnit
 	switch unitStr {
@@ -178,7 +178,7 @@ func parseFrequency(freq string) (int64, TimeUnit, error) {
 	default:
 		return 0, Nanosecond, fmt.Errorf("unknown time unit: %s", unitStr)
 	}
-	
+
 	return num, unit, nil
 }
 
@@ -186,7 +186,7 @@ func createTimeBins(s series.Series, duration int64, unit TimeUnit, rule *Resamp
 	// Find min and max timestamps
 	var minTS, maxTS int64
 	first := true
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if !s.IsNull(i) {
 			// Handle non-datetime series gracefully
@@ -210,29 +210,29 @@ func createTimeBins(s series.Series, duration int64, unit TimeUnit, rule *Resamp
 			}
 		}
 	}
-	
+
 	if first {
 		return series.NewSeries("bins", []int64{}, datatypes.Datetime{Unit: datatypes.Nanoseconds}), nil
 	}
-	
+
 	// Create bins from min to max
 	bins := []int64{}
 	current := getBinStart(minTS, duration, unit, rule)
-	
+
 	for current <= maxTS {
 		bins = append(bins, current)
 		current = getNextBin(current, duration, unit)
 	}
-	
+
 	return series.NewSeries("bins", bins, datatypes.Datetime{Unit: datatypes.Nanoseconds}), nil
 }
 
 func getBinStart(ts int64, duration int64, unit TimeUnit, rule *ResampleRule) int64 {
 	dt := DateTime{timestamp: ts, timezone: time.UTC}
-	
+
 	// Floor to the unit
 	floored := dt.Floor(unit)
-	
+
 	// Adjust for duration
 	if duration > 1 {
 		// For multi-unit durations, align to duration boundaries
@@ -255,13 +255,13 @@ func getBinStart(ts int64, duration int64, unit TimeUnit, rule *ResampleRule) in
 			}
 		}
 	}
-	
+
 	return floored.timestamp
 }
 
 func getNextBin(current int64, duration int64, unit TimeUnit) int64 {
 	dt := DateTime{timestamp: current, timezone: time.UTC}
-	
+
 	switch unit {
 	case Nanosecond:
 		return current + duration
@@ -290,7 +290,7 @@ func getNextBin(current int64, duration int64, unit TimeUnit) int64 {
 
 func getBinForTimestamp(ts int64, duration int64, unit TimeUnit, rule *ResampleRule) int64 {
 	bin := getBinStart(ts, duration, unit, rule)
-	
+
 	// Adjust for closed/label
 	if rule.Closed == "right" {
 		// If closed on right, timestamp belongs to previous bin
@@ -299,7 +299,7 @@ func getBinForTimestamp(ts int64, duration int64, unit TimeUnit, rule *ResampleR
 			bin = nextBin
 		}
 	}
-	
+
 	return bin
 }
 
@@ -309,20 +309,20 @@ func aggregateSum(bins []int64, groups map[int64][]int, target series.Series) (s
 	if target == nil {
 		return nil, fmt.Errorf("target series required for sum aggregation")
 	}
-	
+
 	values := make([]float64, len(bins))
 	validity := make([]bool, len(bins))
-	
+
 	for i, bin := range bins {
 		indices := groups[bin]
 		if len(indices) == 0 {
 			validity[i] = false
 			continue
 		}
-		
+
 		sum := 0.0
 		hasValue := false
-		
+
 		for _, idx := range indices {
 			if !target.IsNull(idx) {
 				val, err := toFloat64(target.Get(idx))
@@ -332,7 +332,7 @@ func aggregateSum(bins []int64, groups map[int64][]int, target series.Series) (s
 				}
 			}
 		}
-		
+
 		if hasValue {
 			values[i] = sum
 			validity[i] = true
@@ -340,7 +340,7 @@ func aggregateSum(bins []int64, groups map[int64][]int, target series.Series) (s
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity("sum", values, validity, datatypes.Float64{}), nil
 }
 
@@ -348,20 +348,20 @@ func aggregateMean(bins []int64, groups map[int64][]int, target series.Series) (
 	if target == nil {
 		return nil, fmt.Errorf("target series required for mean aggregation")
 	}
-	
+
 	values := make([]float64, len(bins))
 	validity := make([]bool, len(bins))
-	
+
 	for i, bin := range bins {
 		indices := groups[bin]
 		if len(indices) == 0 {
 			validity[i] = false
 			continue
 		}
-		
+
 		sum := 0.0
 		count := 0
-		
+
 		for _, idx := range indices {
 			if !target.IsNull(idx) {
 				val, err := toFloat64(target.Get(idx))
@@ -371,7 +371,7 @@ func aggregateMean(bins []int64, groups map[int64][]int, target series.Series) (
 				}
 			}
 		}
-		
+
 		if count > 0 {
 			values[i] = sum / float64(count)
 			validity[i] = true
@@ -379,18 +379,18 @@ func aggregateMean(bins []int64, groups map[int64][]int, target series.Series) (
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity("mean", values, validity, datatypes.Float64{}), nil
 }
 
 func aggregateCount(bins []int64, groups map[int64][]int, target series.Series) (series.Series, error) {
 	values := make([]uint32, len(bins))
-	
+
 	for i, bin := range bins {
 		indices := groups[bin]
 		values[i] = uint32(len(indices))
 	}
-	
+
 	return series.NewSeries("count", values, datatypes.UInt32{}), nil
 }
 
@@ -398,20 +398,20 @@ func aggregateMin(bins []int64, groups map[int64][]int, target series.Series) (s
 	if target == nil {
 		return nil, fmt.Errorf("target series required for min aggregation")
 	}
-	
+
 	values := make([]float64, len(bins))
 	validity := make([]bool, len(bins))
-	
+
 	for i, bin := range bins {
 		indices := groups[bin]
 		if len(indices) == 0 {
 			validity[i] = false
 			continue
 		}
-		
+
 		var min float64
 		hasValue := false
-		
+
 		for _, idx := range indices {
 			if !target.IsNull(idx) {
 				val, err := toFloat64(target.Get(idx))
@@ -423,7 +423,7 @@ func aggregateMin(bins []int64, groups map[int64][]int, target series.Series) (s
 				}
 			}
 		}
-		
+
 		if hasValue {
 			values[i] = min
 			validity[i] = true
@@ -431,7 +431,7 @@ func aggregateMin(bins []int64, groups map[int64][]int, target series.Series) (s
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity("min", values, validity, datatypes.Float64{}), nil
 }
 
@@ -439,20 +439,20 @@ func aggregateMax(bins []int64, groups map[int64][]int, target series.Series) (s
 	if target == nil {
 		return nil, fmt.Errorf("target series required for max aggregation")
 	}
-	
+
 	values := make([]float64, len(bins))
 	validity := make([]bool, len(bins))
-	
+
 	for i, bin := range bins {
 		indices := groups[bin]
 		if len(indices) == 0 {
 			validity[i] = false
 			continue
 		}
-		
+
 		var max float64
 		hasValue := false
-		
+
 		for _, idx := range indices {
 			if !target.IsNull(idx) {
 				val, err := toFloat64(target.Get(idx))
@@ -464,7 +464,7 @@ func aggregateMax(bins []int64, groups map[int64][]int, target series.Series) (s
 				}
 			}
 		}
-		
+
 		if hasValue {
 			values[i] = max
 			validity[i] = true
@@ -472,7 +472,7 @@ func aggregateMax(bins []int64, groups map[int64][]int, target series.Series) (s
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity("max", values, validity, datatypes.Float64{}), nil
 }
 
@@ -480,22 +480,22 @@ func aggregateFirst(bins []int64, groups map[int64][]int, target series.Series) 
 	if target == nil {
 		return nil, fmt.Errorf("target series required for first aggregation")
 	}
-	
+
 	// Need to determine the target data type
 	targetType := target.DataType()
-	
+
 	switch targetType.(type) {
 	case datatypes.Float64:
 		values := make([]float64, len(bins))
 		validity := make([]bool, len(bins))
-		
+
 		for i, bin := range bins {
 			indices := groups[bin]
 			if len(indices) == 0 {
 				validity[i] = false
 				continue
 			}
-			
+
 			// Get first non-null value
 			found := false
 			for _, idx := range indices {
@@ -506,14 +506,14 @@ func aggregateFirst(bins []int64, groups map[int64][]int, target series.Series) 
 					break
 				}
 			}
-			
+
 			if !found {
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity("first", values, validity, targetType), nil
-		
+
 	default:
 		return nil, fmt.Errorf("first aggregation not implemented for type %s", targetType)
 	}
@@ -523,22 +523,22 @@ func aggregateLast(bins []int64, groups map[int64][]int, target series.Series) (
 	if target == nil {
 		return nil, fmt.Errorf("target series required for last aggregation")
 	}
-	
+
 	// Need to determine the target data type
 	targetType := target.DataType()
-	
+
 	switch targetType.(type) {
 	case datatypes.Float64:
 		values := make([]float64, len(bins))
 		validity := make([]bool, len(bins))
-		
+
 		for i, bin := range bins {
 			indices := groups[bin]
 			if len(indices) == 0 {
 				validity[i] = false
 				continue
 			}
-			
+
 			// Get last non-null value
 			found := false
 			for j := len(indices) - 1; j >= 0; j-- {
@@ -550,14 +550,14 @@ func aggregateLast(bins []int64, groups map[int64][]int, target series.Series) (
 					break
 				}
 			}
-			
+
 			if !found {
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity("last", values, validity, targetType), nil
-		
+
 	default:
 		return nil, fmt.Errorf("last aggregation not implemented for type %s", targetType)
 	}

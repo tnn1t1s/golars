@@ -16,12 +16,12 @@ import (
 
 // Options for JSON reading
 type ReadOptions struct {
-	InferSchema  bool
-	MaxRecords   int
-	Columns      []string
-	SkipInvalid  bool
-	Flatten      bool
-	DateFormat   string
+	InferSchema bool
+	MaxRecords  int
+	Columns     []string
+	SkipInvalid bool
+	Flatten     bool
+	DateFormat  string
 }
 
 // DefaultReadOptions returns default options for JSON reading
@@ -75,7 +75,7 @@ func (r *Reader) Read(reader io.Reader) (*frame.DataFrame, error) {
 	// Decode JSON array
 	var records []map[string]interface{}
 	decoder := json.NewDecoder(reader)
-	
+
 	if err := decoder.Decode(&records); err != nil {
 		return nil, fmt.Errorf("failed to decode JSON: %w", err)
 	}
@@ -98,7 +98,7 @@ func (r *Reader) Read(reader io.Reader) (*frame.DataFrame, error) {
 	if r.options.MaxRecords > 0 && r.options.MaxRecords < len(records) {
 		records = records[:r.options.MaxRecords]
 	}
-	
+
 	// Build series from records
 	seriesList, err := r.buildSeries(records, schema)
 	if err != nil {
@@ -111,7 +111,7 @@ func (r *Reader) Read(reader io.Reader) (*frame.DataFrame, error) {
 // inferSchema infers the schema from sample records
 func (r *Reader) inferSchema(records []map[string]interface{}) map[string]datatypes.DataType {
 	schema := make(map[string]datatypes.DataType)
-	
+
 	// Collect all column names
 	columns := make(map[string]bool)
 	for _, record := range records {
@@ -131,7 +131,7 @@ func (r *Reader) inferSchema(records []map[string]interface{}) map[string]dataty
 	// Infer type for each column
 	for col := range columns {
 		values := make([]interface{}, 0, len(records))
-		
+
 		for _, record := range records {
 			if r.options.Flatten {
 				// Check flattened values
@@ -149,7 +149,7 @@ func (r *Reader) inferSchema(records []map[string]interface{}) map[string]dataty
 				}
 			}
 		}
-		
+
 		schema[col] = inferType(values)
 	}
 
@@ -199,11 +199,11 @@ func inferType(values []interface{}) datatypes.DataType {
 	if boolCount > 0 && intCount == 0 && floatCount == 0 {
 		return datatypes.Boolean{}
 	}
-	
+
 	if hasFloat || floatCount > 0 {
 		return datatypes.Float64{}
 	}
-	
+
 	if intCount > 0 {
 		return datatypes.Int64{}
 	}
@@ -257,7 +257,7 @@ func (r *Reader) buildSeries(records []map[string]interface{}, schema map[string
 // flattenRecord flattens nested objects in a record
 func (r *Reader) flattenRecord(record map[string]interface{}) map[string]interface{} {
 	flattened := make(map[string]interface{})
-	
+
 	for key, value := range record {
 		if isNested(value) {
 			for flatKey, flatVal := range r.flattenObject(key, value) {
@@ -267,14 +267,14 @@ func (r *Reader) flattenRecord(record map[string]interface{}) map[string]interfa
 			flattened[key] = value
 		}
 	}
-	
+
 	return flattened
 }
 
 // flattenObject recursively flattens nested objects
 func (r *Reader) flattenObject(prefix string, value interface{}) map[string]interface{} {
 	flattened := make(map[string]interface{})
-	
+
 	switch v := value.(type) {
 	case map[string]interface{}:
 		for key, val := range v {
@@ -293,7 +293,7 @@ func (r *Reader) flattenObject(prefix string, value interface{}) map[string]inte
 	default:
 		flattened[prefix] = v
 	}
-	
+
 	return flattened
 }
 

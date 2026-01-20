@@ -59,7 +59,7 @@ func (df *DataFrame) applyCumulative(options CumulativeOptions, fn func(series.S
 
 	// Create result columns
 	resultColumns := make([]series.Series, len(df.columns))
-	
+
 	for i, col := range df.columns {
 		// Check if this column should be processed
 		shouldProcess := false
@@ -87,10 +87,10 @@ func cumSumSeries(s series.Series, skipNulls bool) series.Series {
 	length := s.Len()
 	values := make([]float64, length)
 	validity := make([]bool, length)
-	
+
 	sum := 0.0
 	hasValidValue := false
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			if skipNulls {
@@ -113,7 +113,7 @@ func cumSumSeries(s series.Series, skipNulls bool) series.Series {
 			hasValidValue = true
 		}
 	}
-	
+
 	// Convert back to original type if needed
 	return convertToOriginalSeriesType(s.Name(), values, validity, s.DataType())
 }
@@ -123,10 +123,10 @@ func cumProdSeries(s series.Series, skipNulls bool) series.Series {
 	length := s.Len()
 	values := make([]float64, length)
 	validity := make([]bool, length)
-	
+
 	prod := 1.0
 	hasValidValue := false
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			if skipNulls {
@@ -149,7 +149,7 @@ func cumProdSeries(s series.Series, skipNulls bool) series.Series {
 			hasValidValue = true
 		}
 	}
-	
+
 	return convertToOriginalSeriesType(s.Name(), values, validity, s.DataType())
 }
 
@@ -158,10 +158,10 @@ func cumMaxSeries(s series.Series, skipNulls bool) series.Series {
 	length := s.Len()
 	values := make([]float64, length)
 	validity := make([]bool, length)
-	
+
 	max := math.Inf(-1)
 	hasValidValue := false
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			if skipNulls {
@@ -186,7 +186,7 @@ func cumMaxSeries(s series.Series, skipNulls bool) series.Series {
 			hasValidValue = true
 		}
 	}
-	
+
 	return convertToOriginalSeriesType(s.Name(), values, validity, s.DataType())
 }
 
@@ -195,10 +195,10 @@ func cumMinSeries(s series.Series, skipNulls bool) series.Series {
 	length := s.Len()
 	values := make([]float64, length)
 	validity := make([]bool, length)
-	
+
 	min := math.Inf(1)
 	hasValidValue := false
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			if skipNulls {
@@ -223,7 +223,7 @@ func cumMinSeries(s series.Series, skipNulls bool) series.Series {
 			hasValidValue = true
 		}
 	}
-	
+
 	return convertToOriginalSeriesType(s.Name(), values, validity, s.DataType())
 }
 
@@ -232,9 +232,9 @@ func cumCountSeries(s series.Series, skipNulls bool) series.Series {
 	length := s.Len()
 	values := make([]int64, length)
 	validity := make([]bool, length)
-	
+
 	count := int64(0)
-	
+
 	for i := 0; i < length; i++ {
 		if !s.IsNull(i) {
 			count++
@@ -242,7 +242,7 @@ func cumCountSeries(s series.Series, skipNulls bool) series.Series {
 		values[i] = count
 		validity[i] = true // Count is always valid
 	}
-	
+
 	return series.NewSeriesWithValidity(s.Name(), values, validity, datatypes.Int64{})
 }
 

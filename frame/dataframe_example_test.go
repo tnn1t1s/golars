@@ -242,7 +242,7 @@ func ExampleDataFrame_Clone() {
 	cloned := original.Clone()
 
 	// Modifying the clone doesn't affect the original
-	fmt.Printf("Original and clone have same shape: %v\n", 
+	fmt.Printf("Original and clone have same shape: %v\n",
 		original.Height() == cloned.Height() && original.Width() == cloned.Width())
 
 	// Output:

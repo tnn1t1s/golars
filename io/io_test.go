@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/series"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestReadWriteCSV(t *testing.T) {

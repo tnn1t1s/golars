@@ -249,7 +249,7 @@ func ParseDuration(s string) (Duration, error) {
 
 func parsePeriodDuration(s string) (Duration, error) {
 	s = strings.ToLower(s)
-	
+
 	var months, days int32
 	var nanoseconds int64
 

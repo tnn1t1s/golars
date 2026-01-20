@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -89,7 +89,7 @@ func (r *Reader) Read() (*frame.DataFrame, error) {
 
 	// Collect data for type inference and building
 	allRecords := make([][]string, 0)
-	
+
 	// Read all records
 	for {
 		record, err := r.reader.Read()
@@ -271,7 +271,7 @@ func (r *Reader) buildDataFrame(headers []string, records [][]string, schema []d
 		if colIdx >= len(headers) {
 			return nil, fmt.Errorf("column index %d out of range", colIdx)
 		}
-		
+
 		colData := make([]string, len(records))
 		validity := make([]bool, len(records))
 

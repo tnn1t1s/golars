@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/frame"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestReadWriteParquet(t *testing.T) {
@@ -53,7 +53,7 @@ func TestReadWriteParquet(t *testing.T) {
 		resultCol, _ := result.Column(name)
 		assert.Equal(t, origCol.DataType(), resultCol.DataType(), "column %s type mismatch", name)
 		assert.Equal(t, origCol.Len(), resultCol.Len(), "column %s length mismatch", name)
-		
+
 		// Check values
 		for j := 0; j < origCol.Len(); j++ {
 			assert.Equal(t, origCol.Get(j), resultCol.Get(j), "value mismatch at [%d,%d]", j, i)
@@ -75,7 +75,7 @@ func TestReadParquetWithColumns(t *testing.T) {
 	// Write to parquet
 	tmpDir := t.TempDir()
 	filename := filepath.Join(tmpDir, "test_columns.parquet")
-	
+
 	err = WriteParquet(df, filename)
 	require.NoError(t, err)
 
@@ -98,7 +98,7 @@ func TestReadParquetWithRowLimit(t *testing.T) {
 	for i := range values {
 		values[i] = int32(i)
 	}
-	
+
 	df, err := frame.NewDataFrame(
 		series.NewInt32Series("value", values),
 	)
@@ -107,7 +107,7 @@ func TestReadParquetWithRowLimit(t *testing.T) {
 	// Write to parquet
 	tmpDir := t.TempDir()
 	filename := filepath.Join(tmpDir, "test_rows.parquet")
-	
+
 	err = WriteParquet(df, filename)
 	require.NoError(t, err)
 
@@ -120,7 +120,7 @@ func TestReadParquetWithRowLimit(t *testing.T) {
 
 	// Verify row limit
 	assert.Equal(t, 100, result.Height())
-	
+
 	// Check values
 	col, _ := result.Column("value")
 	for i := 0; i < 100; i++ {
@@ -131,11 +131,11 @@ func TestReadParquetWithRowLimit(t *testing.T) {
 func TestParquetWithNulls(t *testing.T) {
 	// Create test data with nulls
 	df, err := frame.NewDataFrame(
-		series.NewSeriesWithValidity("id", []int32{1, 2, 3, 4, 5}, 
+		series.NewSeriesWithValidity("id", []int32{1, 2, 3, 4, 5},
 			[]bool{false, false, true, false, true}, datatypes.Int32{}),
-		series.NewSeriesWithValidity("name", []string{"Alice", "Bob", "", "David", ""}, 
+		series.NewSeriesWithValidity("name", []string{"Alice", "Bob", "", "David", ""},
 			[]bool{false, false, true, false, true}, datatypes.String{}),
-		series.NewSeriesWithValidity("score", []float64{95.5, 87.3, 0, 78.9, 0}, 
+		series.NewSeriesWithValidity("score", []float64{95.5, 87.3, 0, 78.9, 0},
 			[]bool{false, false, true, false, true}, datatypes.Float64{}),
 	)
 	require.NoError(t, err)
@@ -143,7 +143,7 @@ func TestParquetWithNulls(t *testing.T) {
 	// Write and read back
 	tmpDir := t.TempDir()
 	filename := filepath.Join(tmpDir, "test_nulls.parquet")
-	
+
 	err = WriteParquet(df, filename)
 	require.NoError(t, err)
 
@@ -154,9 +154,9 @@ func TestParquetWithNulls(t *testing.T) {
 	for _, name := range df.Columns() {
 		origCol, _ := df.Column(name)
 		resultCol, _ := result.Column(name)
-		
+
 		assert.Equal(t, origCol.NullCount(), resultCol.NullCount(), "null count mismatch for %s", name)
-		
+
 		for i := 0; i < origCol.Len(); i++ {
 			assert.Equal(t, origCol.IsNull(i), resultCol.IsNull(i), "null mismatch at [%d] for %s", i, name)
 			if !origCol.IsNull(i) {
@@ -172,7 +172,7 @@ func TestParquetCompressionTypes(t *testing.T) {
 	for i := range values {
 		values[i] = "test string value that should compress well because it repeats"
 	}
-	
+
 	df, err := frame.NewDataFrame(
 		series.NewStringSeries("text", values),
 	)
@@ -193,7 +193,7 @@ func TestParquetCompressionTypes(t *testing.T) {
 	for _, tc := range compressionTypes {
 		t.Run(tc.name, func(t *testing.T) {
 			filename := filepath.Join(tmpDir, "test_"+tc.name+".parquet")
-			
+
 			// Write with specific compression
 			writer := NewWriter(WriterOptions{
 				Compression: tc.compression,
@@ -207,17 +207,17 @@ func TestParquetCompressionTypes(t *testing.T) {
 
 			// Verify data
 			assert.Equal(t, df.Height(), result.Height())
-			
+
 			// If not NONE, compressed file should generally be smaller
 			// Note: for small files or already compressed data, the difference may be minimal
 			if tc.compression != CompressionNone && tc.name != "gzip" {
 				noneFile := filepath.Join(tmpDir, "test_none.parquet")
 				compressedInfo, _ := os.Stat(filename)
 				uncompressedInfo, _ := os.Stat(noneFile)
-				
+
 				if uncompressedInfo != nil {
 					// Allow small variations due to metadata
-					assert.LessOrEqual(t, compressedInfo.Size(), uncompressedInfo.Size()+1000, 
+					assert.LessOrEqual(t, compressedInfo.Size(), uncompressedInfo.Size()+1000,
 						"compressed file should be smaller or similar")
 				}
 			}
@@ -254,7 +254,7 @@ func TestLargeDataFrame(t *testing.T) {
 	ids := make([]int64, size)
 	values := make([]float64, size)
 	categories := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		ids[i] = int64(i)
 		values[i] = float64(i) * 1.5
@@ -282,7 +282,7 @@ func TestLargeDataFrame(t *testing.T) {
 	// Verify
 	assert.Equal(t, size, result.Height())
 	assert.Equal(t, 3, result.Width())
-	
+
 	// Spot check some values
 	idCol, _ := result.Column("id")
 	assert.Equal(t, int64(0), idCol.Get(0))

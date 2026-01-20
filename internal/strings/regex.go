@@ -28,19 +28,19 @@ func compileRegex(pattern string) (*regexp.Regexp, error) {
 		return re, nil
 	}
 	globalRegexCache.mu.RUnlock()
-	
+
 	// Compile and cache
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	globalRegexCache.mu.Lock()
 	if len(globalRegexCache.patterns) < globalRegexCache.maxSize {
 		globalRegexCache.patterns[pattern] = re
 	}
 	globalRegexCache.mu.Unlock()
-	
+
 	return re, nil
 }
 
@@ -51,7 +51,7 @@ func (so *StringOps) Match(pattern string) series.Series {
 		// Return null series on error
 		return series.NewStringSeries("match_error", make([]string, so.s.Len()))
 	}
-	
+
 	return applyPatternOp(so.s, func(str string) bool {
 		return re.MatchString(str)
 	}, "match")
@@ -64,13 +64,13 @@ func (so *StringOps) Extract(pattern string, group int) series.Series {
 		// Return null series on error
 		return series.NewStringSeries("extract_error", make([]string, so.s.Len()))
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		matches := re.FindStringSubmatch(str)
 		if matches == nil {
 			return ""
 		}
-		
+
 		// Return full match if group is 0 or out of range
 		if group < 0 || group >= len(matches) {
 			if len(matches) > 0 {
@@ -78,7 +78,7 @@ func (so *StringOps) Extract(pattern string, group int) series.Series {
 			}
 			return ""
 		}
-		
+
 		return matches[group]
 	}, "extract")
 }
@@ -90,7 +90,7 @@ func (so *StringOps) ExtractAll(pattern string) series.Series {
 		// Return null series on error
 		return series.NewStringSeries("extract_all_error", make([]string, so.s.Len()))
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		matches := re.FindAllString(str, -1)
 		if len(matches) == 0 {
@@ -109,12 +109,12 @@ func (so *StringOps) ReplaceRegex(pattern, replacement string, n int) series.Ser
 		// Return original series on error
 		return so.s
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		if n < 0 {
 			return re.ReplaceAllString(str, replacement)
 		}
-		
+
 		// For limited replacements, we need to do it manually
 		count := 0
 		result := re.ReplaceAllStringFunc(str, func(match string) string {
@@ -135,7 +135,7 @@ func (so *StringOps) SplitRegex(pattern string, n int) series.Series {
 		// Return original series on error
 		return so.s
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		parts := re.Split(str, n)
 		if len(parts) == 0 {
@@ -156,7 +156,7 @@ func (so *StringOps) FindAll(pattern string) series.Series {
 			return int32(-1)
 		}, "find_all_error")
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		indices := re.FindAllStringIndex(str, -1)
 		if len(indices) == 0 {
@@ -176,7 +176,7 @@ func (so *StringOps) CountMatches(pattern string) series.Series {
 			return int32(0)
 		}, "count_matches_error")
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		matches := re.FindAllString(str, -1)
 		return int32(len(matches))

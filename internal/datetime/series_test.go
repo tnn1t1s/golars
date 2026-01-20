@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestNewDateTimeSeries(t *testing.T) {
@@ -17,7 +17,7 @@ func TestNewDateTimeSeries(t *testing.T) {
 	}
 
 	s := NewDateTimeSeries("timestamps", times)
-	
+
 	assert.Equal(t, "timestamps", s.Name())
 	assert.Equal(t, 3, s.Len())
 	assert.IsType(t, datatypes.Datetime{}, s.DataType())
@@ -58,7 +58,7 @@ func TestNewDateTimeSeriesFromStrings(t *testing.T) {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantLen, s.Len())
 		})
@@ -141,7 +141,7 @@ func TestDateSeries(t *testing.T) {
 	}
 
 	s := NewDateSeries("dates", times)
-	
+
 	assert.Equal(t, "dates", s.Name())
 	assert.Equal(t, 3, s.Len())
 	assert.IsType(t, datatypes.Date{}, s.DataType())
@@ -172,7 +172,7 @@ func TestTimeSeries(t *testing.T) {
 
 	s, err := NewTimeSeries("times", hours, minutes, seconds)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "times", s.Name())
 	assert.Equal(t, 3, s.Len())
 	assert.IsType(t, datatypes.Time{}, s.DataType())

@@ -5,8 +5,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -174,10 +174,10 @@ func (gb *GroupBy) applyAggregation(result *AggregationResult, hash uint64,
 			result.DataTypes[colName] = datatypes.Float64{} // Median always returns float64
 		case expr.AggStd:
 			aggResult = computeStd(groupValues, col.DataType(), 1) // Sample standard deviation (ddof=1)
-			result.DataTypes[colName] = datatypes.Float64{} // Std always returns float64
+			result.DataTypes[colName] = datatypes.Float64{}        // Std always returns float64
 		case expr.AggVar:
 			aggResult = computeVar(groupValues, col.DataType(), 1) // Sample variance (ddof=1)
-			result.DataTypes[colName] = datatypes.Float64{} // Var always returns float64
+			result.DataTypes[colName] = datatypes.Float64{}        // Var always returns float64
 		case expr.AggFirst:
 			aggResult = computeFirst(groupValues, col.DataType())
 			result.DataTypes[colName] = col.DataType() // First preserves type
@@ -301,14 +301,14 @@ func computeMedian(values []interface{}, dtype datatypes.DataType) interface{} {
 			validValues = append(validValues, toFloat64(v))
 		}
 	}
-	
+
 	if len(validValues) == 0 {
 		return nil
 	}
-	
+
 	// Sort the values
 	sort.Float64s(validValues)
-	
+
 	// Calculate median
 	n := len(validValues)
 	if n%2 == 0 {
@@ -328,27 +328,27 @@ func computeVar(values []interface{}, dtype datatypes.DataType, ddof int) interf
 			validValues = append(validValues, toFloat64(v))
 		}
 	}
-	
+
 	n := len(validValues)
 	if n == 0 || n <= ddof {
 		return nil
 	}
-	
+
 	// Calculate mean
 	mean := 0.0
 	for _, v := range validValues {
 		mean += v
 	}
 	mean /= float64(n)
-	
+
 	// Calculate variance
 	var sumSq float64
 	for _, v := range validValues {
 		diff := v - mean
 		sumSq += diff * diff
 	}
-	
-	return sumSq / float64(n - ddof)
+
+	return sumSq / float64(n-ddof)
 }
 
 func computeStd(values []interface{}, dtype datatypes.DataType, ddof int) interface{} {

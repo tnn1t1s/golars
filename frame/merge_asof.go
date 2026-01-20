@@ -11,15 +11,15 @@ import (
 
 // MergeAsofOptions configures merge_asof operations
 type MergeAsofOptions struct {
-	On             string   // Column name to merge on (must be sorted)
-	Left_on        string   // Left DataFrame column to merge on (if different from On)
-	Right_on       string   // Right DataFrame column to merge on (if different from On)
-	Left_by        []string // Group by columns in left DataFrame
-	Right_by       []string // Group by columns in right DataFrame  
-	Suffixes       []string // Suffixes for overlapping columns [left_suffix, right_suffix]
-	Tolerance      float64  // Maximum distance for a match
-	AllowExact     *bool    // Whether to allow exact matches (default: true)
-	Direction      string   // "backward", "forward", or "nearest" (default: "backward")
+	On         string   // Column name to merge on (must be sorted)
+	Left_on    string   // Left DataFrame column to merge on (if different from On)
+	Right_on   string   // Right DataFrame column to merge on (if different from On)
+	Left_by    []string // Group by columns in left DataFrame
+	Right_by   []string // Group by columns in right DataFrame
+	Suffixes   []string // Suffixes for overlapping columns [left_suffix, right_suffix]
+	Tolerance  float64  // Maximum distance for a match
+	AllowExact *bool    // Whether to allow exact matches (default: true)
+	Direction  string   // "backward", "forward", or "nearest" (default: "backward")
 }
 
 // MergeAsof performs an asof merge (time-based join) between two DataFrames
@@ -120,7 +120,7 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 				continue
 			}
 			leftVal := leftValues[i]
-			
+
 			// Binary search for the position
 			idx := sort.Search(rightLen, func(j int) bool {
 				if allowExact {
@@ -128,7 +128,7 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 				}
 				return rightValues[j] >= leftVal
 			})
-			
+
 			// idx is the first index where right > left (or >= if not allowing exact)
 			// So idx-1 is the last index where right <= left (or < if not allowing exact)
 			if idx > 0 {
@@ -159,7 +159,7 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 				continue
 			}
 			leftVal := leftValues[i]
-			
+
 			// Binary search for the position
 			idx := sort.Search(rightLen, func(j int) bool {
 				if allowExact {
@@ -167,12 +167,12 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 				}
 				return rightValues[j] > leftVal
 			})
-			
+
 			if idx < rightLen {
 				// If not allowing exact matches, check if this is an exact match
 				if !allowExact && rightValues[idx] == leftVal {
 					// Skip this match, look for next one
-					if idx < rightLen - 1 {
+					if idx < rightLen-1 {
 						idx++
 					} else {
 						continue // No valid match
@@ -195,16 +195,16 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 				continue
 			}
 			leftVal := leftValues[i]
-			
+
 			// Binary search for the position
 			idx := sort.Search(rightLen, func(j int) bool {
 				return rightValues[j] >= leftVal
 			})
-			
+
 			// Check both idx-1 and idx to find the nearest
 			bestIdx := -1
 			bestDist := math.Inf(1)
-			
+
 			// Check previous value
 			if idx > 0 {
 				dist := math.Abs(leftVal - rightValues[idx-1])
@@ -213,7 +213,7 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 					bestIdx = idx - 1
 				}
 			}
-			
+
 			// Check current value
 			if idx < rightLen {
 				dist := math.Abs(leftVal - rightValues[idx])
@@ -222,7 +222,7 @@ func mergeAsofSimple(left, right *DataFrame, leftOn, rightOn series.Series, opti
 					bestIdx = idx
 				}
 			}
-			
+
 			if bestIdx >= 0 && (options.Tolerance <= 0 || bestDist <= options.Tolerance) {
 				rightIndices[i] = bestIdx
 			}
@@ -248,7 +248,7 @@ func mergeAsofWithGroups(left, right *DataFrame, options MergeAsofOptions, allow
 
 	// Perform merge for each group
 	resultFrames := make([]*DataFrame, 0)
-	
+
 	for groupKey, leftIndices := range leftGroups {
 		rightIndices, exists := rightGroups[groupKey]
 		if !exists {
@@ -310,7 +310,7 @@ func buildMergeAsofResult(left, right *DataFrame, rightIndices []int, options Me
 
 	for _, col := range right.columns {
 		colName := col.Name()
-		
+
 		// Skip the merge column if it has the same name as the left merge column
 		leftOn := options.On
 		if options.Left_on != "" {
@@ -320,11 +320,11 @@ func buildMergeAsofResult(left, right *DataFrame, rightIndices []int, options Me
 		if options.Right_on != "" {
 			rightOn = options.Right_on
 		}
-		
+
 		if colName == rightOn && rightOn == leftOn {
 			continue
 		}
-		
+
 		// Also skip columns that are in the groupby (they're already in left)
 		skipCol := false
 		for i, rightByCol := range options.Right_by {
@@ -360,7 +360,7 @@ func createMergedSeries(original series.Series, indices []int, newName string) s
 	case datatypes.Int64:
 		values := make([]int64, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if idx >= 0 && !original.IsNull(idx) {
 				values[i] = original.Get(idx).(int64)
@@ -369,13 +369,13 @@ func createMergedSeries(original series.Series, indices []int, newName string) s
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(newName, values, validity, dataType)
 
 	case datatypes.Float64:
 		values := make([]float64, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if idx >= 0 && !original.IsNull(idx) {
 				values[i] = original.Get(idx).(float64)
@@ -384,13 +384,13 @@ func createMergedSeries(original series.Series, indices []int, newName string) s
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(newName, values, validity, dataType)
 
 	case datatypes.String:
 		values := make([]string, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if idx >= 0 && !original.IsNull(idx) {
 				values[i] = original.Get(idx).(string)
@@ -399,14 +399,14 @@ func createMergedSeries(original series.Series, indices []int, newName string) s
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(newName, values, validity, dataType)
 
 	default:
 		// Generic handling
 		values := make([]interface{}, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if idx >= 0 && !original.IsNull(idx) {
 				values[i] = original.Get(idx)
@@ -415,7 +415,7 @@ func createMergedSeries(original series.Series, indices []int, newName string) s
 				validity[i] = false
 			}
 		}
-		
+
 		return createSeriesFromInterface(newName, values, validity, dataType)
 	}
 }
@@ -426,10 +426,10 @@ func isColumnSorted(s series.Series) bool {
 		if s.IsNull(i-1) || s.IsNull(i) {
 			continue
 		}
-		
-		prev := toFloat64Value(s.Get(i-1))
+
+		prev := toFloat64Value(s.Get(i - 1))
 		curr := toFloat64Value(s.Get(i))
-		
+
 		if prev > curr {
 			return false
 		}
@@ -450,7 +450,7 @@ func groupDataFrame(df *DataFrame, byColumns []string) (map[string][]int, error)
 
 	// Build group key for each row
 	groups := make(map[string][]int)
-	
+
 	for i := 0; i < df.Height(); i++ {
 		key := ""
 		for j, colName := range byColumns {
@@ -458,34 +458,34 @@ func groupDataFrame(df *DataFrame, byColumns []string) (map[string][]int, error)
 			if err != nil {
 				return nil, err
 			}
-			
+
 			if j > 0 {
 				key += "|"
 			}
-			
+
 			if col.IsNull(i) {
 				key += "<null>"
 			} else {
 				key += fmt.Sprintf("%v", col.Get(i))
 			}
 		}
-		
+
 		groups[key] = append(groups[key], i)
 	}
-	
+
 	return groups, nil
 }
 
 // Helper to select rows from DataFrame
 func selectRows(df *DataFrame, indices []int) *DataFrame {
 	resultColumns := make([]series.Series, len(df.columns))
-	
+
 	for i, col := range df.columns {
 		// Create new series with selected rows
 		newSeries := selectSeriesRows(col, indices)
 		resultColumns[i] = newSeries
 	}
-	
+
 	result, _ := NewDataFrame(resultColumns...)
 	return result
 }
@@ -499,7 +499,7 @@ func selectSeriesRows(s series.Series, indices []int) series.Series {
 	case datatypes.Int64:
 		values := make([]int64, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !s.IsNull(idx) {
 				values[i] = s.Get(idx).(int64)
@@ -508,13 +508,13 @@ func selectSeriesRows(s series.Series, indices []int) series.Series {
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(s.Name(), values, validity, dataType)
 
 	case datatypes.Float64:
 		values := make([]float64, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !s.IsNull(idx) {
 				values[i] = s.Get(idx).(float64)
@@ -523,13 +523,13 @@ func selectSeriesRows(s series.Series, indices []int) series.Series {
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(s.Name(), values, validity, dataType)
 
 	case datatypes.String:
 		values := make([]string, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !s.IsNull(idx) {
 				values[i] = s.Get(idx).(string)
@@ -538,14 +538,14 @@ func selectSeriesRows(s series.Series, indices []int) series.Series {
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(s.Name(), values, validity, dataType)
 
 	default:
 		// Generic handling
 		values := make([]interface{}, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !s.IsNull(idx) {
 				values[i] = s.Get(idx)
@@ -554,7 +554,7 @@ func selectSeriesRows(s series.Series, indices []int) series.Series {
 				validity[i] = false
 			}
 		}
-		
+
 		return createSeriesFromInterface(s.Name(), values, validity, dataType)
 	}
 }
@@ -563,13 +563,13 @@ func selectSeriesRows(s series.Series, indices []int) series.Series {
 func createNoMatchResult(left, right *DataFrame, leftIndices []int, options MergeAsofOptions) *DataFrame {
 	// Create DataFrame with left rows and null right columns
 	leftSub := selectRows(left, leftIndices)
-	
+
 	// Create null indices for right columns
 	nullIndices := make([]int, len(leftIndices))
 	for i := range nullIndices {
 		nullIndices[i] = -1
 	}
-	
+
 	result, _ := buildMergeAsofResult(leftSub, right, nullIndices, options)
 	return result
 }

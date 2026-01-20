@@ -119,14 +119,14 @@ func (w *Writer) toRecords(df *frame.DataFrame) []map[string]interface{} {
 // toColumns converts DataFrame to column-oriented format
 func (w *Writer) toColumns(df *frame.DataFrame) map[string][]interface{} {
 	result := make(map[string][]interface{})
-	
+
 	for _, col := range df.Columns() {
 		series, err := df.Column(col)
 		if err != nil {
 			continue
 		}
 		values := make([]interface{}, series.Len())
-		
+
 		for i := 0; i < series.Len(); i++ {
 			if series.IsNull(i) {
 				values[i] = nil
@@ -134,7 +134,7 @@ func (w *Writer) toColumns(df *frame.DataFrame) map[string][]interface{} {
 				values[i] = series.Get(i)
 			}
 		}
-		
+
 		result[col] = values
 	}
 
@@ -221,7 +221,7 @@ func (w *NDJSONWriter) Write(df *frame.DataFrame, writer io.Writer) error {
 				record[col] = series.Get(i)
 			}
 		}
-		
+
 		if err := encoder.Encode(record); err != nil {
 			return fmt.Errorf("failed to encode record %d: %w", i, err)
 		}
@@ -256,7 +256,7 @@ func (w *NDJSONWriter) WriteStream(df *frame.DataFrame, writer io.Writer, chunkS
 					record[col] = series.Get(i)
 				}
 			}
-			
+
 			if err := encoder.Encode(record); err != nil {
 				return fmt.Errorf("failed to encode record %d: %w", i, err)
 			}

@@ -10,9 +10,9 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/apache/arrow/go/v14/parquet/file"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
+	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/internal/chunked"
 	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -64,7 +64,7 @@ func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
 	defer pqReader.Close()
 
 	// Create arrow file reader
-	arrowReader, err := pqarrow.NewFileReader(pqReader, 
+	arrowReader, err := pqarrow.NewFileReader(pqReader,
 		pqarrow.ArrowReadProperties{
 			BatchSize: 1024 * 1024, // 1MB batches
 		}, r.opts.Allocator)
@@ -77,10 +77,10 @@ func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schema: %w", err)
 	}
-	
+
 	// Select columns if specified
 	columnIndices := r.selectColumns(schema)
-	
+
 	// Select row groups if specified
 	rowGroups := r.selectRowGroups(pqReader.NumRowGroups())
 
@@ -154,7 +154,7 @@ func (r *Reader) readTable(reader *pqarrow.FileReader, columnIndices []int, rowG
 
 	// Use context for the read operation
 	ctx := context.Background()
-	
+
 	// Read the entire table
 	table, err := reader.ReadTable(ctx)
 	if err != nil {
@@ -166,17 +166,17 @@ func (r *Reader) readTable(reader *pqarrow.FileReader, columnIndices []int, rowG
 		// Need to select specific columns
 		selectedCols := make([]arrow.Column, len(columnIndices))
 		schema := table.Schema()
-		
+
 		selectedFields := make([]arrow.Field, len(columnIndices))
 		for i, idx := range columnIndices {
 			selectedCols[i] = *table.Column(idx)
 			selectedFields[i] = schema.Field(idx)
 		}
-		
+
 		newSchema := arrow.NewSchema(selectedFields, nil)
 		table = array.NewTable(newSchema, selectedCols, table.NumRows())
 	}
-	
+
 	// Apply row limit if specified
 	if r.opts.NumRows > 0 && table.NumRows() > r.opts.NumRows {
 		// Slice the table
@@ -190,17 +190,17 @@ func (r *Reader) readTable(reader *pqarrow.FileReader, columnIndices []int, rowG
 func sliceColumns(table arrow.Table, numRows int64) [][]arrow.Array {
 	numCols := int(table.NumCols())
 	result := make([][]arrow.Array, numCols)
-	
+
 	for i := 0; i < numCols; i++ {
 		col := table.Column(i)
 		chunks := make([]arrow.Array, 0)
-		
+
 		rowsRead := int64(0)
 		for _, chunk := range col.Data().Chunks() {
 			if rowsRead >= numRows {
 				break
 			}
-			
+
 			remaining := numRows - rowsRead
 			if int64(chunk.Len()) <= remaining {
 				// Take the whole chunk
@@ -213,10 +213,10 @@ func sliceColumns(table arrow.Table, numRows int64) [][]arrow.Array {
 				rowsRead = numRows
 			}
 		}
-		
+
 		result[i] = chunks
 	}
-	
+
 	return result
 }
 
@@ -228,17 +228,17 @@ func (r *Reader) tableToDataFrame(table arrow.Table) (*frame.DataFrame, error) {
 	}
 
 	seriesList := make([]series.Series, numCols)
-	
+
 	for i := 0; i < numCols; i++ {
 		col := table.Column(i)
 		field := table.Schema().Field(i)
-		
+
 		// Convert Arrow column to Series
 		s, err := r.columnToSeries(col, field)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert column %s: %w", field.Name, err)
 		}
-		
+
 		seriesList[i] = s
 	}
 
@@ -249,7 +249,7 @@ func (r *Reader) tableToDataFrame(table arrow.Table) (*frame.DataFrame, error) {
 func (r *Reader) columnToSeries(col *arrow.Column, field arrow.Field) (series.Series, error) {
 	// Create ChunkedArray from Arrow chunks
 	chunks := col.Data().Chunks()
-	
+
 	switch field.Type.ID() {
 	case arrow.BOOL:
 		return r.boolColumnToSeries(field.Name, chunks)
@@ -272,74 +272,74 @@ func (r *Reader) columnToSeries(col *arrow.Column, field arrow.Field) (series.Se
 
 func (r *Reader) boolColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
 	ca := chunked.NewChunkedArray[bool](name, datatypes.Boolean{})
-	
+
 	for _, chunk := range chunks {
 		// Add the chunk directly
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return series.NewSeriesFromChunkedArray(ca), nil
 }
 
 func (r *Reader) int32ColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
 	ca := chunked.NewChunkedArray[int32](name, datatypes.Int32{})
-	
+
 	for _, chunk := range chunks {
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return series.NewSeriesFromChunkedArray(ca), nil
 }
 
 func (r *Reader) int64ColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
 	ca := chunked.NewChunkedArray[int64](name, datatypes.Int64{})
-	
+
 	for _, chunk := range chunks {
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return series.NewSeriesFromChunkedArray(ca), nil
 }
 
 func (r *Reader) float32ColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
 	ca := chunked.NewChunkedArray[float32](name, datatypes.Float32{})
-	
+
 	for _, chunk := range chunks {
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return series.NewSeriesFromChunkedArray(ca), nil
 }
 
 func (r *Reader) float64ColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
 	ca := chunked.NewChunkedArray[float64](name, datatypes.Float64{})
-	
+
 	for _, chunk := range chunks {
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return series.NewSeriesFromChunkedArray(ca), nil
 }
 
 func (r *Reader) stringColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
 	ca := chunked.NewChunkedArray[string](name, datatypes.String{})
-	
+
 	for _, chunk := range chunks {
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return series.NewSeriesFromChunkedArray(ca), nil
 }
 

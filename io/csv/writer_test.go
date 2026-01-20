@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/frame"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestCSVWriter(t *testing.T) {
@@ -205,7 +205,7 @@ func TestRoundTrip(t *testing.T) {
 					// Note: integers become int64 after round trip
 					origVal := origCol.Get(i)
 					resultVal := resultCol.Get(i)
-					
+
 					switch v := origVal.(type) {
 					case int64:
 						assert.Equal(t, v, resultVal)
@@ -268,7 +268,7 @@ func BenchmarkCSVWriter(b *testing.B) {
 	for i := 0; i < size; i++ {
 		names[i] = fmt.Sprintf("Person%d", i)
 		ages[i] = int64(20 + i%50)
-		scores[i] = float64(50 + i%50) + 0.5
+		scores[i] = float64(50+i%50) + 0.5
 	}
 
 	df, _ := frame.NewDataFrame(

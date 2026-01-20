@@ -86,7 +86,10 @@ func (w *Writer) Write(df *frame.DataFrame) error {
 }
 
 // formatValue formats a single value for CSV output
-func (w *Writer) formatValue(col interface{ Get(int) interface{}; IsNull(int) bool }, idx int) string {
+func (w *Writer) formatValue(col interface {
+	Get(int) interface{}
+	IsNull(int) bool
+}, idx int) string {
 	if col.IsNull(idx) {
 		return w.options.NullValue
 	}
@@ -99,43 +102,43 @@ func (w *Writer) formatValue(col interface{ Get(int) interface{}; IsNull(int) bo
 			return fmt.Sprintf(w.options.FloatFormat, v)
 		}
 		return strconv.FormatFloat(float64(v), 'g', -1, 32)
-		
+
 	case float64:
 		if w.options.FloatFormat != "" {
 			return fmt.Sprintf(w.options.FloatFormat, v)
 		}
 		return strconv.FormatFloat(v, 'g', -1, 64)
-		
+
 	case int8:
 		return strconv.FormatInt(int64(v), 10)
-		
+
 	case int16:
 		return strconv.FormatInt(int64(v), 10)
-		
+
 	case int32:
 		return strconv.FormatInt(int64(v), 10)
-		
+
 	case int64:
 		return strconv.FormatInt(v, 10)
-		
+
 	case uint8:
 		return strconv.FormatUint(uint64(v), 10)
-		
+
 	case uint16:
 		return strconv.FormatUint(uint64(v), 10)
-		
+
 	case uint32:
 		return strconv.FormatUint(uint64(v), 10)
-		
+
 	case uint64:
 		return strconv.FormatUint(v, 10)
-		
+
 	case bool:
 		return strconv.FormatBool(v)
-		
+
 	case string:
 		return v
-		
+
 	default:
 		// Fallback to fmt.Sprint
 		return fmt.Sprint(v)

@@ -23,10 +23,10 @@ const (
 
 // JoinConfig contains configuration for join operations
 type JoinConfig struct {
-	How      JoinType
-	LeftOn   []string
-	RightOn  []string
-	Suffix   string // Default: "_right"
+	How     JoinType
+	LeftOn  []string
+	RightOn []string
+	Suffix  string // Default: "_right"
 }
 
 // Join performs a join operation on a single column
@@ -111,7 +111,7 @@ func validateJoinColumns(left, right *DataFrame, config JoinConfig) error {
 		rightCol, _ := right.Column(config.RightOn[i])
 
 		if !leftCol.DataType().Equals(rightCol.DataType()) {
-			return fmt.Errorf("incompatible types for join columns %s and %s", 
+			return fmt.Errorf("incompatible types for join columns %s and %s",
 				config.LeftOn[i], config.RightOn[i])
 		}
 	}
@@ -404,7 +404,7 @@ func buildJoinResult(left, right *DataFrame, leftIndices, rightIndices []int, co
 		if left.HasColumn(colName) {
 			colName = colName + config.Suffix
 		}
-		
+
 		// Rename the series
 		newSeries = renameSeries(newSeries, colName)
 		resultColumns = append(resultColumns, newSeries)
@@ -423,7 +423,7 @@ func takeSeriesWithNulls(s series.Series, indices []int) (series.Series, error) 
 			break
 		}
 	}
-	
+
 	if !hasNulls {
 		return s.Take(indices), nil
 	}
@@ -431,7 +431,7 @@ func takeSeriesWithNulls(s series.Series, indices []int) (series.Series, error) 
 	// Build values and validity arrays
 	values := make([]interface{}, len(indices))
 	validity := make([]bool, len(indices))
-	
+
 	for i, idx := range indices {
 		if idx >= 0 {
 			values[i] = s.Get(idx)
@@ -442,7 +442,7 @@ func takeSeriesWithNulls(s series.Series, indices []int) (series.Series, error) 
 			validity[i] = false
 		}
 	}
-	
+
 	// Create new series with validity mask
 	return createSeriesFromValues(s.Name(), values, validity, s.DataType()), nil
 }
@@ -603,7 +603,7 @@ func renameSeries(s series.Series, newName string) series.Series {
 // createNullSeries creates a series filled with nulls
 func createNullSeries(name string, dtype datatypes.DataType, length int) series.Series {
 	validity := make([]bool, length) // All false = all nulls
-	
+
 	switch dtype := dtype.(type) {
 	case datatypes.Int8:
 		return series.NewSeriesWithValidity(name, make([]int8, length), validity, dtype)
@@ -644,55 +644,55 @@ func concatenateDataFrames(df1, df2 *DataFrame) (*DataFrame, error) {
 	}
 
 	resultColumns := make([]series.Series, len(df1.columns))
-	
+
 	for i := range df1.columns {
 		col1 := df1.columns[i]
 		col2 := df2.columns[i]
-		
+
 		// Ensure columns have same name
 		if col1.Name() != col2.Name() {
 			return nil, fmt.Errorf("column names must match: %s != %s", col1.Name(), col2.Name())
 		}
-		
+
 		// Ensure columns have same type
 		if !col1.DataType().Equals(col2.DataType()) {
 			return nil, fmt.Errorf("column types must match for %s", col1.Name())
 		}
-		
+
 		// Concatenate the columns
 		totalLen := col1.Len() + col2.Len()
 		indices := make([]int, totalLen)
-		
+
 		// Add indices from first column
 		for j := 0; j < col1.Len(); j++ {
 			indices[j] = j
 		}
-		
+
 		// Take from first column
 		part1 := col1.Take(indices[:col1.Len()])
-		
+
 		// Add indices from second column
 		for j := 0; j < col2.Len(); j++ {
 			indices[col1.Len()+j] = j
 		}
-		
+
 		// Take from second column
 		part2 := col2.Take(indices[col1.Len():])
-		
+
 		// Combine values
 		values := make([]interface{}, totalLen)
 		validity := make([]bool, totalLen)
-		
+
 		for j := 0; j < col1.Len(); j++ {
 			values[j] = part1.Get(j)
 			validity[j] = part1.IsValid(j)
 		}
-		
+
 		for j := 0; j < col2.Len(); j++ {
 			values[col1.Len()+j] = part2.Get(j)
 			validity[col1.Len()+j] = part2.IsValid(j)
 		}
-		
+
 		// Create concatenated series
 		resultColumns[i] = createSeriesFromValues(col1.Name(), values, validity, col1.DataType())
 	}

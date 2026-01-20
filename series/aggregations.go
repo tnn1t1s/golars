@@ -10,7 +10,7 @@ func (s *TypedSeries[T]) Sum() float64 {
 	if s.Len() == 0 {
 		return 0
 	}
-	
+
 	var sum float64
 	for i := 0; i < s.Len(); i++ {
 		if s.IsValid(i) {
@@ -25,7 +25,7 @@ func (s *TypedSeries[T]) Sum() float64 {
 func (s *TypedSeries[T]) Mean() float64 {
 	count := 0
 	var sum float64
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if s.IsValid(i) {
 			val, _ := s.chunkedArray.Get(int64(i))
@@ -33,7 +33,7 @@ func (s *TypedSeries[T]) Mean() float64 {
 			count++
 		}
 	}
-	
+
 	if count == 0 {
 		return math.NaN()
 	}
@@ -45,10 +45,10 @@ func (s *TypedSeries[T]) Min() interface{} {
 	if s.Len() == 0 {
 		return nil
 	}
-	
+
 	var min interface{}
 	minSet := false
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if s.IsValid(i) {
 			val, _ := s.chunkedArray.Get(int64(i))
@@ -58,7 +58,7 @@ func (s *TypedSeries[T]) Min() interface{} {
 			}
 		}
 	}
-	
+
 	if !minSet {
 		return nil
 	}
@@ -70,10 +70,10 @@ func (s *TypedSeries[T]) Max() interface{} {
 	if s.Len() == 0 {
 		return nil
 	}
-	
+
 	var max interface{}
 	maxSet := false
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if s.IsValid(i) {
 			val, _ := s.chunkedArray.Get(int64(i))
@@ -83,7 +83,7 @@ func (s *TypedSeries[T]) Max() interface{} {
 			}
 		}
 	}
-	
+
 	if !maxSet {
 		return nil
 	}
@@ -106,10 +106,10 @@ func (s *TypedSeries[T]) Var() float64 {
 	if math.IsNaN(mean) {
 		return math.NaN()
 	}
-	
+
 	count := 0
 	var sumSquaredDiff float64
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if s.IsValid(i) {
 			val, _ := s.chunkedArray.Get(int64(i))
@@ -118,11 +118,11 @@ func (s *TypedSeries[T]) Var() float64 {
 			count++
 		}
 	}
-	
+
 	if count <= 1 {
 		return math.NaN()
 	}
-	
+
 	// Sample variance (n-1 denominator)
 	return sumSquaredDiff / float64(count-1)
 }
@@ -130,20 +130,20 @@ func (s *TypedSeries[T]) Var() float64 {
 // Median returns the median value
 func (s *TypedSeries[T]) Median() float64 {
 	values := make([]float64, 0, s.Count())
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if s.IsValid(i) {
 			val, _ := s.chunkedArray.Get(int64(i))
 			values = append(values, toFloat64(val))
 		}
 	}
-	
+
 	if len(values) == 0 {
 		return math.NaN()
 	}
-	
+
 	sort.Float64s(values)
-	
+
 	n := len(values)
 	if n%2 == 0 {
 		// Even number of values

@@ -3,8 +3,8 @@ package frame
 import (
 	"fmt"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -254,10 +254,10 @@ func filterSeries(s series.Series, mask []bool) (series.Series, error) {
 func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 	// This is a simplified implementation
 	// A real implementation would be more efficient with type-specific paths
-	
+
 	values := make([]interface{}, len(indices))
 	validity := make([]bool, len(indices))
-	
+
 	for i, idx := range indices {
 		if idx < 0 || idx >= s.Len() {
 			return nil, fmt.Errorf("index %d out of bounds", idx)
@@ -277,7 +277,7 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 			}
 		}
 		return series.NewSeriesWithValidity(s.Name(), int32Values, validity, s.DataType()), nil
-		
+
 	case datatypes.Int64:
 		int64Values := make([]int64, len(values))
 		for i, v := range values {
@@ -286,7 +286,7 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 			}
 		}
 		return series.NewSeriesWithValidity(s.Name(), int64Values, validity, s.DataType()), nil
-		
+
 	case datatypes.Float64:
 		float64Values := make([]float64, len(values))
 		for i, v := range values {
@@ -295,7 +295,7 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 			}
 		}
 		return series.NewSeriesWithValidity(s.Name(), float64Values, validity, s.DataType()), nil
-		
+
 	case datatypes.String:
 		stringValues := make([]string, len(values))
 		for i, v := range values {
@@ -304,7 +304,7 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 			}
 		}
 		return series.NewSeriesWithValidity(s.Name(), stringValues, validity, s.DataType()), nil
-		
+
 	case datatypes.Boolean:
 		boolValues := make([]bool, len(values))
 		for i, v := range values {
@@ -313,7 +313,7 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 			}
 		}
 		return series.NewSeriesWithValidity(s.Name(), boolValues, validity, s.DataType()), nil
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported data type for gather: %v", s.DataType())
 	}
@@ -323,7 +323,7 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 func compareValues(left, right interface{}, op expr.BinaryOp) bool {
 	// This is a simplified comparison
 	// A real implementation would handle type-specific comparisons more efficiently
-	
+
 	switch op {
 	case expr.OpEqual:
 		return compareEqual(left, right)

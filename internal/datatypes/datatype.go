@@ -41,23 +41,23 @@ func (tu TimeUnit) String() string {
 
 // Base types
 type (
-	Boolean      struct{}
-	Int8         struct{}
-	Int16        struct{}
-	Int32        struct{}
-	Int64        struct{}
-	UInt8        struct{}
-	UInt16       struct{}
-	UInt32       struct{}
-	UInt64       struct{}
-	Float32      struct{}
-	Float64      struct{}
-	String       struct{}
-	Binary       struct{}
-	Date         struct{}
-	Time         struct{}
-	Null         struct{}
-	Unknown      struct{}
+	Boolean struct{}
+	Int8    struct{}
+	Int16   struct{}
+	Int32   struct{}
+	Int64   struct{}
+	UInt8   struct{}
+	UInt16  struct{}
+	UInt32  struct{}
+	UInt64  struct{}
+	Float32 struct{}
+	Float64 struct{}
+	String  struct{}
+	Binary  struct{}
+	Date    struct{}
+	Time    struct{}
+	Null    struct{}
+	Unknown struct{}
 )
 
 // Complex types
@@ -73,8 +73,8 @@ type (
 		Inner DataType
 	}
 	Array struct {
-		Inner  DataType
-		Width  int
+		Inner DataType
+		Width int
 	}
 	Struct struct {
 		Fields []Field
@@ -126,158 +126,158 @@ func (s *Schema) FieldNames() []string {
 
 // Implementation of DataType interface for base types
 
-func (Boolean) String() string     { return "bool" }
+func (Boolean) String() string         { return "bool" }
 func (Boolean) Equals(o DataType) bool { _, ok := o.(Boolean); return ok }
-func (Boolean) IsNumeric() bool    { return false }
-func (Boolean) IsNested() bool     { return false }
-func (Boolean) IsTemporal() bool   { return false }
-func (Boolean) IsFloat() bool      { return false }
-func (Boolean) IsInteger() bool    { return false }
-func (Boolean) IsSigned() bool     { return false }
+func (Boolean) IsNumeric() bool        { return false }
+func (Boolean) IsNested() bool         { return false }
+func (Boolean) IsTemporal() bool       { return false }
+func (Boolean) IsFloat() bool          { return false }
+func (Boolean) IsInteger() bool        { return false }
+func (Boolean) IsSigned() bool         { return false }
 
-func (Int8) String() string     { return "i8" }
+func (Int8) String() string         { return "i8" }
 func (Int8) Equals(o DataType) bool { _, ok := o.(Int8); return ok }
-func (Int8) IsNumeric() bool    { return true }
-func (Int8) IsNested() bool     { return false }
-func (Int8) IsTemporal() bool   { return false }
-func (Int8) IsFloat() bool      { return false }
-func (Int8) IsInteger() bool    { return true }
-func (Int8) IsSigned() bool     { return true }
+func (Int8) IsNumeric() bool        { return true }
+func (Int8) IsNested() bool         { return false }
+func (Int8) IsTemporal() bool       { return false }
+func (Int8) IsFloat() bool          { return false }
+func (Int8) IsInteger() bool        { return true }
+func (Int8) IsSigned() bool         { return true }
 
-func (Int16) String() string     { return "i16" }
+func (Int16) String() string         { return "i16" }
 func (Int16) Equals(o DataType) bool { _, ok := o.(Int16); return ok }
-func (Int16) IsNumeric() bool    { return true }
-func (Int16) IsNested() bool     { return false }
-func (Int16) IsTemporal() bool   { return false }
-func (Int16) IsFloat() bool      { return false }
-func (Int16) IsInteger() bool    { return true }
-func (Int16) IsSigned() bool     { return true }
+func (Int16) IsNumeric() bool        { return true }
+func (Int16) IsNested() bool         { return false }
+func (Int16) IsTemporal() bool       { return false }
+func (Int16) IsFloat() bool          { return false }
+func (Int16) IsInteger() bool        { return true }
+func (Int16) IsSigned() bool         { return true }
 
-func (Int32) String() string     { return "i32" }
+func (Int32) String() string         { return "i32" }
 func (Int32) Equals(o DataType) bool { _, ok := o.(Int32); return ok }
-func (Int32) IsNumeric() bool    { return true }
-func (Int32) IsNested() bool     { return false }
-func (Int32) IsTemporal() bool   { return false }
-func (Int32) IsFloat() bool      { return false }
-func (Int32) IsInteger() bool    { return true }
-func (Int32) IsSigned() bool     { return true }
+func (Int32) IsNumeric() bool        { return true }
+func (Int32) IsNested() bool         { return false }
+func (Int32) IsTemporal() bool       { return false }
+func (Int32) IsFloat() bool          { return false }
+func (Int32) IsInteger() bool        { return true }
+func (Int32) IsSigned() bool         { return true }
 
-func (Int64) String() string     { return "i64" }
+func (Int64) String() string         { return "i64" }
 func (Int64) Equals(o DataType) bool { _, ok := o.(Int64); return ok }
-func (Int64) IsNumeric() bool    { return true }
-func (Int64) IsNested() bool     { return false }
-func (Int64) IsTemporal() bool   { return false }
-func (Int64) IsFloat() bool      { return false }
-func (Int64) IsInteger() bool    { return true }
-func (Int64) IsSigned() bool     { return true }
+func (Int64) IsNumeric() bool        { return true }
+func (Int64) IsNested() bool         { return false }
+func (Int64) IsTemporal() bool       { return false }
+func (Int64) IsFloat() bool          { return false }
+func (Int64) IsInteger() bool        { return true }
+func (Int64) IsSigned() bool         { return true }
 
-func (UInt8) String() string     { return "u8" }
+func (UInt8) String() string         { return "u8" }
 func (UInt8) Equals(o DataType) bool { _, ok := o.(UInt8); return ok }
-func (UInt8) IsNumeric() bool    { return true }
-func (UInt8) IsNested() bool     { return false }
-func (UInt8) IsTemporal() bool   { return false }
-func (UInt8) IsFloat() bool      { return false }
-func (UInt8) IsInteger() bool    { return true }
-func (UInt8) IsSigned() bool     { return false }
+func (UInt8) IsNumeric() bool        { return true }
+func (UInt8) IsNested() bool         { return false }
+func (UInt8) IsTemporal() bool       { return false }
+func (UInt8) IsFloat() bool          { return false }
+func (UInt8) IsInteger() bool        { return true }
+func (UInt8) IsSigned() bool         { return false }
 
-func (UInt16) String() string     { return "u16" }
+func (UInt16) String() string         { return "u16" }
 func (UInt16) Equals(o DataType) bool { _, ok := o.(UInt16); return ok }
-func (UInt16) IsNumeric() bool    { return true }
-func (UInt16) IsNested() bool     { return false }
-func (UInt16) IsTemporal() bool   { return false }
-func (UInt16) IsFloat() bool      { return false }
-func (UInt16) IsInteger() bool    { return true }
-func (UInt16) IsSigned() bool     { return false }
+func (UInt16) IsNumeric() bool        { return true }
+func (UInt16) IsNested() bool         { return false }
+func (UInt16) IsTemporal() bool       { return false }
+func (UInt16) IsFloat() bool          { return false }
+func (UInt16) IsInteger() bool        { return true }
+func (UInt16) IsSigned() bool         { return false }
 
-func (UInt32) String() string     { return "u32" }
+func (UInt32) String() string         { return "u32" }
 func (UInt32) Equals(o DataType) bool { _, ok := o.(UInt32); return ok }
-func (UInt32) IsNumeric() bool    { return true }
-func (UInt32) IsNested() bool     { return false }
-func (UInt32) IsTemporal() bool   { return false }
-func (UInt32) IsFloat() bool      { return false }
-func (UInt32) IsInteger() bool    { return true }
-func (UInt32) IsSigned() bool     { return false }
+func (UInt32) IsNumeric() bool        { return true }
+func (UInt32) IsNested() bool         { return false }
+func (UInt32) IsTemporal() bool       { return false }
+func (UInt32) IsFloat() bool          { return false }
+func (UInt32) IsInteger() bool        { return true }
+func (UInt32) IsSigned() bool         { return false }
 
-func (UInt64) String() string     { return "u64" }
+func (UInt64) String() string         { return "u64" }
 func (UInt64) Equals(o DataType) bool { _, ok := o.(UInt64); return ok }
-func (UInt64) IsNumeric() bool    { return true }
-func (UInt64) IsNested() bool     { return false }
-func (UInt64) IsTemporal() bool   { return false }
-func (UInt64) IsFloat() bool      { return false }
-func (UInt64) IsInteger() bool    { return true }
-func (UInt64) IsSigned() bool     { return false }
+func (UInt64) IsNumeric() bool        { return true }
+func (UInt64) IsNested() bool         { return false }
+func (UInt64) IsTemporal() bool       { return false }
+func (UInt64) IsFloat() bool          { return false }
+func (UInt64) IsInteger() bool        { return true }
+func (UInt64) IsSigned() bool         { return false }
 
-func (Float32) String() string     { return "f32" }
+func (Float32) String() string         { return "f32" }
 func (Float32) Equals(o DataType) bool { _, ok := o.(Float32); return ok }
-func (Float32) IsNumeric() bool    { return true }
-func (Float32) IsNested() bool     { return false }
-func (Float32) IsTemporal() bool   { return false }
-func (Float32) IsFloat() bool      { return true }
-func (Float32) IsInteger() bool    { return false }
-func (Float32) IsSigned() bool     { return true }
+func (Float32) IsNumeric() bool        { return true }
+func (Float32) IsNested() bool         { return false }
+func (Float32) IsTemporal() bool       { return false }
+func (Float32) IsFloat() bool          { return true }
+func (Float32) IsInteger() bool        { return false }
+func (Float32) IsSigned() bool         { return true }
 
-func (Float64) String() string     { return "f64" }
+func (Float64) String() string         { return "f64" }
 func (Float64) Equals(o DataType) bool { _, ok := o.(Float64); return ok }
-func (Float64) IsNumeric() bool    { return true }
-func (Float64) IsNested() bool     { return false }
-func (Float64) IsTemporal() bool   { return false }
-func (Float64) IsFloat() bool      { return true }
-func (Float64) IsInteger() bool    { return false }
-func (Float64) IsSigned() bool     { return true }
+func (Float64) IsNumeric() bool        { return true }
+func (Float64) IsNested() bool         { return false }
+func (Float64) IsTemporal() bool       { return false }
+func (Float64) IsFloat() bool          { return true }
+func (Float64) IsInteger() bool        { return false }
+func (Float64) IsSigned() bool         { return true }
 
-func (String) String() string     { return "str" }
+func (String) String() string         { return "str" }
 func (String) Equals(o DataType) bool { _, ok := o.(String); return ok }
-func (String) IsNumeric() bool    { return false }
-func (String) IsNested() bool     { return false }
-func (String) IsTemporal() bool   { return false }
-func (String) IsFloat() bool      { return false }
-func (String) IsInteger() bool    { return false }
-func (String) IsSigned() bool     { return false }
+func (String) IsNumeric() bool        { return false }
+func (String) IsNested() bool         { return false }
+func (String) IsTemporal() bool       { return false }
+func (String) IsFloat() bool          { return false }
+func (String) IsInteger() bool        { return false }
+func (String) IsSigned() bool         { return false }
 
-func (Binary) String() string     { return "binary" }
+func (Binary) String() string         { return "binary" }
 func (Binary) Equals(o DataType) bool { _, ok := o.(Binary); return ok }
-func (Binary) IsNumeric() bool    { return false }
-func (Binary) IsNested() bool     { return false }
-func (Binary) IsTemporal() bool   { return false }
-func (Binary) IsFloat() bool      { return false }
-func (Binary) IsInteger() bool    { return false }
-func (Binary) IsSigned() bool     { return false }
+func (Binary) IsNumeric() bool        { return false }
+func (Binary) IsNested() bool         { return false }
+func (Binary) IsTemporal() bool       { return false }
+func (Binary) IsFloat() bool          { return false }
+func (Binary) IsInteger() bool        { return false }
+func (Binary) IsSigned() bool         { return false }
 
-func (Date) String() string     { return "date" }
+func (Date) String() string         { return "date" }
 func (Date) Equals(o DataType) bool { _, ok := o.(Date); return ok }
-func (Date) IsNumeric() bool    { return false }
-func (Date) IsNested() bool     { return false }
-func (Date) IsTemporal() bool   { return true }
-func (Date) IsFloat() bool      { return false }
-func (Date) IsInteger() bool    { return false }
-func (Date) IsSigned() bool     { return false }
+func (Date) IsNumeric() bool        { return false }
+func (Date) IsNested() bool         { return false }
+func (Date) IsTemporal() bool       { return true }
+func (Date) IsFloat() bool          { return false }
+func (Date) IsInteger() bool        { return false }
+func (Date) IsSigned() bool         { return false }
 
-func (Time) String() string     { return "time" }
+func (Time) String() string         { return "time" }
 func (Time) Equals(o DataType) bool { _, ok := o.(Time); return ok }
-func (Time) IsNumeric() bool    { return false }
-func (Time) IsNested() bool     { return false }
-func (Time) IsTemporal() bool   { return true }
-func (Time) IsFloat() bool      { return false }
-func (Time) IsInteger() bool    { return false }
-func (Time) IsSigned() bool     { return false }
+func (Time) IsNumeric() bool        { return false }
+func (Time) IsNested() bool         { return false }
+func (Time) IsTemporal() bool       { return true }
+func (Time) IsFloat() bool          { return false }
+func (Time) IsInteger() bool        { return false }
+func (Time) IsSigned() bool         { return false }
 
-func (Null) String() string     { return "null" }
+func (Null) String() string         { return "null" }
 func (Null) Equals(o DataType) bool { _, ok := o.(Null); return ok }
-func (Null) IsNumeric() bool    { return false }
-func (Null) IsNested() bool     { return false }
-func (Null) IsTemporal() bool   { return false }
-func (Null) IsFloat() bool      { return false }
-func (Null) IsInteger() bool    { return false }
-func (Null) IsSigned() bool     { return false }
+func (Null) IsNumeric() bool        { return false }
+func (Null) IsNested() bool         { return false }
+func (Null) IsTemporal() bool       { return false }
+func (Null) IsFloat() bool          { return false }
+func (Null) IsInteger() bool        { return false }
+func (Null) IsSigned() bool         { return false }
 
-func (Unknown) String() string     { return "unknown" }
+func (Unknown) String() string         { return "unknown" }
 func (Unknown) Equals(o DataType) bool { _, ok := o.(Unknown); return ok }
-func (Unknown) IsNumeric() bool    { return false }
-func (Unknown) IsNested() bool     { return false }
-func (Unknown) IsTemporal() bool   { return false }
-func (Unknown) IsFloat() bool      { return false }
-func (Unknown) IsInteger() bool    { return false }
-func (Unknown) IsSigned() bool     { return false }
+func (Unknown) IsNumeric() bool        { return false }
+func (Unknown) IsNested() bool         { return false }
+func (Unknown) IsTemporal() bool       { return false }
+func (Unknown) IsFloat() bool          { return false }
+func (Unknown) IsInteger() bool        { return false }
+func (Unknown) IsSigned() bool         { return false }
 
 // Complex types implementations
 
@@ -293,9 +293,9 @@ func (dt Datetime) Equals(o DataType) bool {
 	if !ok {
 		return false
 	}
-	return dt.Unit == other.Unit && 
+	return dt.Unit == other.Unit &&
 		((dt.TimeZone == nil && other.TimeZone == nil) ||
-		 (dt.TimeZone != nil && other.TimeZone != nil && dt.TimeZone.String() == other.TimeZone.String()))
+			(dt.TimeZone != nil && other.TimeZone != nil && dt.TimeZone.String() == other.TimeZone.String()))
 }
 func (Datetime) IsNumeric() bool  { return false }
 func (Datetime) IsNested() bool   { return false }
@@ -304,7 +304,7 @@ func (Datetime) IsFloat() bool    { return false }
 func (Datetime) IsInteger() bool  { return false }
 func (Datetime) IsSigned() bool   { return false }
 
-func (d Duration) String() string     { return fmt.Sprintf("duration[%s]", d.Unit) }
+func (d Duration) String() string { return fmt.Sprintf("duration[%s]", d.Unit) }
 func (d Duration) Equals(o DataType) bool {
 	other, ok := o.(Duration)
 	return ok && d.Unit == other.Unit
@@ -316,7 +316,7 @@ func (Duration) IsFloat() bool    { return false }
 func (Duration) IsInteger() bool  { return false }
 func (Duration) IsSigned() bool   { return false }
 
-func (l List) String() string     { return fmt.Sprintf("list[%s]", l.Inner) }
+func (l List) String() string { return fmt.Sprintf("list[%s]", l.Inner) }
 func (l List) Equals(o DataType) bool {
 	other, ok := o.(List)
 	return ok && l.Inner.Equals(other.Inner)
@@ -328,7 +328,7 @@ func (List) IsFloat() bool    { return false }
 func (List) IsInteger() bool  { return false }
 func (List) IsSigned() bool   { return false }
 
-func (a Array) String() string     { return fmt.Sprintf("array[%s, %d]", a.Inner, a.Width) }
+func (a Array) String() string { return fmt.Sprintf("array[%s, %d]", a.Inner, a.Width) }
 func (a Array) Equals(o DataType) bool {
 	other, ok := o.(Array)
 	return ok && a.Inner.Equals(other.Inner) && a.Width == other.Width
@@ -364,7 +364,7 @@ func (Struct) IsFloat() bool    { return false }
 func (Struct) IsInteger() bool  { return false }
 func (Struct) IsSigned() bool   { return false }
 
-func (Categorical) String() string     { return "cat" }
+func (Categorical) String() string { return "cat" }
 func (c Categorical) Equals(o DataType) bool {
 	other, ok := o.(Categorical)
 	return ok && c.Ordered == other.Ordered
@@ -376,7 +376,7 @@ func (Categorical) IsFloat() bool    { return false }
 func (Categorical) IsInteger() bool  { return false }
 func (Categorical) IsSigned() bool   { return false }
 
-func (d Decimal) String() string     { return fmt.Sprintf("decimal[%d, %d]", d.Precision, d.Scale) }
+func (d Decimal) String() string { return fmt.Sprintf("decimal[%d, %d]", d.Precision, d.Scale) }
 func (d Decimal) Equals(o DataType) bool {
 	other, ok := o.(Decimal)
 	return ok && d.Precision == other.Precision && d.Scale == other.Scale

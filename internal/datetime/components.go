@@ -110,7 +110,7 @@ func (dt DateTime) IsYearEnd() bool {
 
 func (dt DateTime) Round(unit TimeUnit) DateTime {
 	t := dt.Time()
-	
+
 	switch unit {
 	case Second:
 		nanos := t.Nanosecond()
@@ -160,13 +160,13 @@ func (dt DateTime) Round(unit TimeUnit) DateTime {
 			t = t.AddDate(1, 0, 0)
 		}
 	}
-	
+
 	return NewDateTime(t)
 }
 
 func (dt DateTime) Floor(unit TimeUnit) DateTime {
 	t := dt.Time()
-	
+
 	switch unit {
 	case Nanosecond:
 		return dt
@@ -203,7 +203,7 @@ func (dt DateTime) Floor(unit TimeUnit) DateTime {
 	case Year:
 		t = time.Date(t.Year(), 1, 1, 0, 0, 0, 0, t.Location())
 	}
-	
+
 	return NewDateTime(t)
 }
 
@@ -212,7 +212,7 @@ func (dt DateTime) Ceil(unit TimeUnit) DateTime {
 	if floored.timestamp == dt.timestamp {
 		return dt
 	}
-	
+
 	switch unit {
 	case Microsecond:
 		return NewDateTime(floored.Time().Add(time.Microsecond))
@@ -245,90 +245,90 @@ func (dt DateTime) Truncate(unit TimeUnit) DateTime {
 
 func ExtractYear(timestamps []int64, tz *time.Location) []int32 {
 	years := make([]int32, len(timestamps))
-	
+
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	for i, ts := range timestamps {
 		t := time.Unix(0, ts).In(tz)
 		years[i] = int32(t.Year())
 	}
-	
+
 	return years
 }
 
 func ExtractMonth(timestamps []int64, tz *time.Location) []int8 {
 	months := make([]int8, len(timestamps))
-	
+
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	for i, ts := range timestamps {
 		t := time.Unix(0, ts).In(tz)
 		months[i] = int8(t.Month())
 	}
-	
+
 	return months
 }
 
 func ExtractDay(timestamps []int64, tz *time.Location) []int8 {
 	days := make([]int8, len(timestamps))
-	
+
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	for i, ts := range timestamps {
 		t := time.Unix(0, ts).In(tz)
 		days[i] = int8(t.Day())
 	}
-	
+
 	return days
 }
 
 func ExtractHour(timestamps []int64, tz *time.Location) []int8 {
 	hours := make([]int8, len(timestamps))
-	
+
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	for i, ts := range timestamps {
 		t := time.Unix(0, ts).In(tz)
 		hours[i] = int8(t.Hour())
 	}
-	
+
 	return hours
 }
 
 func ExtractMinute(timestamps []int64, tz *time.Location) []int8 {
 	minutes := make([]int8, len(timestamps))
-	
+
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	for i, ts := range timestamps {
 		t := time.Unix(0, ts).In(tz)
 		minutes[i] = int8(t.Minute())
 	}
-	
+
 	return minutes
 }
 
 func ExtractSecond(timestamps []int64, tz *time.Location) []int8 {
 	seconds := make([]int8, len(timestamps))
-	
+
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	for i, ts := range timestamps {
 		t := time.Unix(0, ts).In(tz)
 		seconds[i] = int8(t.Second())
 	}
-	
+
 	return seconds
 }

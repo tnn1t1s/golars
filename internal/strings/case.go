@@ -34,10 +34,10 @@ func (so *StringOps) Capitalize() series.Series {
 		if len(str) == 0 {
 			return str
 		}
-		
+
 		// Convert to runes to handle Unicode properly
 		runes := []rune(str)
-		
+
 		// Capitalize first rune, lowercase the rest
 		for i, r := range runes {
 			if i == 0 {
@@ -46,7 +46,7 @@ func (so *StringOps) Capitalize() series.Series {
 				runes[i] = unicode.ToLower(r)
 			}
 		}
-		
+
 		return string(runes)
 	}, "capitalize")
 }
@@ -114,7 +114,7 @@ func (so *StringOps) IsTitle() series.Series {
 		if len(str) == 0 {
 			return false
 		}
-		
+
 		// Check if string matches its title case version
 		return str == strings.Title(str)
 	}, "is_title")

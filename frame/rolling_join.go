@@ -50,8 +50,8 @@ func (df *DataFrame) RollingJoin(right *DataFrame, options RollingJoinOptions) (
 	if options.Direction != "backward" && options.Direction != "forward" && options.Direction != "both" {
 		return nil, fmt.Errorf("direction must be 'backward', 'forward', or 'both', got '%s'", options.Direction)
 	}
-	if options.ClosedInterval != "left" && options.ClosedInterval != "right" && 
-	   options.ClosedInterval != "both" && options.ClosedInterval != "neither" {
+	if options.ClosedInterval != "left" && options.ClosedInterval != "right" &&
+		options.ClosedInterval != "both" && options.ClosedInterval != "neither" {
 		return nil, fmt.Errorf("closed_interval must be 'left', 'right', 'both', or 'neither', got '%s'", options.ClosedInterval)
 	}
 
@@ -108,7 +108,7 @@ func rollingJoinSimple(left, right *DataFrame, leftOn, rightOn series.Series, op
 
 	// For each left row, collect all matching right rows within the window
 	matchedIndices := make([][]int, leftLen)
-	
+
 	// Extract values for efficient access
 	leftValues := make([]float64, leftLen)
 	for i := 0; i < leftLen; i++ {
@@ -132,7 +132,7 @@ func rollingJoinSimple(left, right *DataFrame, leftOn, rightOn series.Series, op
 
 		// Calculate window bounds
 		var windowStart, windowEnd float64
-		
+
 		if options.Center {
 			// Center window ignores direction
 			offset := options.WindowSize / 2
@@ -143,11 +143,11 @@ func rollingJoinSimple(left, right *DataFrame, leftOn, rightOn series.Series, op
 			case "backward":
 				windowEnd = leftVal
 				windowStart = leftVal - options.WindowSize
-				
+
 			case "forward":
 				windowStart = leftVal
 				windowEnd = leftVal + options.WindowSize
-				
+
 			case "both":
 				windowStart = leftVal - options.WindowSize
 				windowEnd = leftVal + options.WindowSize
@@ -206,7 +206,7 @@ func rollingJoinWithGroups(left, right *DataFrame, options RollingJoinOptions) (
 
 	// Perform rolling join for each group
 	resultFrames := make([]*DataFrame, 0)
-	
+
 	for groupKey, leftIndices := range leftGroups {
 		rightIndices, exists := rightGroups[groupKey]
 		if !exists {
@@ -266,11 +266,11 @@ func buildRollingJoinResult(left, right *DataFrame, matchedIndices [][]int, opti
 	// Prepare to build result columns
 	resultColumns := make([]series.Series, 0)
 	leftColNames := make(map[string]bool)
-	
+
 	// Build left columns (replicated for each match)
 	for _, col := range left.columns {
 		leftColNames[col.Name()] = true
-		
+
 		// Build indices for replication
 		replicationIndices := make([]int, 0, totalRows)
 		for i, matches := range matchedIndices {
@@ -282,7 +282,7 @@ func buildRollingJoinResult(left, right *DataFrame, matchedIndices [][]int, opti
 				replicationIndices = append(replicationIndices, i)
 			}
 		}
-		
+
 		// Create replicated series
 		newSeries := createReplicatedSeries(col, replicationIndices, col.Name())
 		resultColumns = append(resultColumns, newSeries)
@@ -291,7 +291,7 @@ func buildRollingJoinResult(left, right *DataFrame, matchedIndices [][]int, opti
 	// Build right columns
 	for _, col := range right.columns {
 		colName := col.Name()
-		
+
 		// Skip the join column if it has the same name as the left join column
 		leftOn := options.On
 		if options.Left_on != "" {
@@ -301,11 +301,11 @@ func buildRollingJoinResult(left, right *DataFrame, matchedIndices [][]int, opti
 		if options.Right_on != "" {
 			rightOn = options.Right_on
 		}
-		
+
 		if colName == rightOn && rightOn == leftOn {
 			continue
 		}
-		
+
 		// Handle duplicate column names
 		if leftColNames[colName] {
 			colName = colName + options.Suffixes[1]
@@ -320,7 +320,7 @@ func buildRollingJoinResult(left, right *DataFrame, matchedIndices [][]int, opti
 				rightIndices = append(rightIndices, -1) // -1 indicates null
 			}
 		}
-		
+
 		// Create new series with values from matched indices
 		newSeries := createMergedSeries(col, rightIndices, colName)
 		resultColumns = append(resultColumns, newSeries)
@@ -338,7 +338,7 @@ func createReplicatedSeries(original series.Series, indices []int, newName strin
 	case datatypes.Int64:
 		values := make([]int64, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !original.IsNull(idx) {
 				values[i] = original.Get(idx).(int64)
@@ -347,13 +347,13 @@ func createReplicatedSeries(original series.Series, indices []int, newName strin
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(newName, values, validity, dataType)
 
 	case datatypes.Float64:
 		values := make([]float64, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !original.IsNull(idx) {
 				values[i] = original.Get(idx).(float64)
@@ -362,13 +362,13 @@ func createReplicatedSeries(original series.Series, indices []int, newName strin
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(newName, values, validity, dataType)
 
 	case datatypes.String:
 		values := make([]string, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !original.IsNull(idx) {
 				values[i] = original.Get(idx).(string)
@@ -377,14 +377,14 @@ func createReplicatedSeries(original series.Series, indices []int, newName strin
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(newName, values, validity, dataType)
 
 	default:
 		// Generic handling
 		values := make([]interface{}, length)
 		validity := make([]bool, length)
-		
+
 		for i, idx := range indices {
 			if !original.IsNull(idx) {
 				values[i] = original.Get(idx)
@@ -393,7 +393,7 @@ func createReplicatedSeries(original series.Series, indices []int, newName strin
 				validity[i] = false
 			}
 		}
-		
+
 		return createSeriesFromInterface(newName, values, validity, dataType)
 	}
 }
@@ -402,14 +402,13 @@ func createReplicatedSeries(original series.Series, indices []int, newName strin
 func createRollingNoMatchResult(left, right *DataFrame, leftIndices []int, options RollingJoinOptions) *DataFrame {
 	// Create DataFrame with left rows and null right columns
 	leftSub := selectRows(left, leftIndices)
-	
+
 	// Create empty match indices (all nulls)
 	emptyMatches := make([][]int, len(leftIndices))
 	for i := range emptyMatches {
 		emptyMatches[i] = []int{}
 	}
-	
+
 	result, _ := buildRollingJoinResult(leftSub, right, emptyMatches, options)
 	return result
 }
-

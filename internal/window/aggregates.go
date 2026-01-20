@@ -30,10 +30,10 @@ func (f *sumFunc) Compute(partition Partition) (series.Series, error) {
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	// Get frame specification
 	frame := f.spec.GetFrame()
 	if frame == nil {
@@ -53,7 +53,7 @@ func (f *sumFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	switch dataType.String() {
 	case "i32":
 		return f.computeInt32Sum(partition, columnSeries, frame)
@@ -71,22 +71,22 @@ func (f *sumFunc) computeInt32Sum(partition Partition, columnSeries series.Serie
 	size := partition.Size()
 	result := make([]int32, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Sum values in the frame
 		sum := int32(0)
 		for j := start; j < end; j++ {
 			idx := indices[j]
 			sum += columnSeries.Get(idx).(int32)
 		}
-		
+
 		result[i] = sum
 	}
-	
+
 	return series.NewInt32Series("sum", result), nil
 }
 
@@ -95,22 +95,22 @@ func (f *sumFunc) computeInt64Sum(partition Partition, columnSeries series.Serie
 	size := partition.Size()
 	result := make([]int64, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Sum values in the frame
 		sum := int64(0)
 		for j := start; j < end; j++ {
 			idx := indices[j]
 			sum += columnSeries.Get(idx).(int64)
 		}
-		
+
 		result[i] = sum
 	}
-	
+
 	return series.NewInt64Series("sum", result), nil
 }
 
@@ -119,22 +119,22 @@ func (f *sumFunc) computeFloat64Sum(partition Partition, columnSeries series.Ser
 	size := partition.Size()
 	result := make([]float64, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Sum values in the frame
 		sum := 0.0
 		for j := start; j < end; j++ {
 			idx := indices[j]
 			sum += columnSeries.Get(idx).(float64)
 		}
-		
+
 		result[i] = sum
 	}
-	
+
 	return series.NewFloat64Series("sum", result), nil
 }
 
@@ -172,13 +172,13 @@ func (f *avgFunc) SetSpec(spec *Spec) {
 // Compute calculates the average over the window frame
 func (f *avgFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column to average
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Get frame specification
 	frame := f.spec.GetFrame()
 	if frame == nil {
@@ -197,16 +197,16 @@ func (f *avgFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	// Always return float64 for averages
 	result := make([]float64, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Calculate average
 		sum := 0.0
 		count := 0
@@ -223,14 +223,14 @@ func (f *avgFunc) Compute(partition Partition) (series.Series, error) {
 			}
 			count++
 		}
-		
+
 		if count > 0 {
 			result[i] = sum / float64(count)
 		} else {
 			result[i] = 0.0
 		}
 	}
-	
+
 	return series.NewFloat64Series("avg", result), nil
 }
 
@@ -272,10 +272,10 @@ func (f *minFunc) Compute(partition Partition) (series.Series, error) {
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	// Get frame specification
 	frame := f.spec.GetFrame()
 	if frame == nil {
@@ -294,7 +294,7 @@ func (f *minFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	switch dataType.String() {
 	case "i32":
 		return f.computeInt32Min(partition, columnSeries, frame)
@@ -312,12 +312,12 @@ func (f *minFunc) computeInt32Min(partition Partition, columnSeries series.Serie
 	size := partition.Size()
 	result := make([]int32, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Find minimum in the frame
 		if start < end {
 			min := columnSeries.Get(indices[start]).(int32)
@@ -333,7 +333,7 @@ func (f *minFunc) computeInt32Min(partition Partition, columnSeries series.Serie
 			result[i] = 0 // Default for empty frame
 		}
 	}
-	
+
 	return series.NewInt32Series("min", result), nil
 }
 
@@ -342,12 +342,12 @@ func (f *minFunc) computeInt64Min(partition Partition, columnSeries series.Serie
 	size := partition.Size()
 	result := make([]int64, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Find minimum in the frame
 		if start < end {
 			min := columnSeries.Get(indices[start]).(int64)
@@ -363,7 +363,7 @@ func (f *minFunc) computeInt64Min(partition Partition, columnSeries series.Serie
 			result[i] = 0 // Default for empty frame
 		}
 	}
-	
+
 	return series.NewInt64Series("min", result), nil
 }
 
@@ -372,12 +372,12 @@ func (f *minFunc) computeFloat64Min(partition Partition, columnSeries series.Ser
 	size := partition.Size()
 	result := make([]float64, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Find minimum in the frame
 		if start < end {
 			min := columnSeries.Get(indices[start]).(float64)
@@ -393,7 +393,7 @@ func (f *minFunc) computeFloat64Min(partition Partition, columnSeries series.Ser
 			result[i] = 0.0 // Default for empty frame
 		}
 	}
-	
+
 	return series.NewFloat64Series("min", result), nil
 }
 
@@ -431,16 +431,16 @@ func (f *maxFunc) SetSpec(spec *Spec) {
 // Compute calculates the maximum over the window frame
 func (f *maxFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Create result based on the column's data type
 	dataType := columnSeries.DataType()
-	
+
 	// Get frame specification
 	frame := f.spec.GetFrame()
 	if frame == nil {
@@ -459,15 +459,15 @@ func (f *maxFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	switch dataType.String() {
 	case "i32":
 		result := make([]int32, size)
 		indices := partition.Indices()
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
-			
+
 			if start < end {
 				max := columnSeries.Get(indices[start]).(int32)
 				for j := start + 1; j < end; j++ {
@@ -483,14 +483,14 @@ func (f *maxFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 		return series.NewInt32Series("max", result), nil
-		
+
 	case "i64":
 		result := make([]int64, size)
 		indices := partition.Indices()
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
-			
+
 			if start < end {
 				max := columnSeries.Get(indices[start]).(int64)
 				for j := start + 1; j < end; j++ {
@@ -506,14 +506,14 @@ func (f *maxFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 		return series.NewInt64Series("max", result), nil
-		
+
 	case "f64":
 		result := make([]float64, size)
 		indices := partition.Indices()
-		
+
 		for i := 0; i < size; i++ {
 			start, end := partition.FrameBounds(i, frame)
-			
+
 			if start < end {
 				max := columnSeries.Get(indices[start]).(float64)
 				for j := start + 1; j < end; j++ {
@@ -529,7 +529,7 @@ func (f *maxFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 		return series.NewFloat64Series("max", result), nil
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported data type for MAX: %s", dataType)
 	}
@@ -569,13 +569,13 @@ func (f *countFunc) SetSpec(spec *Spec) {
 // Compute calculates the count over the window frame
 func (f *countFunc) Compute(partition Partition) (series.Series, error) {
 	size := partition.Size()
-	
+
 	// Get the column to count (for null checking)
 	columnSeries, err := partition.Column(f.column)
 	if err != nil {
 		return nil, fmt.Errorf("column %s not found", f.column)
 	}
-	
+
 	// Get frame specification
 	frame := f.spec.GetFrame()
 	if frame == nil {
@@ -594,15 +594,15 @@ func (f *countFunc) Compute(partition Partition) (series.Series, error) {
 			}
 		}
 	}
-	
+
 	result := make([]int64, size)
 	indices := partition.Indices()
-	
+
 	// For each row in the partition
 	for i := 0; i < size; i++ {
 		// Calculate frame bounds
 		start, end := partition.FrameBounds(i, frame)
-		
+
 		// Count non-null values in the frame
 		count := int64(0)
 		for j := start; j < end; j++ {
@@ -612,10 +612,10 @@ func (f *countFunc) Compute(partition Partition) (series.Series, error) {
 			_ = columnSeries.Get(idx)
 			count++
 		}
-		
+
 		result[i] = count
 	}
-	
+
 	return series.NewInt64Series("count", result), nil
 }
 

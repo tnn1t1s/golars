@@ -3,10 +3,10 @@ package frame
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/expr"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestDataFrameFilter(t *testing.T) {
@@ -23,7 +23,7 @@ func TestDataFrameFilter(t *testing.T) {
 		filtered, err := df.Filter(expr.Col("age").Gt(30))
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
-		
+
 		// Check filtered values
 		ages, err := filtered.Column("age")
 		assert.NoError(t, err)
@@ -36,7 +36,7 @@ func TestDataFrameFilter(t *testing.T) {
 		filtered, err := df.Filter(expr.Col("name").Eq(expr.Lit("Bob")))
 		assert.NoError(t, err)
 		assert.Equal(t, 1, filtered.Height())
-		
+
 		row, _ := filtered.GetRow(0)
 		assert.Equal(t, "Bob", row["name"])
 		assert.Equal(t, int32(2), row["id"])
@@ -51,7 +51,7 @@ func TestDataFrameFilter(t *testing.T) {
 		)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
-		
+
 		// Check the results
 		names := make([]string, filtered.Height())
 		nameCol, err := filtered.Column("name")
@@ -72,7 +72,7 @@ func TestDataFrameFilter(t *testing.T) {
 		)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
-		
+
 		ages := make([]int32, filtered.Height())
 		ageCol, err := filtered.Column("age")
 		assert.NoError(t, err)
@@ -90,7 +90,7 @@ func TestDataFrameFilter(t *testing.T) {
 		)
 		assert.NoError(t, err)
 		assert.Equal(t, 4, filtered.Height())
-		
+
 		// Verify "Bob" (age 30) is not in results
 		nameCol, err := filtered.Column("name")
 		assert.NoError(t, err)
@@ -126,7 +126,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 	// Create DataFrame with null values
 	values := []int32{10, 20, 30, 40, 50}
 	validity := []bool{true, false, true, false, true}
-	
+
 	df, _ := NewDataFrame(
 		series.NewInt32Series("id", []int32{1, 2, 3, 4, 5}),
 		series.NewSeriesWithValidity("value", values, validity, datatypes.Int32{}),
@@ -137,7 +137,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 		filtered, err := df.Filter(expr.Col("value").IsNull())
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
-		
+
 		// Check IDs of null rows
 		idCol, err := filtered.Column("id")
 		assert.NoError(t, err)
@@ -150,7 +150,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 		filtered, err := df.Filter(expr.Col("value").IsNotNull())
 		assert.NoError(t, err)
 		assert.Equal(t, 3, filtered.Height())
-		
+
 		// Check values
 		valueCol, err := filtered.Column("value")
 		assert.NoError(t, err)
@@ -164,7 +164,7 @@ func TestDataFrameFilterWithNulls(t *testing.T) {
 		filtered, err := df.Filter(expr.Col("value").Gt(25))
 		assert.NoError(t, err)
 		assert.Equal(t, 2, filtered.Height())
-		
+
 		// Only non-null values > 25
 		valueCol, err := filtered.Column("value")
 		assert.NoError(t, err)
@@ -199,7 +199,7 @@ func TestComplexFilters(t *testing.T) {
 	categories := make([]string, 100)
 	values := make([]float64, 100)
 	flags := make([]bool, 100)
-	
+
 	for i := 0; i < 100; i++ {
 		ids[i] = int64(i + 1)
 		if i%3 == 0 {
@@ -212,7 +212,7 @@ func TestComplexFilters(t *testing.T) {
 		values[i] = float64(i) * 1.5
 		flags[i] = i%2 == 0
 	}
-	
+
 	df, _ := NewDataFrame(
 		series.NewInt64Series("id", ids),
 		series.NewStringSeries("category", categories),
@@ -232,7 +232,7 @@ func TestComplexFilters(t *testing.T) {
 			),
 		)
 		assert.NoError(t, err)
-		
+
 		// Verify all results match criteria
 		categoryCol, err := filtered.Column("category")
 		assert.NoError(t, err)
@@ -240,12 +240,12 @@ func TestComplexFilters(t *testing.T) {
 		assert.NoError(t, err)
 		flagCol, err := filtered.Column("flag")
 		assert.NoError(t, err)
-		
+
 		for i := 0; i < filtered.Height(); i++ {
 			cat := categoryCol.Get(i).(string)
 			val := valueCol.Get(i).(float64)
 			flag := flagCol.Get(i).(bool)
-			
+
 			assert.True(t, cat == "A" || cat == "B")
 			assert.Greater(t, val, 50.0)
 			assert.True(t, flag)
@@ -256,13 +256,13 @@ func TestComplexFilters(t *testing.T) {
 		// Apply filters in sequence
 		filtered1, err := df.Filter(expr.Col("value").Ge(30))
 		assert.NoError(t, err)
-		
+
 		filtered2, err := filtered1.Filter(expr.Col("category").Ne(expr.Lit("C")))
 		assert.NoError(t, err)
-		
+
 		filtered3, err := filtered2.Filter(expr.Col("flag").Eq(true))
 		assert.NoError(t, err)
-		
+
 		// Should be equivalent to combining all conditions
 		combined, err := df.Filter(
 			expr.Col("value").Ge(30).And(
@@ -272,7 +272,7 @@ func TestComplexFilters(t *testing.T) {
 			),
 		)
 		assert.NoError(t, err)
-		
+
 		assert.Equal(t, combined.Height(), filtered3.Height())
 	})
 }
@@ -283,19 +283,19 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 	ids := make([]int64, size)
 	values := make([]float64, size)
 	categories := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		ids[i] = int64(i)
 		values[i] = float64(i) * 0.1
 		categories[i] = string(rune('A' + i%26))
 	}
-	
+
 	df, _ := NewDataFrame(
 		series.NewInt64Series("id", ids),
 		series.NewFloat64Series("value", values),
 		series.NewStringSeries("category", categories),
 	)
-	
+
 	b.Run("SimpleFilter", func(b *testing.B) {
 		filterExpr := expr.Col("value").Gt(50000)
 		b.ResetTimer()
@@ -304,7 +304,7 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 			_ = filtered.Height()
 		}
 	})
-	
+
 	b.Run("CompoundFilter", func(b *testing.B) {
 		filterExpr := expr.Col("value").Gt(25000).And(
 			expr.Col("value").Lt(75000),
@@ -315,7 +315,7 @@ func BenchmarkDataFrameFilter(b *testing.B) {
 			_ = filtered.Height()
 		}
 	})
-	
+
 	b.Run("StringFilter", func(b *testing.B) {
 		filterExpr := expr.Col("category").Eq(expr.Lit("A"))
 		b.ResetTimer()

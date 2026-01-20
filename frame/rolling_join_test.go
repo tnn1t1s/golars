@@ -3,9 +3,9 @@ package frame
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestRollingJoin(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRollingJoin(t *testing.T) {
 		// Event at time 25: window [20,25], matches measurements at 22
 
 		assert.Equal(t, 5, result.Height())
-		
+
 		// Check that each event matched one measurement
 		value, err := result.Column("value")
 		require.NoError(t, err)
@@ -96,9 +96,9 @@ func TestRollingJoin(t *testing.T) {
 		require.NoError(t, err)
 
 		result, err := left.RollingJoin(right, RollingJoinOptions{
-			On:            "time",
-			WindowSize:    3,
-			Direction:     "backward",
+			On:             "time",
+			WindowSize:     3,
+			Direction:      "backward",
 			ClosedInterval: "both", // Include both endpoints
 		})
 		require.NoError(t, err)
@@ -108,7 +108,7 @@ func TestRollingJoin(t *testing.T) {
 		// Total: 6 rows
 
 		assert.Equal(t, 6, result.Height())
-		
+
 		// Check id column is replicated correctly
 		id, err := result.Column("id")
 		require.NoError(t, err)
@@ -150,8 +150,8 @@ func TestRollingJoin(t *testing.T) {
 		// First two should have null values, third should have 2 matches
 		value, err := result.Column("value")
 		require.NoError(t, err)
-		assert.True(t, value.IsNull(0))  // Time 5: not enough matches
-		assert.True(t, value.IsNull(1))  // Time 10: not enough matches
+		assert.True(t, value.IsNull(0))    // Time 5: not enough matches
+		assert.True(t, value.IsNull(1))    // Time 10: not enough matches
 		assert.Equal(t, 2.0, value.Get(2)) // Time 15: first match at 11
 		assert.Equal(t, 3.0, value.Get(3)) // Time 15: second match at 12
 	})
@@ -176,7 +176,7 @@ func TestRollingJoin(t *testing.T) {
 			WindowSize:     10,
 			Center:         true,
 			Direction:      "backward", // ignored when center is true
-			ClosedInterval: "both", // Include both endpoints
+			ClosedInterval: "both",     // Include both endpoints
 		})
 		require.NoError(t, err)
 
@@ -212,7 +212,7 @@ func TestRollingJoin(t *testing.T) {
 
 		// Time 20: window [15,25], matches all 5 values
 		assert.Equal(t, 5, result.Height())
-		
+
 		value, err := result.Column("value")
 		require.NoError(t, err)
 		for i := 0; i < 5; i++ {

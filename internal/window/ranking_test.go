@@ -3,10 +3,10 @@ package window
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestRowNumber(t *testing.T) {
@@ -59,10 +59,10 @@ func TestRowNumber(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &rowNumberFunc{}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.Equal(t, expected, result.Get(i))
 			}
@@ -145,15 +145,15 @@ func TestRank(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &rankFunc{spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.Equal(t, expected, result.Get(i))
 			}
@@ -222,10 +222,10 @@ func TestDenseRank(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &denseRankFunc{spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.Equal(t, expected, result.Get(i))
 			}
@@ -254,7 +254,7 @@ func TestPercentRank(t *testing.T) {
 			spec: &Spec{
 				orderBy: []OrderClause{{Column: "value", Ascending: true}},
 			},
-			expected: []float64{0.0, 1.0/3.0, 2.0/3.0, 1.0},
+			expected: []float64{0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0},
 		},
 		{
 			name: "single row",
@@ -286,7 +286,7 @@ func TestPercentRank(t *testing.T) {
 			spec: &Spec{
 				orderBy: []OrderClause{{Column: "value", Ascending: true}},
 			},
-			expected: []float64{0.0, 1.0/3.0, 1.0/3.0, 1.0},
+			expected: []float64{0.0, 1.0 / 3.0, 1.0 / 3.0, 1.0},
 		},
 	}
 
@@ -294,10 +294,10 @@ func TestPercentRank(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &percentRankFunc{spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.InDelta(t, expected, result.Get(i), 0.0001)
 			}
@@ -373,10 +373,10 @@ func TestNTile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &ntileFunc{buckets: tt.buckets}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.Equal(t, expected, result.Get(i))
 			}

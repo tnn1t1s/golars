@@ -169,7 +169,7 @@ func ReadParquet(filename string, options ...ParquetReadOption) (*frame.DataFram
 	for _, opt := range options {
 		opt(&opts)
 	}
-	
+
 	reader := parquet.NewReader(opts)
 	return reader.ReadFile(filename)
 }
@@ -220,7 +220,7 @@ func WriteParquet(df *frame.DataFrame, filename string, options ...ParquetWriteO
 	for _, opt := range options {
 		opt(&opts)
 	}
-	
+
 	writer := parquet.NewWriter(opts)
 	return writer.WriteFile(df, filename)
 }

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tnn1t1s/golars/frame"
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestNDJSONReader(t *testing.T) {
@@ -134,8 +134,8 @@ func TestNDJSONReader(t *testing.T) {
 			},
 		},
 		{
-			name:   "max records limit",
-			ndjson: strings.Repeat(`{"id": 1}`+"\n", 10),
+			name:    "max records limit",
+			ndjson:  strings.Repeat(`{"id": 1}`+"\n", 10),
 			options: []func(*ReadOptions){WithMaxRecords(5)},
 			expected: struct {
 				rows    int
@@ -236,11 +236,11 @@ func TestNDJSONReaderStreaming(t *testing.T) {
 		err := reader.ReadStream(strings.NewReader(ndjson), func(df *frame.DataFrame) error {
 			chunkCount++
 			totalRows += dfLen(df)
-			
+
 			// Verify each chunk has correct structure
 			assert.True(t, hasColumn(df, "id"))
 			assert.True(t, hasColumn(df, "name"))
-			
+
 			return nil
 		})
 

@@ -3,8 +3,8 @@ package frame
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestInnerJoin(t *testing.T) {
@@ -167,8 +167,8 @@ func TestAntiJoin(t *testing.T) {
 
 	// Perform anti join
 	result, err := left.JoinWithConfig(right, JoinConfig{
-		How:    AntiJoin,
-		LeftOn: []string{"id"},
+		How:     AntiJoin,
+		LeftOn:  []string{"id"},
 		RightOn: []string{"id"},
 	})
 	assert.NoError(t, err)
@@ -306,7 +306,7 @@ func BenchmarkInnerJoin(b *testing.B) {
 	size := 10000
 	leftIDs := make([]int32, size)
 	rightIDs := make([]int32, size/2)
-	
+
 	for i := 0; i < size; i++ {
 		leftIDs[i] = int32(i)
 	}
@@ -333,7 +333,7 @@ func BenchmarkMultiColumnJoin(b *testing.B) {
 	size := 10000
 	years := make([]int32, size)
 	months := make([]int32, size)
-	
+
 	for i := 0; i < size; i++ {
 		years[i] = 2020 + int32(i%5)
 		months[i] = 1 + int32(i%12)

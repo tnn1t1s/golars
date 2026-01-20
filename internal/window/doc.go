@@ -64,5 +64,4 @@
 //
 // Aggregate functions (window-aware):
 //   - Sum(), Mean(), Min(), Max(), Count(), etc.
-//
 package window

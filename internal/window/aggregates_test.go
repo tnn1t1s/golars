@@ -3,10 +3,10 @@ package window
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestSum(t *testing.T) {
@@ -92,9 +92,9 @@ func TestSum(t *testing.T) {
 				indices: []int{0, 1},
 				size:    2,
 			},
-			spec:     &Spec{},
-			column:   "missing",
-			wantErr:  true,
+			spec:    &Spec{},
+			column:  "missing",
+			wantErr: true,
 		},
 	}
 
@@ -102,14 +102,14 @@ func TestSum(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &sumFunc{column: tt.column, spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expected.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -191,10 +191,10 @@ func TestAvg(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &avgFunc{column: tt.column, spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.InDelta(t, expected, result.Get(i), 0.0001)
 			}
@@ -204,12 +204,12 @@ func TestAvg(t *testing.T) {
 
 func TestMinMax(t *testing.T) {
 	tests := []struct {
-		name         string
-		partition    Partition
-		spec         *Spec
-		column       string
-		expectedMin  interface{}
-		expectedMax  interface{}
+		name        string
+		partition   Partition
+		spec        *Spec
+		column      string
+		expectedMin interface{}
+		expectedMax interface{}
 	}{
 		{
 			name: "min/max int32",
@@ -253,9 +253,9 @@ func TestMinMax(t *testing.T) {
 		t.Run(tt.name+"_min", func(t *testing.T) {
 			f := &minFunc{column: tt.column, spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expectedMin.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -267,13 +267,13 @@ func TestMinMax(t *testing.T) {
 				}
 			}
 		})
-		
+
 		t.Run(tt.name+"_max", func(t *testing.T) {
 			f := &maxFunc{column: tt.column, spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
-			
+
 			switch exp := tt.expectedMax.(type) {
 			case []int32:
 				for i, v := range exp {
@@ -355,10 +355,10 @@ func TestCount(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &countFunc{column: tt.column, spec: tt.spec}
 			result, err := f.Compute(tt.partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.Equal(t, expected, result.Get(i))
 			}
@@ -425,10 +425,10 @@ func TestAggregateWithFrames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &sumFunc{column: "value", spec: tt.spec}
 			result, err := f.Compute(partition)
-			
+
 			require.NoError(t, err)
 			require.Equal(t, len(tt.expected), result.Len())
-			
+
 			for i, expected := range tt.expected {
 				assert.Equal(t, expected, result.Get(i))
 			}

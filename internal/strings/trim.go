@@ -12,7 +12,7 @@ func (so *StringOps) Trim(chars ...string) series.Series {
 	if len(chars) > 0 {
 		cutset = strings.Join(chars, "")
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		return strings.Trim(str, cutset)
 	}, "trim")
@@ -24,7 +24,7 @@ func (so *StringOps) LTrim(chars ...string) series.Series {
 	if len(chars) > 0 {
 		cutset = strings.Join(chars, "")
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		return strings.TrimLeft(str, cutset)
 	}, "ltrim")
@@ -36,7 +36,7 @@ func (so *StringOps) RTrim(chars ...string) series.Series {
 	if len(chars) > 0 {
 		cutset = strings.Join(chars, "")
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		return strings.TrimRight(str, cutset)
 	}, "rtrim")
@@ -56,16 +56,16 @@ func (so *StringOps) Pad(width int, side string, fillchar string) series.Series 
 	}
 	// Use first rune of fillchar
 	fillRune := []rune(fillchar)[0]
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		currentLen := len([]rune(str))
 		if currentLen >= width {
 			return str
 		}
-		
+
 		padLen := width - currentLen
 		padding := strings.Repeat(string(fillRune), padLen)
-		
+
 		switch side {
 		case "left":
 			return padding + str
@@ -109,7 +109,7 @@ func (so *StringOps) ZFill(width int) series.Series {
 			padLen := width - len(str)
 			return sign + strings.Repeat("0", padLen) + number
 		}
-		
+
 		// Regular padding with zeros
 		if len(str) >= width {
 			return str

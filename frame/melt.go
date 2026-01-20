@@ -9,11 +9,11 @@ import (
 
 // MeltOptions configures the melt operation
 type MeltOptions struct {
-	IDVars        []string // Columns to use as ID variables
-	ValueVars     []string // Columns to unpivot (empty means all non-ID columns)
-	VariableName  string   // Name for the variable column (default: "variable")
-	ValueName     string   // Name for the value column (default: "value")
-	IgnoreIndex   bool     // Whether to ignore the index
+	IDVars       []string // Columns to use as ID variables
+	ValueVars    []string // Columns to unpivot (empty means all non-ID columns)
+	VariableName string   // Name for the variable column (default: "variable")
+	ValueName    string   // Name for the value column (default: "value")
+	IgnoreIndex  bool     // Whether to ignore the index
 }
 
 // Melt unpivots a DataFrame from wide to long format.
@@ -86,7 +86,7 @@ func (df *DataFrame) Melt(options MeltOptions) (*DataFrame, error) {
 	for _, idVar := range options.IDVars {
 		idIdx := columnMap[idVar]
 		idCol := df.columns[idIdx]
-		
+
 		// Create a new series by repeating values
 		// We need to handle different data types
 		newSeries := createRepeatedSeries(idCol, idVar, originalRows, numValueCols)
@@ -102,7 +102,7 @@ func (df *DataFrame) Melt(options MeltOptions) (*DataFrame, error) {
 			varIdx++
 		}
 	}
-	resultColumns = append(resultColumns, 
+	resultColumns = append(resultColumns,
 		series.NewStringSeries(options.VariableName, varValues))
 
 	// Create value column - need to determine common type
@@ -137,7 +137,7 @@ func (df *DataFrame) Unpivot(options MeltOptions) (*DataFrame, error) {
 // Helper function to create a repeated series
 func createRepeatedSeries(original series.Series, name string, originalRows, repeatCount int) series.Series {
 	totalRows := originalRows * repeatCount
-	
+
 	// Handle different data types
 	switch original.DataType().(type) {
 	case datatypes.String:
@@ -154,7 +154,7 @@ func createRepeatedSeries(original series.Series, name string, originalRows, rep
 			}
 		}
 		return series.NewStringSeries(name, values)
-		
+
 	case datatypes.Int64:
 		values := make([]int64, totalRows)
 		idx := 0
@@ -169,7 +169,7 @@ func createRepeatedSeries(original series.Series, name string, originalRows, rep
 			}
 		}
 		return series.NewInt64Series(name, values)
-		
+
 	case datatypes.Float64:
 		values := make([]float64, totalRows)
 		idx := 0
@@ -184,7 +184,7 @@ func createRepeatedSeries(original series.Series, name string, originalRows, rep
 			}
 		}
 		return series.NewFloat64Series(name, values)
-		
+
 	case datatypes.Boolean:
 		values := make([]bool, totalRows)
 		idx := 0
@@ -199,7 +199,7 @@ func createRepeatedSeries(original series.Series, name string, originalRows, rep
 			}
 		}
 		return series.NewBooleanSeries(name, values)
-		
+
 	default:
 		// For other types, collect as interface{} and convert to string
 		values := make([]string, totalRows)
@@ -221,7 +221,7 @@ func createRepeatedSeries(original series.Series, name string, originalRows, rep
 // Helper function to create the value series for melting
 func createValueSeries(df *DataFrame, valueIndices []int, originalRows int, name string, dataType datatypes.DataType) series.Series {
 	totalRows := originalRows * len(valueIndices)
-	
+
 	switch dataType.(type) {
 	case datatypes.Int64:
 		values := make([]int64, totalRows)
@@ -236,7 +236,7 @@ func createValueSeries(df *DataFrame, valueIndices []int, originalRows int, name
 			}
 		}
 		return series.NewInt64Series(name, values)
-		
+
 	case datatypes.Float64:
 		values := make([]float64, totalRows)
 		idx := 0
@@ -250,7 +250,7 @@ func createValueSeries(df *DataFrame, valueIndices []int, originalRows int, name
 			}
 		}
 		return series.NewFloat64Series(name, values)
-		
+
 	case datatypes.String:
 		values := make([]string, totalRows)
 		idx := 0
@@ -270,7 +270,7 @@ func createValueSeries(df *DataFrame, valueIndices []int, originalRows int, name
 			}
 		}
 		return series.NewStringSeries(name, values)
-		
+
 	default:
 		// Default to string representation
 		values := make([]string, totalRows)

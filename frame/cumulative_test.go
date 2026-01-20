@@ -3,10 +3,10 @@ package frame
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestCumSum(t *testing.T) {
@@ -24,19 +24,19 @@ func TestCumSum(t *testing.T) {
 		colA, err := result.Column("a")
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), colA.Get(0))
-		assert.Equal(t, int64(3), colA.Get(1))   // 1+2
-		assert.Equal(t, int64(6), colA.Get(2))   // 1+2+3
-		assert.Equal(t, int64(10), colA.Get(3))  // 1+2+3+4
-		assert.Equal(t, int64(15), colA.Get(4))  // 1+2+3+4+5
+		assert.Equal(t, int64(3), colA.Get(1))  // 1+2
+		assert.Equal(t, int64(6), colA.Get(2))  // 1+2+3
+		assert.Equal(t, int64(10), colA.Get(3)) // 1+2+3+4
+		assert.Equal(t, int64(15), colA.Get(4)) // 1+2+3+4+5
 
 		// Check cumsum of column b
 		colB, err := result.Column("b")
 		require.NoError(t, err)
 		assert.Equal(t, 1.5, colB.Get(0))
-		assert.Equal(t, 4.0, colB.Get(1))   // 1.5+2.5
-		assert.Equal(t, 7.5, colB.Get(2))   // 4+3.5
-		assert.Equal(t, 12.0, colB.Get(3))  // 7.5+4.5
-		assert.Equal(t, 17.5, colB.Get(4))  // 12+5.5
+		assert.Equal(t, 4.0, colB.Get(1))  // 1.5+2.5
+		assert.Equal(t, 7.5, colB.Get(2))  // 4+3.5
+		assert.Equal(t, 12.0, colB.Get(3)) // 7.5+4.5
+		assert.Equal(t, 17.5, colB.Get(4)) // 12+5.5
 	})
 
 	t.Run("Cumulative sum with nulls", func(t *testing.T) {
@@ -54,10 +54,10 @@ func TestCumSum(t *testing.T) {
 		col, err := result.Column("col")
 		require.NoError(t, err)
 		assert.Equal(t, 1.0, col.Get(0))
-		assert.Equal(t, 1.0, col.Get(1))  // Skip null, keep previous sum
-		assert.Equal(t, 4.0, col.Get(2))  // 1+3
-		assert.Equal(t, 4.0, col.Get(3))  // Skip null, keep previous sum
-		assert.Equal(t, 9.0, col.Get(4))  // 4+5
+		assert.Equal(t, 1.0, col.Get(1)) // Skip null, keep previous sum
+		assert.Equal(t, 4.0, col.Get(2)) // 1+3
+		assert.Equal(t, 4.0, col.Get(3)) // Skip null, keep previous sum
+		assert.Equal(t, 9.0, col.Get(4)) // 4+5
 
 		// With skipNulls=false
 		result2, err := df.CumSum(CumulativeOptions{SkipNulls: false})
@@ -66,9 +66,9 @@ func TestCumSum(t *testing.T) {
 		col2, err := result2.Column("col")
 		require.NoError(t, err)
 		assert.Equal(t, 1.0, col2.Get(0))
-		assert.True(t, col2.IsNull(1))   // Propagate null
+		assert.True(t, col2.IsNull(1)) // Propagate null
 		assert.Equal(t, 4.0, col2.Get(2))
-		assert.True(t, col2.IsNull(3))   // Propagate null
+		assert.True(t, col2.IsNull(3)) // Propagate null
 		assert.Equal(t, 9.0, col2.Get(4))
 	})
 }
@@ -86,9 +86,9 @@ func TestCumProd(t *testing.T) {
 		col, err := result.Column("vals")
 		require.NoError(t, err)
 		assert.Equal(t, int64(2), col.Get(0))
-		assert.Equal(t, int64(6), col.Get(1))    // 2*3
-		assert.Equal(t, int64(24), col.Get(2))   // 6*4
-		assert.Equal(t, int64(120), col.Get(3))  // 24*5
+		assert.Equal(t, int64(6), col.Get(1))   // 2*3
+		assert.Equal(t, int64(24), col.Get(2))  // 6*4
+		assert.Equal(t, int64(120), col.Get(3)) // 24*5
 	})
 
 	t.Run("Cumulative product with zeros", func(t *testing.T) {
@@ -103,9 +103,9 @@ func TestCumProd(t *testing.T) {
 		col, err := result.Column("vals")
 		require.NoError(t, err)
 		assert.Equal(t, 2.0, col.Get(0))
-		assert.Equal(t, 0.0, col.Get(1))  // 2*0
-		assert.Equal(t, 0.0, col.Get(2))  // 0*3
-		assert.Equal(t, 0.0, col.Get(3))  // 0*4
+		assert.Equal(t, 0.0, col.Get(1)) // 2*0
+		assert.Equal(t, 0.0, col.Get(2)) // 0*3
+		assert.Equal(t, 0.0, col.Get(3)) // 0*4
 	})
 }
 
@@ -122,10 +122,10 @@ func TestCumMax(t *testing.T) {
 		col, err := result.Column("vals")
 		require.NoError(t, err)
 		assert.Equal(t, 3.0, col.Get(0))
-		assert.Equal(t, 3.0, col.Get(1))  // max(3,1) = 3
-		assert.Equal(t, 4.0, col.Get(2))  // max(3,4) = 4
-		assert.Equal(t, 4.0, col.Get(3))  // max(4,2) = 4
-		assert.Equal(t, 5.0, col.Get(4))  // max(4,5) = 5
+		assert.Equal(t, 3.0, col.Get(1)) // max(3,1) = 3
+		assert.Equal(t, 4.0, col.Get(2)) // max(3,4) = 4
+		assert.Equal(t, 4.0, col.Get(3)) // max(4,2) = 4
+		assert.Equal(t, 5.0, col.Get(4)) // max(4,5) = 5
 	})
 
 	t.Run("Cumulative maximum with negative values", func(t *testing.T) {
@@ -140,10 +140,10 @@ func TestCumMax(t *testing.T) {
 		col, err := result.Column("vals")
 		require.NoError(t, err)
 		assert.Equal(t, int64(-5), col.Get(0))
-		assert.Equal(t, int64(-3), col.Get(1))   // max(-5,-3) = -3
-		assert.Equal(t, int64(-3), col.Get(2))   // max(-3,-10) = -3
-		assert.Equal(t, int64(-1), col.Get(3))   // max(-3,-1) = -1
-		assert.Equal(t, int64(-1), col.Get(4))   // max(-1,-2) = -1
+		assert.Equal(t, int64(-3), col.Get(1)) // max(-5,-3) = -3
+		assert.Equal(t, int64(-3), col.Get(2)) // max(-3,-10) = -3
+		assert.Equal(t, int64(-1), col.Get(3)) // max(-3,-1) = -1
+		assert.Equal(t, int64(-1), col.Get(4)) // max(-1,-2) = -1
 	})
 }
 
@@ -160,10 +160,10 @@ func TestCumMin(t *testing.T) {
 		col, err := result.Column("vals")
 		require.NoError(t, err)
 		assert.Equal(t, 3.0, col.Get(0))
-		assert.Equal(t, 1.0, col.Get(1))  // min(3,1) = 1
-		assert.Equal(t, 1.0, col.Get(2))  // min(1,4) = 1
-		assert.Equal(t, 1.0, col.Get(3))  // min(1,2) = 1
-		assert.Equal(t, 0.0, col.Get(4))  // min(1,0) = 0
+		assert.Equal(t, 1.0, col.Get(1)) // min(3,1) = 1
+		assert.Equal(t, 1.0, col.Get(2)) // min(1,4) = 1
+		assert.Equal(t, 1.0, col.Get(3)) // min(1,2) = 1
+		assert.Equal(t, 0.0, col.Get(4)) // min(1,0) = 0
 	})
 }
 
@@ -199,11 +199,11 @@ func TestCumCount(t *testing.T) {
 
 		col, err := result.Column("col")
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), col.Get(0))  // First non-null
-		assert.Equal(t, int64(1), col.Get(1))  // Null doesn't increase count
-		assert.Equal(t, int64(2), col.Get(2))  // Second non-null
-		assert.Equal(t, int64(2), col.Get(3))  // Null doesn't increase count
-		assert.Equal(t, int64(3), col.Get(4))  // Third non-null
+		assert.Equal(t, int64(1), col.Get(0)) // First non-null
+		assert.Equal(t, int64(1), col.Get(1)) // Null doesn't increase count
+		assert.Equal(t, int64(2), col.Get(2)) // Second non-null
+		assert.Equal(t, int64(2), col.Get(3)) // Null doesn't increase count
+		assert.Equal(t, int64(3), col.Get(4)) // Third non-null
 	})
 }
 

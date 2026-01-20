@@ -25,7 +25,7 @@ func NewChunkedBuilder[T datatypes.ArrayValue](dt datatypes.DataType) *ChunkedBu
 func (cb *ChunkedBuilder[T]) Append(value T) {
 	// Get current builder or create new one
 	builder := cb.getCurrentBuilder()
-	
+
 	switch b := builder.(type) {
 	case *array.BooleanBuilder:
 		b.Append(any(value).(bool))
@@ -76,7 +76,7 @@ func (cb *ChunkedBuilder[T]) getCurrentBuilder() array.Builder {
 // createBuilder creates a new Arrow builder based on the data type
 func (cb *ChunkedBuilder[T]) createBuilder() array.Builder {
 	allocator := memory.DefaultAllocator
-	
+
 	switch cb.dataType.(type) {
 	case datatypes.Boolean:
 		return array.NewBooleanBuilder(allocator)
@@ -113,27 +113,27 @@ func (cb *ChunkedBuilder[T]) createBuilder() array.Builder {
 // Finish builds the final ChunkedArray
 func (cb *ChunkedBuilder[T]) Finish() *ChunkedArray[T] {
 	chunks := make([]arrow.Array, len(cb.builders))
-	
+
 	for i, builder := range cb.builders {
 		chunks[i] = builder.NewArray()
 		builder.Release()
 	}
-	
+
 	// Clear builders
 	cb.builders = []array.Builder{}
-	
+
 	// Get Arrow type from first chunk if available
 	var arrowType arrow.DataType
 	if len(chunks) > 0 {
 		arrowType = chunks[0].DataType()
 	}
-	
+
 	return &ChunkedArray[T]{
-		field:      arrow.Field{Name: "", Type: arrowType},
-		chunks:     chunks,
-		length:     calculateTotalLength(chunks),
-		nullCount:  calculateTotalNullCount(chunks),
-		dataType:   cb.dataType,
+		field:     arrow.Field{Name: "", Type: arrowType},
+		chunks:    chunks,
+		length:    calculateTotalLength(chunks),
+		nullCount: calculateTotalNullCount(chunks),
+		dataType:  cb.dataType,
 	}
 }
 

@@ -11,7 +11,7 @@
 //	df := golars.NewDataFrame(
 //	    golars.NewStringSeries("names", []string{"Alice", "Bob", "Charlie"}),
 //	)
-//	
+//
 //	result := df.WithColumn("upper",
 //	    golars.Col("names").Str().ToUpper(),
 //	).WithColumn("length",

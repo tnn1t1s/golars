@@ -55,10 +55,10 @@ func (so *StringOps) Slice(start, length int) series.Series {
 		// Convert to runes for proper Unicode handling
 		runes := []rune(str)
 		runeLen := len(runes)
-		
+
 		// Create local copy of start to avoid modifying the parameter
 		localStart := start
-		
+
 		// Handle negative start
 		if localStart < 0 {
 			localStart = runeLen + localStart
@@ -69,13 +69,13 @@ func (so *StringOps) Slice(start, length int) series.Series {
 		if localStart >= runeLen {
 			return ""
 		}
-		
+
 		// Calculate end position
 		end := localStart + length
 		if end > runeLen || length < 0 {
 			end = runeLen
 		}
-		
+
 		return string(runes[localStart:end])
 	}, "slice")
 }
@@ -122,7 +122,7 @@ func (so *StringOps) Reverse() series.Series {
 func applyUnaryOp(s series.Series, op func(string) interface{}, name string) series.Series {
 	pool := memory.NewGoAllocator()
 	length := s.Len()
-	
+
 	// Determine output type based on first non-null result
 	var outputType arrow.DataType
 	var firstResult interface{}
@@ -135,7 +135,7 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 			}
 		}
 	}
-	
+
 	// Determine output type
 	switch firstResult.(type) {
 	case int32:
@@ -147,13 +147,13 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 	default:
 		outputType = arrow.BinaryTypes.String
 	}
-	
+
 	// Build appropriate array based on output type
 	switch outputType {
 	case arrow.PrimitiveTypes.Int32:
 		builder := array.NewInt32Builder(pool)
 		defer builder.Release()
-		
+
 		for i := 0; i < length; i++ {
 			if s.IsNull(i) {
 				builder.AppendNull()
@@ -171,14 +171,14 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 				}
 			}
 		}
-		
+
 		arr := builder.NewArray()
 		return series.NewInt32Series(name, arr.(*array.Int32).Int32Values())
-		
+
 	case arrow.FixedWidthTypes.Boolean:
 		builder := array.NewBooleanBuilder(pool)
 		defer builder.Release()
-		
+
 		for i := 0; i < length; i++ {
 			if s.IsNull(i) {
 				builder.AppendNull()
@@ -196,7 +196,7 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 				}
 			}
 		}
-		
+
 		arr := builder.NewArray()
 		boolArr := arr.(*array.Boolean)
 		values := make([]bool, boolArr.Len())
@@ -206,11 +206,11 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 			}
 		}
 		return series.NewBooleanSeries(name, values)
-		
+
 	default: // String output
 		builder := array.NewStringBuilder(pool)
 		defer builder.Release()
-		
+
 		for i := 0; i < length; i++ {
 			if s.IsNull(i) {
 				builder.AppendNull()
@@ -228,7 +228,7 @@ func applyUnaryOp(s series.Series, op func(string) interface{}, name string) ser
 				}
 			}
 		}
-		
+
 		arr := builder.NewArray()
 		values := make([]string, arr.Len())
 		validity := make([]bool, arr.Len())
@@ -250,12 +250,12 @@ func applyBinaryOp(s1, s2 series.Series, op func(string, string) interface{}, na
 	if s1.Len() != s2.Len() {
 		panic("series must have the same length for binary operations")
 	}
-	
+
 	pool := memory.NewGoAllocator()
 	length := s1.Len()
 	builder := array.NewStringBuilder(pool)
 	defer builder.Release()
-	
+
 	for i := 0; i < length; i++ {
 		if s1.IsNull(i) || s2.IsNull(i) {
 			builder.AppendNull()
@@ -278,7 +278,7 @@ func applyBinaryOp(s1, s2 series.Series, op func(string, string) interface{}, na
 			}
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	values := make([]string, arr.Len())
 	validity := make([]bool, arr.Len())
@@ -297,7 +297,7 @@ func applyBinaryOp(s1, s2 series.Series, op func(string, string) interface{}, na
 // Helper function to apply unary operations that may return errors
 func applyUnaryOpWithError(s series.Series, op func(string) (interface{}, error), name string) (series.Series, error) {
 	length := s.Len()
-	
+
 	// First pass: determine output type
 	var sampleOutput interface{}
 	for i := 0; i < length && sampleOutput == nil; i++ {
@@ -311,19 +311,19 @@ func applyUnaryOpWithError(s series.Series, op func(string) (interface{}, error)
 			}
 		}
 	}
-	
+
 	// Default to string if no valid sample
 	if sampleOutput == nil {
 		sampleOutput = ""
 	}
-	
+
 	// Build result based on output type
 	switch sampleOutput.(type) {
 	case []byte:
 		// Return as binary data (not implemented in series yet, use string)
 		values := make([]string, length)
 		validity := make([]bool, length)
-		
+
 		for i := 0; i < length; i++ {
 			if s.IsNull(i) {
 				validity[i] = false
@@ -341,13 +341,13 @@ func applyUnaryOpWithError(s series.Series, op func(string) (interface{}, error)
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, datatypes.String{}), nil
-		
+
 	default: // String output
 		values := make([]string, length)
 		validity := make([]bool, length)
-		
+
 		for i := 0; i < length; i++ {
 			if s.IsNull(i) {
 				validity[i] = false
@@ -365,7 +365,7 @@ func applyUnaryOpWithError(s series.Series, op func(string) (interface{}, error)
 				validity[i] = false
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, datatypes.String{}), nil
 	}
 }
@@ -375,7 +375,7 @@ func applyUnaryBoolOp(s series.Series, op func(string) bool, name string) series
 	length := s.Len()
 	values := make([]bool, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -386,7 +386,7 @@ func applyUnaryBoolOp(s series.Series, op func(string) bool, name string) series
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Boolean{})
 }
 
@@ -395,7 +395,7 @@ func applyUnaryInt64Op(s series.Series, op func(string) int64, name string) seri
 	length := s.Len()
 	values := make([]int64, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -406,6 +406,6 @@ func applyUnaryInt64Op(s series.Series, op func(string) int64, name string) seri
 			validity[i] = false
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int64{})
 }

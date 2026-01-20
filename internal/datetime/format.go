@@ -41,11 +41,11 @@ func (t Time) ISOFormat() string {
 	minutes := t.Minute()
 	seconds := t.Second()
 	nanos := t.Nanosecond()
-	
+
 	if nanos == 0 {
 		return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
 	}
-	
+
 	return fmt.Sprintf("%02d:%02d:%02d.%09d", hours, minutes, seconds, nanos)
 }
 
@@ -112,22 +112,22 @@ func convertPolarsToGoFormat(format string) string {
 		{"%X", "15:04:05"},
 		{"%%", "%"},
 	}
-	
+
 	result := format
 	for _, r := range replacements {
 		result = strings.ReplaceAll(result, r.from, r.to)
 	}
-	
+
 	return result
 }
 
 func FormatDuration(d Duration) string {
 	var parts []string
-	
+
 	if d.months != 0 {
 		years := d.months / 12
 		months := d.months % 12
-		
+
 		if years != 0 {
 			if years == 1 {
 				parts = append(parts, "1 year")
@@ -135,7 +135,7 @@ func FormatDuration(d Duration) string {
 				parts = append(parts, fmt.Sprintf("%d years", years))
 			}
 		}
-		
+
 		if months != 0 {
 			if months == 1 {
 				parts = append(parts, "1 month")
@@ -144,7 +144,7 @@ func FormatDuration(d Duration) string {
 			}
 		}
 	}
-	
+
 	if d.days != 0 {
 		if d.days == 1 {
 			parts = append(parts, "1 day")
@@ -152,27 +152,27 @@ func FormatDuration(d Duration) string {
 			parts = append(parts, fmt.Sprintf("%d days", d.days))
 		}
 	}
-	
+
 	if d.nanoseconds != 0 {
 		dur := time.Duration(d.nanoseconds)
-		
+
 		hours := dur / time.Hour
 		dur %= time.Hour
-		
+
 		minutes := dur / time.Minute
 		dur %= time.Minute
-		
+
 		seconds := dur / time.Second
 		dur %= time.Second
-		
+
 		millis := dur / time.Millisecond
 		dur %= time.Millisecond
-		
+
 		micros := dur / time.Microsecond
 		dur %= time.Microsecond
-		
+
 		nanos := dur
-		
+
 		if hours > 0 {
 			if hours == 1 {
 				parts = append(parts, "1 hour")
@@ -180,7 +180,7 @@ func FormatDuration(d Duration) string {
 				parts = append(parts, fmt.Sprintf("%d hours", hours))
 			}
 		}
-		
+
 		if minutes > 0 {
 			if minutes == 1 {
 				parts = append(parts, "1 minute")
@@ -188,7 +188,7 @@ func FormatDuration(d Duration) string {
 				parts = append(parts, fmt.Sprintf("%d minutes", minutes))
 			}
 		}
-		
+
 		if seconds > 0 {
 			if seconds == 1 {
 				parts = append(parts, "1 second")
@@ -196,24 +196,24 @@ func FormatDuration(d Duration) string {
 				parts = append(parts, fmt.Sprintf("%d seconds", seconds))
 			}
 		}
-		
+
 		if millis > 0 {
 			parts = append(parts, fmt.Sprintf("%d ms", millis))
 		}
-		
+
 		if micros > 0 {
 			parts = append(parts, fmt.Sprintf("%d µs", micros))
 		}
-		
+
 		if nanos > 0 {
 			parts = append(parts, fmt.Sprintf("%d ns", nanos))
 		}
 	}
-	
+
 	if len(parts) == 0 {
 		return "0s"
 	}
-	
+
 	return strings.Join(parts, " ")
 }
 

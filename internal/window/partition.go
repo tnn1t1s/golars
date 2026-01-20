@@ -11,25 +11,25 @@ import (
 type Partition interface {
 	// Series returns all series in the partition
 	Series() map[string]series.Series
-	
+
 	// Column returns a specific series by name
 	Column(name string) (series.Series, error)
-	
+
 	// Indices returns the row indices for this partition
 	Indices() []int
-	
+
 	// Size returns the number of rows in the partition
 	Size() int
-	
+
 	// IsOrdered returns true if the partition has been ordered
 	IsOrdered() bool
-	
+
 	// OrderIndices returns the indices in sorted order (if ordered)
 	OrderIndices() []int
-	
+
 	// ApplyOrder sorts the partition according to the given order clauses
 	ApplyOrder(orderBy []OrderClause) error
-	
+
 	// FrameBounds calculates the frame boundaries for a specific row
 	FrameBounds(row int, frame *FrameSpec) (start, end int)
 }
@@ -92,21 +92,21 @@ func (p *WindowPartition) ApplyOrder(orderBy []OrderClause) error {
 	if len(orderBy) == 0 {
 		return nil
 	}
-	
+
 	// Store the order by clauses
 	p.orderBy = orderBy
-	
+
 	// Create a copy of indices to sort
 	p.orderIndices = make([]int, len(p.indices))
 	copy(p.orderIndices, p.indices)
-	
+
 	// Multi-column stable sort
 	sort.SliceStable(p.orderIndices, func(i, j int) bool {
 		idx1, idx2 := p.orderIndices[i], p.orderIndices[j]
-		
+
 		for _, clause := range orderBy {
 			var val1, val2 interface{}
-			
+
 			if clause.Column != "" {
 				// Column-based ordering
 				if s, ok := p.series[clause.Column]; ok {
@@ -118,7 +118,7 @@ func (p *WindowPartition) ApplyOrder(orderBy []OrderClause) error {
 				// For now, we'll skip expression-based ordering
 				continue
 			}
-			
+
 			cmp := compareValues(val1, val2)
 			if cmp != 0 {
 				if clause.Ascending {
@@ -127,10 +127,10 @@ func (p *WindowPartition) ApplyOrder(orderBy []OrderClause) error {
 				return cmp > 0
 			}
 		}
-		
+
 		return false
 	})
-	
+
 	p.isOrdered = true
 	return nil
 }
@@ -140,7 +140,7 @@ func (p *WindowPartition) GetOrderValue(row int) interface{} {
 	if !p.isOrdered || len(p.orderBy) == 0 {
 		return nil
 	}
-	
+
 	// Get the actual row index
 	var idx int
 	if row < len(p.orderIndices) {
@@ -148,7 +148,7 @@ func (p *WindowPartition) GetOrderValue(row int) interface{} {
 	} else {
 		return nil
 	}
-	
+
 	// Return the value from the first order column
 	// For multi-column ordering, RANGE frames only use the first column
 	firstOrderCol := p.orderBy[0]
@@ -157,7 +157,7 @@ func (p *WindowPartition) GetOrderValue(row int) interface{} {
 			return s.Get(idx)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -167,7 +167,7 @@ func (p *WindowPartition) FrameBounds(row int, frame *FrameSpec) (start, end int
 		// Default frame: entire partition
 		return 0, p.size
 	}
-	
+
 	switch frame.Type {
 	case RowsFrame:
 		return p.calculateRowBounds(row, frame)
@@ -197,7 +197,7 @@ func (p *WindowPartition) calculateRowBounds(currentRow int, frame *FrameSpec) (
 	case UnboundedFollowing:
 		start = p.size
 	}
-	
+
 	// Calculate end boundary
 	switch frame.End.Type {
 	case UnboundedPreceding:
@@ -213,12 +213,12 @@ func (p *WindowPartition) calculateRowBounds(currentRow int, frame *FrameSpec) (
 	case UnboundedFollowing:
 		end = p.size
 	}
-	
+
 	// Ensure valid bounds
 	if start > end {
 		start, end = end, start
 	}
-	
+
 	return start, end
 }
 
@@ -229,20 +229,20 @@ func (p *WindowPartition) calculateRangeBounds(currentRow int, frame *FrameSpec)
 		// Without ordering, treat as entire partition
 		return 0, p.size
 	}
-	
+
 	// Get the current row's order value
 	currentValue := p.GetOrderValue(currentRow)
 	if currentValue == nil {
 		// Null values - handle separately
 		return p.calculateNullRangeBounds(currentRow, frame)
 	}
-	
+
 	// Calculate start boundary
 	start = p.findRangeStart(currentRow, currentValue, frame.Start)
-	
+
 	// Calculate end boundary
 	end = p.findRangeEnd(currentRow, currentValue, frame.End)
-	
+
 	return start, end
 }
 
@@ -251,7 +251,7 @@ func (p *WindowPartition) findRangeStart(currentRow int, currentValue interface{
 	switch bound.Type {
 	case UnboundedPreceding:
 		return 0
-		
+
 	case Preceding:
 		// Find first row where value >= (currentValue - offset)
 		targetValue := subtractOffset(currentValue, bound.Offset)
@@ -262,7 +262,7 @@ func (p *WindowPartition) findRangeStart(currentRow int, currentValue interface{
 			}
 		}
 		return p.size
-		
+
 	case CurrentRow:
 		// Find first row with same value (peer row)
 		for i := 0; i < currentRow; i++ {
@@ -272,7 +272,7 @@ func (p *WindowPartition) findRangeStart(currentRow int, currentValue interface{
 			}
 		}
 		return currentRow
-		
+
 	case Following:
 		// Find first row where value >= (currentValue + offset)
 		targetValue := addOffset(currentValue, bound.Offset)
@@ -283,11 +283,11 @@ func (p *WindowPartition) findRangeStart(currentRow int, currentValue interface{
 			}
 		}
 		return p.size
-		
+
 	case UnboundedFollowing:
 		return p.size
 	}
-	
+
 	return 0
 }
 
@@ -296,7 +296,7 @@ func (p *WindowPartition) findRangeEnd(currentRow int, currentValue interface{},
 	switch bound.Type {
 	case UnboundedPreceding:
 		return 0
-		
+
 	case Preceding:
 		// Find last row where value <= (currentValue - offset) + 1
 		targetValue := subtractOffset(currentValue, bound.Offset)
@@ -310,7 +310,7 @@ func (p *WindowPartition) findRangeEnd(currentRow int, currentValue interface{},
 			}
 		}
 		return end
-		
+
 	case CurrentRow:
 		// Find last row with same value (peer row) + 1
 		end := currentRow + 1
@@ -323,7 +323,7 @@ func (p *WindowPartition) findRangeEnd(currentRow int, currentValue interface{},
 			}
 		}
 		return end
-		
+
 	case Following:
 		// Find last row where value <= (currentValue + offset) + 1
 		targetValue := addOffset(currentValue, bound.Offset)
@@ -337,11 +337,11 @@ func (p *WindowPartition) findRangeEnd(currentRow int, currentValue interface{},
 			}
 		}
 		return end
-		
+
 	case UnboundedFollowing:
 		return p.size
 	}
-	
+
 	return p.size
 }
 
@@ -350,7 +350,7 @@ func (p *WindowPartition) calculateNullRangeBounds(currentRow int, frame *FrameS
 	// For null values in RANGE frames, include all nulls as peers
 	start = currentRow
 	end = currentRow + 1
-	
+
 	// Find all null peers before current row
 	for i := currentRow - 1; i >= 0; i-- {
 		if p.GetOrderValue(i) == nil {
@@ -359,7 +359,7 @@ func (p *WindowPartition) calculateNullRangeBounds(currentRow int, frame *FrameS
 			break
 		}
 	}
-	
+
 	// Find all null peers after current row
 	for i := currentRow + 1; i < p.size; i++ {
 		if p.GetOrderValue(i) == nil {
@@ -368,7 +368,7 @@ func (p *WindowPartition) calculateNullRangeBounds(currentRow int, frame *FrameS
 			break
 		}
 	}
-	
+
 	return start, end
 }
 
@@ -377,7 +377,7 @@ func addOffset(value interface{}, offset interface{}) interface{} {
 	if offset == nil {
 		return value
 	}
-	
+
 	switch v := value.(type) {
 	case int8:
 		return v + offset.(int8)
@@ -404,7 +404,7 @@ func subtractOffset(value interface{}, offset interface{}) interface{} {
 	if offset == nil {
 		return value
 	}
-	
+
 	switch v := value.(type) {
 	case int8:
 		return v - offset.(int8)
@@ -433,10 +433,10 @@ func (p *WindowPartition) calculateGroupsBounds(currentRow int, frame *FrameSpec
 		// Without ordering, treat as entire partition
 		return 0, p.size
 	}
-	
+
 	// Find peer groups
 	groups := p.findPeerGroups()
-	
+
 	// Find which group the current row belongs to
 	currentGroup := -1
 	for i, group := range groups {
@@ -450,30 +450,30 @@ func (p *WindowPartition) calculateGroupsBounds(currentRow int, frame *FrameSpec
 			break
 		}
 	}
-	
+
 	if currentGroup < 0 {
 		// Current row not found in groups
 		return currentRow, currentRow + 1
 	}
-	
+
 	// Calculate start group
 	startGroup := p.calculateGroupStartBoundary(currentGroup, frame.Start, len(groups))
-	
+
 	// Calculate end group
 	endGroup := p.calculateGroupEndBoundary(currentGroup, frame.End, len(groups))
-	
+
 	// Ensure valid bounds
 	if startGroup > endGroup {
 		startGroup, endGroup = endGroup, startGroup
 	}
-	
+
 	// Convert group indices to row indices
 	if startGroup < len(groups) {
 		start = groups[startGroup][0]
 	} else {
 		start = p.size
 	}
-	
+
 	if endGroup < len(groups) {
 		// End is the first row of the next group (exclusive)
 		end = groups[endGroup][0]
@@ -481,27 +481,27 @@ func (p *WindowPartition) calculateGroupsBounds(currentRow int, frame *FrameSpec
 		// Include all remaining rows
 		end = p.size
 	}
-	
+
 	return start, end
 }
 
 // findPeerGroups identifies groups of rows with the same order value
 func (p *WindowPartition) findPeerGroups() [][]int {
 	groups := make([][]int, 0)
-	
+
 	if p.size == 0 {
 		return groups
 	}
-	
+
 	currentGroup := []int{0}
 	currentValue := p.GetOrderValue(0)
-	
+
 	for i := 1; i < p.size; i++ {
 		val := p.GetOrderValue(i)
-		
+
 		// Check if this row is a peer of the current group
-		if (currentValue == nil && val == nil) || 
-		   (currentValue != nil && val != nil && compareValues(currentValue, val) == 0) {
+		if (currentValue == nil && val == nil) ||
+			(currentValue != nil && val != nil && compareValues(currentValue, val) == 0) {
 			// Same value, add to current group
 			currentGroup = append(currentGroup, i)
 		} else {
@@ -511,12 +511,12 @@ func (p *WindowPartition) findPeerGroups() [][]int {
 			currentValue = val
 		}
 	}
-	
+
 	// Add the last group
 	if len(currentGroup) > 0 {
 		groups = append(groups, currentGroup)
 	}
-	
+
 	return groups
 }
 
@@ -570,7 +570,7 @@ func compareValues(a, b interface{}) int {
 	if b == nil {
 		return 1
 	}
-	
+
 	// Type-specific comparison
 	switch va := a.(type) {
 	case int8:

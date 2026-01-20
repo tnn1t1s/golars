@@ -12,14 +12,14 @@ func (df *DataFrame) Stack(columns ...string) (*DataFrame, error) {
 	if len(columns) == 0 {
 		return nil, fmt.Errorf("at least one column must be specified for stacking")
 	}
-	
+
 	// Get column indices
 	columnNames := df.Columns()
 	columnMap := make(map[string]int)
 	for i, name := range columnNames {
 		columnMap[name] = i
 	}
-	
+
 	// Validate columns exist
 	stackIndices := make([]int, 0, len(columns))
 	for _, col := range columns {
@@ -29,7 +29,7 @@ func (df *DataFrame) Stack(columns ...string) (*DataFrame, error) {
 		}
 		stackIndices = append(stackIndices, idx)
 	}
-	
+
 	// Get non-stack column indices
 	idIndices := make([]int, 0)
 	idNames := make([]string, 0)
@@ -46,24 +46,24 @@ func (df *DataFrame) Stack(columns ...string) (*DataFrame, error) {
 			idNames = append(idNames, name)
 		}
 	}
-	
+
 	// Create result
 	numStackCols := len(stackIndices)
 	originalRows := df.Height()
 	newRows := originalRows * numStackCols
-	
+
 	resultColumns := make([]series.Series, 0)
-	
+
 	// Repeat ID columns
 	for idx, idIdx := range idIndices {
 		idName := idNames[idx]
 		idCol := df.columns[idIdx]
-		
+
 		// Use the helper function from melt.go
 		newSeries := createRepeatedSeries(idCol, idName, originalRows, numStackCols)
 		resultColumns = append(resultColumns, newSeries)
 	}
-	
+
 	// Create level column (column names)
 	levelValues := make([]string, newRows)
 	levelIdx := 0
@@ -74,15 +74,15 @@ func (df *DataFrame) Stack(columns ...string) (*DataFrame, error) {
 		}
 	}
 	resultColumns = append(resultColumns, series.NewStringSeries("level_1", levelValues))
-	
+
 	// Determine common type from stack columns
 	var commonType = df.columns[stackIndices[0]].DataType()
-	
+
 	// Create value column data
 	valueIndices := stackIndices
 	valueSeries := createValueSeries(df, valueIndices, originalRows, "value", commonType)
 	resultColumns = append(resultColumns, valueSeries)
-	
+
 	return NewDataFrame(resultColumns...)
 }
 
@@ -100,11 +100,11 @@ func (df *DataFrame) Unstack(levelColumn string, fillValue interface{}) (*DataFr
 			break
 		}
 	}
-	
+
 	if valueCol == "" {
 		return nil, fmt.Errorf("could not determine value column")
 	}
-	
+
 	// Get index columns (all except level and value)
 	indexCols := make([]string, 0)
 	for _, col := range columns {
@@ -112,7 +112,7 @@ func (df *DataFrame) Unstack(levelColumn string, fillValue interface{}) (*DataFr
 			indexCols = append(indexCols, col)
 		}
 	}
-	
+
 	// Use pivot to unstack
 	return df.Pivot(PivotOptions{
 		Index:     indexCols,
@@ -129,18 +129,18 @@ func (df *DataFrame) Transpose() (*DataFrame, error) {
 	if df.Height() == 0 {
 		return nil, fmt.Errorf("cannot transpose empty DataFrame")
 	}
-	
+
 	columnNames := df.Columns()
 	resultColumns := make([]series.Series, 0)
-	
+
 	// The original column names become the first column
 	resultColumns = append(resultColumns, series.NewStringSeries("index", columnNames))
-	
+
 	// Each row becomes a new column
 	for i := 0; i < df.Height(); i++ {
 		colName := fmt.Sprintf("row_%d", i)
 		values := make([]string, len(columnNames))
-		
+
 		for j, col := range df.columns {
 			// Convert all values to string for simplicity
 			if !col.IsNull(i) {
@@ -149,10 +149,10 @@ func (df *DataFrame) Transpose() (*DataFrame, error) {
 				values[j] = ""
 			}
 		}
-		
+
 		// Use string type for now (could be improved with type detection)
 		resultColumns = append(resultColumns, series.NewStringSeries(colName, values))
 	}
-	
+
 	return NewDataFrame(resultColumns...)
 }

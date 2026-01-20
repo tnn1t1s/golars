@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestJSONReader(t *testing.T) {
@@ -133,7 +133,7 @@ func TestJSONReader(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected.rows, dfLen(df))
-			
+
 			// Check columns exist
 			for _, col := range tt.expected.columns {
 				assert.True(t, hasColumn(df, col), "column %s should exist", col)
@@ -198,7 +198,7 @@ func TestTypeInference(t *testing.T) {
 			reader := NewReader()
 			df, err := reader.Read(strings.NewReader(tt.json))
 			require.NoError(t, err)
-			
+
 			col := getColumn(df, "value")
 			require.NotNil(t, col)
 			assert.Equal(t, tt.expected.String(), col.DataType().String())
@@ -287,7 +287,7 @@ func TestReadWithOptions(t *testing.T) {
 		reader := NewReader(WithFlatten(false))
 		df, err := reader.Read(strings.NewReader(json))
 		require.NoError(t, err)
-		
+
 		// meta column should exist but contain string representation
 		metaCol := getColumn(df, "meta")
 		assert.NotNil(t, metaCol)
@@ -297,7 +297,7 @@ func TestReadWithOptions(t *testing.T) {
 		reader := NewReader(WithColumns([]string{"name", "score"}))
 		df, err := reader.Read(strings.NewReader(json))
 		require.NoError(t, err)
-		
+
 		// Note: Column filtering happens at a higher level
 		// The reader still reads all columns
 		assert.True(t, hasColumn(df, "id"))
@@ -310,7 +310,7 @@ func TestSeriesBuilder(t *testing.T) {
 		builder.append(true)
 		builder.append(false)
 		builder.appendNull()
-		
+
 		series, err := builder.build()
 		require.NoError(t, err)
 		assert.Equal(t, 3, series.Len())
@@ -325,7 +325,7 @@ func TestSeriesBuilder(t *testing.T) {
 		builder.append(10.0) // JSON numbers come as float64
 		builder.append(20.0)
 		builder.append("invalid") // Should become null
-		
+
 		series, err := builder.build()
 		require.NoError(t, err)
 		assert.Equal(t, 3, series.Len())
@@ -340,7 +340,7 @@ func TestSeriesBuilder(t *testing.T) {
 		builder.append("hello")
 		builder.append(123) // Numbers convert to string
 		builder.appendNull()
-		
+
 		series, err := builder.build()
 		require.NoError(t, err)
 		assert.Equal(t, 3, series.Len())

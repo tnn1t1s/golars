@@ -26,7 +26,7 @@ func (df *DataFrame) Mode(axis int, numeric bool, dropNaN bool) (*DataFrame, err
 
 		// Calculate mode for this column
 		modeValue := calculateMode(col, dropNaN)
-		
+
 		// Create a single-value series with the mode
 		var modeSeries series.Series
 		switch col.DataType().(type) {
@@ -62,7 +62,7 @@ func (df *DataFrame) Mode(axis int, numeric bool, dropNaN bool) (*DataFrame, err
 				modeSeries = series.NewFloat64Series(col.Name(), []float64{toFloat64Value(modeValue)})
 			}
 		}
-		
+
 		resultColumns = append(resultColumns, modeSeries)
 	}
 
@@ -107,7 +107,7 @@ func (df *DataFrame) Skew(axis int, skipNA bool) (*DataFrame, error) {
 	}
 
 	for i, name := range columnNames {
-		resultColumns = append(resultColumns, 
+		resultColumns = append(resultColumns,
 			series.NewFloat64Series(name, []float64{skewValues[i]}))
 	}
 
@@ -148,7 +148,7 @@ func (df *DataFrame) Kurtosis(axis int, skipNA bool) (*DataFrame, error) {
 	}
 
 	for i, name := range columnNames {
-		resultColumns = append(resultColumns, 
+		resultColumns = append(resultColumns,
 			series.NewFloat64Series(name, []float64{kurtosisValues[i]}))
 	}
 
@@ -159,32 +159,32 @@ func (df *DataFrame) Kurtosis(axis int, skipNA bool) (*DataFrame, error) {
 func calculateMode(s series.Series, dropNaN bool) interface{} {
 	// Count frequency of each value
 	counts := make(map[interface{}]int)
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if dropNaN && s.IsNull(i) {
 			continue
 		}
-		
+
 		val := s.Get(i)
 		counts[val]++
 	}
-	
+
 	if len(counts) == 0 {
 		// Return null if no valid values
 		return nil
 	}
-	
+
 	// Find the value with maximum count
 	var mode interface{}
 	maxCount := 0
-	
+
 	for val, count := range counts {
 		if count > maxCount {
 			maxCount = count
 			mode = val
 		}
 	}
-	
+
 	return mode
 }
 
@@ -227,7 +227,7 @@ func calculateSkewness(s series.Series, skipNA bool) (float64, error) {
 	}
 
 	skewness := m3 / math.Pow(m2, 1.5)
-	
+
 	// Apply bias correction (sample skewness)
 	if n > 2 {
 		skewness *= math.Sqrt(float64(n*(n-1))) / float64(n-2)
@@ -279,7 +279,7 @@ func calculateKurtosis(s series.Series, skipNA bool) (float64, error) {
 
 	// Apply bias correction (sample kurtosis)
 	if n > 3 {
-		kurtosis = float64(n-1) / float64((n-2)*(n-3)) * 
+		kurtosis = float64(n-1) / float64((n-2)*(n-3)) *
 			((float64(n+1)*kurtosis + 6) * float64(n-1) / float64(n))
 	}
 
@@ -389,7 +389,7 @@ func (df *DataFrame) NUnique(axis int, dropNaN bool) (*DataFrame, error) {
 	}
 
 	for i, name := range columnNames {
-		resultColumns = append(resultColumns, 
+		resultColumns = append(resultColumns,
 			series.NewInt64Series(name, []int64{uniqueCounts[i]}))
 	}
 
@@ -399,7 +399,7 @@ func (df *DataFrame) NUnique(axis int, dropNaN bool) (*DataFrame, error) {
 // Helper function to count unique values
 func countUnique(s series.Series, dropNaN bool) int64 {
 	seen := make(map[interface{}]bool)
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if dropNaN && s.IsNull(i) {
 			continue
@@ -407,7 +407,7 @@ func countUnique(s series.Series, dropNaN bool) int64 {
 		val := s.Get(i)
 		seen[val] = true
 	}
-	
+
 	return int64(len(seen))
 }
 
@@ -451,7 +451,7 @@ func (df *DataFrame) Rank(options RankOptions) (*DataFrame, error) {
 
 	// Create result columns
 	resultColumns := make([]series.Series, len(df.columns))
-	
+
 	for i, col := range df.columns {
 		// Check if this column should be ranked
 		shouldRank := false
@@ -478,14 +478,14 @@ func (df *DataFrame) Rank(options RankOptions) (*DataFrame, error) {
 // Helper function to rank a single series
 func rankSeries(s series.Series, options RankOptions) series.Series {
 	length := s.Len()
-	
+
 	// Create index-value pairs for sorting
 	type indexValue struct {
-		index int
-		value float64
+		index  int
+		value  float64
 		isNull bool
 	}
-	
+
 	pairs := make([]indexValue, length)
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
@@ -494,7 +494,7 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 			pairs[i] = indexValue{index: i, value: toFloat64Value(s.Get(i)), isNull: false}
 		}
 	}
-	
+
 	// Sort pairs based on value and null handling
 	sort.Slice(pairs, func(i, j int) bool {
 		// Handle nulls based on NaOption
@@ -507,18 +507,18 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 		if pairs[j].isNull {
 			return options.NaOption != "top"
 		}
-		
+
 		// Both non-null, sort by value
 		if options.Ascending {
 			return pairs[i].value < pairs[j].value
 		}
 		return pairs[i].value > pairs[j].value
 	})
-	
+
 	// Assign ranks based on method
 	ranks := make([]float64, length)
 	validity := make([]bool, length)
-	
+
 	switch options.Method {
 	case "average":
 		// Average rank for ties
@@ -529,24 +529,24 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 				i++
 				continue
 			}
-			
+
 			// Find all elements with the same value
 			j := i
-			for j < len(pairs) && !pairs[j].isNull && 
+			for j < len(pairs) && !pairs[j].isNull &&
 				(j == i || pairs[j].value == pairs[i].value) {
 				j++
 			}
-			
+
 			// Calculate average rank
 			avgRank := float64(i+j+1) / 2.0
 			for k := i; k < j; k++ {
 				ranks[pairs[k].index] = avgRank
 				validity[pairs[k].index] = true
 			}
-			
+
 			i = j
 		}
-		
+
 	case "min":
 		// Minimum rank for ties
 		i := 0
@@ -556,23 +556,23 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 				i++
 				continue
 			}
-			
+
 			// Find all elements with the same value
 			j := i
-			for j < len(pairs) && !pairs[j].isNull && 
+			for j < len(pairs) && !pairs[j].isNull &&
 				(j == i || pairs[j].value == pairs[i].value) {
 				j++
 			}
-			
+
 			// Assign minimum rank
 			for k := i; k < j; k++ {
 				ranks[pairs[k].index] = float64(i + 1)
 				validity[pairs[k].index] = true
 			}
-			
+
 			i = j
 		}
-		
+
 	case "max":
 		// Maximum rank for ties
 		i := 0
@@ -582,45 +582,45 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 				i++
 				continue
 			}
-			
+
 			// Find all elements with the same value
 			j := i
-			for j < len(pairs) && !pairs[j].isNull && 
+			for j < len(pairs) && !pairs[j].isNull &&
 				(j == i || pairs[j].value == pairs[i].value) {
 				j++
 			}
-			
+
 			// Assign maximum rank
 			for k := i; k < j; k++ {
 				ranks[pairs[k].index] = float64(j)
 				validity[pairs[k].index] = true
 			}
-			
+
 			i = j
 		}
-		
+
 	case "dense":
 		// Dense ranking (no gaps)
 		rank := 1.0
 		lastValue := math.NaN()
-		
+
 		for _, pair := range pairs {
 			if pair.isNull && options.NaOption == "keep" {
 				validity[pair.index] = false
 				continue
 			}
-			
+
 			if !pair.isNull && pair.value != lastValue {
 				if !math.IsNaN(lastValue) {
 					rank++
 				}
 				lastValue = pair.value
 			}
-			
+
 			ranks[pair.index] = rank
 			validity[pair.index] = true
 		}
-		
+
 	case "ordinal":
 		// No ties, each value gets unique rank
 		rank := 1.0
@@ -629,13 +629,13 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 				validity[pair.index] = false
 				continue
 			}
-			
+
 			ranks[pair.index] = rank
 			validity[pair.index] = true
 			rank++
 		}
 	}
-	
+
 	// Convert to percentile ranks if requested
 	if options.Pct {
 		validCount := 0
@@ -644,7 +644,7 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 				validCount++
 			}
 		}
-		
+
 		if validCount > 0 {
 			for i := range ranks {
 				if validity[i] {
@@ -653,6 +653,6 @@ func rankSeries(s series.Series, options RankOptions) series.Series {
 			}
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(s.Name(), ranks, validity, datatypes.Float64{})
 }

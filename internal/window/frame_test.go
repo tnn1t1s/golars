@@ -3,9 +3,9 @@ package window
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestFrameSpecValidation(t *testing.T) {
@@ -15,8 +15,8 @@ func TestFrameSpecValidation(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid rows between",
-			spec: NewSpec().RowsBetween(-1, 1), // 1 preceding to 1 following
+			name:    "valid rows between",
+			spec:    NewSpec().RowsBetween(-1, 1), // 1 preceding to 1 following
 			wantErr: false,
 		},
 		{
@@ -46,8 +46,8 @@ func TestFrameSpecValidation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid frame - end before start",
-			spec: NewSpec().RowsBetween(1, -1), // 1 following to 1 preceding (invalid)
+			name:    "invalid frame - end before start",
+			spec:    NewSpec().RowsBetween(1, -1), // 1 following to 1 preceding (invalid)
 			wantErr: true,
 		},
 	}
@@ -57,7 +57,7 @@ func TestFrameSpecValidation(t *testing.T) {
 			// Test with a simple aggregate function
 			f := &sumFunc{spec: tt.spec}
 			err := f.Validate(tt.spec)
-			
+
 			// Frame validation happens during compute
 			if tt.wantErr {
 				// We expect frame validation to fail during actual computation
@@ -88,11 +88,11 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 		expectedEnd   int
 	}{
 		{
-			name: "default frame - unbounded preceding to current",
-			frameSpec: nil,
-			currentRow: 5,
+			name:          "default frame - unbounded preceding to current",
+			frameSpec:     nil,
+			currentRow:    5,
 			expectedStart: 0,
-			expectedEnd: 10, // default is entire partition when frame is nil
+			expectedEnd:   10, // default is entire partition when frame is nil
 		},
 		{
 			name: "3 preceding to current",
@@ -101,9 +101,9 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 				Start: FrameBound{Type: Preceding, Offset: 3},
 				End:   FrameBound{Type: CurrentRow},
 			},
-			currentRow: 5,
+			currentRow:    5,
 			expectedStart: 2,
-			expectedEnd: 6, // currentRow + 1
+			expectedEnd:   6, // currentRow + 1
 		},
 		{
 			name: "current to 3 following",
@@ -112,9 +112,9 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 				Start: FrameBound{Type: CurrentRow},
 				End:   FrameBound{Type: Following, Offset: 3},
 			},
-			currentRow: 5,
+			currentRow:    5,
 			expectedStart: 5,
-			expectedEnd: 9, // min(size, currentRow + offset + 1)
+			expectedEnd:   9, // min(size, currentRow + offset + 1)
 		},
 		{
 			name: "2 preceding to 2 following",
@@ -123,9 +123,9 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 				Start: FrameBound{Type: Preceding, Offset: 2},
 				End:   FrameBound{Type: Following, Offset: 2},
 			},
-			currentRow: 5,
+			currentRow:    5,
 			expectedStart: 3,
-			expectedEnd: 8, // currentRow + 2 + 1
+			expectedEnd:   8, // currentRow + 2 + 1
 		},
 		{
 			name: "at start - 3 preceding to current",
@@ -134,9 +134,9 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 				Start: FrameBound{Type: Preceding, Offset: 3},
 				End:   FrameBound{Type: CurrentRow},
 			},
-			currentRow: 1,
+			currentRow:    1,
 			expectedStart: 0,
-			expectedEnd: 2, // currentRow + 1
+			expectedEnd:   2, // currentRow + 1
 		},
 		{
 			name: "at end - current to 3 following",
@@ -145,9 +145,9 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 				Start: FrameBound{Type: CurrentRow},
 				End:   FrameBound{Type: Following, Offset: 3},
 			},
-			currentRow: 8,
+			currentRow:    8,
 			expectedStart: 8,
-			expectedEnd: 10, // min(size, currentRow + 3 + 1)
+			expectedEnd:   10, // min(size, currentRow + 3 + 1)
 		},
 		{
 			name: "unbounded both sides",
@@ -156,9 +156,9 @@ func TestFrameBoundaryCalculations(t *testing.T) {
 				Start: FrameBound{Type: UnboundedPreceding},
 				End:   FrameBound{Type: UnboundedFollowing},
 			},
-			currentRow: 5,
+			currentRow:    5,
 			expectedStart: 0,
-			expectedEnd: 10, // size
+			expectedEnd:   10, // size
 		},
 	}
 
@@ -184,10 +184,10 @@ func TestFrameWithDifferentAggregates(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		function    Function
-		frameSpec   *FrameSpec
-		expected    []interface{}
+		name      string
+		function  Function
+		frameSpec *FrameSpec
+		expected  []interface{}
 	}{
 		{
 			name: "sum with 1 preceding to 1 following",
@@ -295,7 +295,7 @@ func TestFrameWithDifferentAggregates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := tt.function.Compute(partition)
 			require.NoError(t, err)
-			
+
 			for i, expected := range tt.expected {
 				switch exp := expected.(type) {
 				case int32:

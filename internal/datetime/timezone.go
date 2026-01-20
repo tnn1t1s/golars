@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -15,10 +15,10 @@ func (dt DateTime) ConvertTimezone(tz *time.Location) DateTime {
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	// Convert to time.Time in current timezone, then to new timezone
 	t := dt.Time().In(tz)
-	
+
 	return DateTime{
 		timestamp: t.UnixNano(),
 		timezone:  tz,
@@ -31,7 +31,7 @@ func (dt DateTime) WithTimezone(tz *time.Location) DateTime {
 	if tz == nil {
 		tz = time.UTC
 	}
-	
+
 	return DateTime{
 		timestamp: dt.timestamp,
 		timezone:  tz,
@@ -44,7 +44,7 @@ func (dt DateTime) InTimezone(tzName string) (DateTime, error) {
 	if err != nil {
 		return dt, err
 	}
-	
+
 	return dt.ConvertTimezone(tz), nil
 }
 
@@ -87,15 +87,15 @@ func (dts *DateTimeSeries) ConvertTimezone(tzName string) (series.Series, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load timezone %s: %w", tzName, err)
 	}
-	
+
 	name := fmt.Sprintf("%s_tz_%s", dts.s.Name(), tzName)
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		length := dts.s.Len()
 		values := make([]int64, length)
 		validity := make([]bool, length)
-		
+
 		for i := 0; i < length; i++ {
 			if dts.s.IsNull(i) {
 				validity[i] = false
@@ -107,15 +107,15 @@ func (dts *DateTimeSeries) ConvertTimezone(tzName string) (series.Series, error)
 				validity[i] = true
 			}
 		}
-		
+
 		// Create new datetime type with timezone info
 		newDt := datatypes.Datetime{
 			Unit:     datatypes.Nanoseconds,
 			TimeZone: tz,
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, newDt), nil
-		
+
 	default:
 		return nil, fmt.Errorf("timezone conversion not supported for type %s", dts.s.DataType())
 	}
@@ -139,9 +139,9 @@ func (dts *DateTimeSeries) Localize(tzName string) (series.Series, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load timezone %s: %w", tzName, err)
 	}
-	
+
 	name := fmt.Sprintf("%s_localized_%s", dts.s.Name(), tzName)
-	
+
 	switch dt := dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		// Simply update the timezone metadata without changing timestamps
@@ -149,14 +149,14 @@ func (dts *DateTimeSeries) Localize(tzName string) (series.Series, error) {
 			Unit:     dt.Unit,
 			TimeZone: tz,
 		}
-		
+
 		// For localize, we keep the same timestamps but update metadata
 		// Since we can't directly modify the datatype, we'll create a new series
 		// with the same values but new datatype
 		length := dts.s.Len()
 		values := make([]int64, length)
 		validity := make([]bool, length)
-		
+
 		for i := 0; i < length; i++ {
 			if dts.s.IsNull(i) {
 				validity[i] = false
@@ -165,9 +165,9 @@ func (dts *DateTimeSeries) Localize(tzName string) (series.Series, error) {
 				validity[i] = true
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, newDt), nil
-		
+
 	default:
 		return nil, fmt.Errorf("localize not supported for type %s", dts.s.DataType())
 	}

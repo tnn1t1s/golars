@@ -3,9 +3,9 @@ package datetime
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/expr"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestDateTimeExpr(t *testing.T) {
@@ -121,7 +121,7 @@ func TestStringToDateTimeExpr(t *testing.T) {
 func TestDateTimeExprIntegration(t *testing.T) {
 	// Test chaining operations
 	col := expr.Col("timestamp")
-	
+
 	// Extract year and alias it
 	yearExpr := DtExpr(col).Year().Alias("year")
 	assert.Equal(t, "year", yearExpr.Name())
@@ -139,7 +139,7 @@ func TestDateTimeExprIntegration(t *testing.T) {
 
 func TestExprIsColumn(t *testing.T) {
 	col := expr.Col("timestamp")
-	
+
 	// All datetime expressions should return false for IsColumn()
 	assert.False(t, DtExpr(col).Year().IsColumn())
 	assert.False(t, DtExpr(col).Format("%Y-%m-%d").IsColumn())

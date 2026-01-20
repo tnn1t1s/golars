@@ -55,7 +55,7 @@ func (r *NDJSONReader) Read(reader io.Reader) (*frame.DataFrame, error) {
 	// Read first chunk for schema inference
 	var records []map[string]interface{}
 	lineCount := 0
-	
+
 	for scanner.Scan() && (r.options.MaxRecords <= 0 || lineCount < r.options.MaxRecords) {
 		line := scanner.Text()
 		if len(line) == 0 {
@@ -129,10 +129,10 @@ func (r *NDJSONReader) ReadStream(reader io.Reader, callback func(*frame.DataFra
 	var schema map[string]datatypes.DataType
 	jsonReader := &Reader{options: r.options}
 	firstChunk := true
-	
+
 	for {
 		records := make([]map[string]interface{}, 0, r.chunkSize)
-		
+
 		// Read a chunk
 		for i := 0; i < r.chunkSize && scanner.Scan(); i++ {
 			line := scanner.Text()

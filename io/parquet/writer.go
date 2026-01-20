@@ -10,8 +10,8 @@ import (
 	"github.com/apache/arrow/go/v14/parquet"
 	"github.com/apache/arrow/go/v14/parquet/compress"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -46,7 +46,7 @@ type WriterOptions struct {
 func DefaultWriterOptions() WriterOptions {
 	return WriterOptions{
 		Compression:      CompressionSnappy,
-		CompressionLevel: -1, // Default level
+		CompressionLevel: -1,                // Default level
 		RowGroupSize:     128 * 1024 * 1024, // 128MB
 		PageSize:         1024 * 1024,       // 1MB
 		UseDictionary:    true,
@@ -120,14 +120,14 @@ func (w *Writer) createWriterProperties() *parquet.WriterProperties {
 		parquet.WithCompression(w.getCompressionCodec()),
 		parquet.WithDataPageSize(w.opts.PageSize),
 	}
-	
+
 	// Add dictionary encoding option
 	if w.opts.UseDictionary {
 		options = append(options, parquet.WithDictionaryDefault(true))
 	} else {
 		options = append(options, parquet.WithDictionaryDefault(false))
 	}
-	
+
 	// Add compression level if applicable
 	if w.opts.CompressionLevel >= 0 {
 		switch w.opts.Compression {
@@ -135,7 +135,7 @@ func (w *Writer) createWriterProperties() *parquet.WriterProperties {
 			options = append(options, parquet.WithCompressionLevel(w.opts.CompressionLevel))
 		}
 	}
-	
+
 	return parquet.NewWriterProperties(options...)
 }
 
@@ -169,30 +169,30 @@ func (w *Writer) dataFrameToTable(df *frame.DataFrame) (arrow.Table, error) {
 	// Build schema
 	fields := make([]arrow.Field, numCols)
 	columns := make([]arrow.Column, numCols)
-	
+
 	columnNames := df.Columns()
 	for i := 0; i < numCols; i++ {
 		col, err := df.Column(columnNames[i])
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Convert series to arrow column
 		arrowField, arrowColumn, err := w.seriesToArrowColumn(col)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert column %s: %w", col.Name(), err)
 		}
-		
+
 		fields[i] = arrowField
 		columns[i] = *arrowColumn
 	}
-	
+
 	// Create schema
 	schema := arrow.NewSchema(fields, nil)
-	
+
 	// Create table
 	table := array.NewTable(schema, columns, -1)
-	
+
 	return table, nil
 }
 
@@ -200,7 +200,7 @@ func (w *Writer) dataFrameToTable(df *frame.DataFrame) (arrow.Table, error) {
 func (w *Writer) seriesToArrowColumn(s series.Series) (arrow.Field, *arrow.Column, error) {
 	name := s.Name()
 	dtype := s.DataType()
-	
+
 	// Get the appropriate Arrow data type and convert
 	switch dtype.(type) {
 	case datatypes.Boolean:
@@ -225,10 +225,10 @@ func (w *Writer) seriesToArrowColumn(s series.Series) (arrow.Field, *arrow.Colum
 func (w *Writer) boolSeriesToArrow(name string, s series.Series) (arrow.Field, *arrow.Column, error) {
 	builder := array.NewBooleanBuilder(w.opts.Allocator)
 	defer builder.Release()
-	
+
 	length := s.Len()
 	builder.Reserve(length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -240,22 +240,22 @@ func (w *Writer) boolSeriesToArrow(name string, s series.Series) (arrow.Field, *
 			builder.Append(val)
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	field := arrow.Field{Name: name, Type: arrow.FixedWidthTypes.Boolean, Nullable: s.NullCount() > 0}
 	chunk := arrow.NewChunked(field.Type, []arrow.Array{arr})
 	col := arrow.NewColumn(field, chunk)
-	
+
 	return field, col, nil
 }
 
 func (w *Writer) int32SeriesToArrow(name string, s series.Series) (arrow.Field, *arrow.Column, error) {
 	builder := array.NewInt32Builder(w.opts.Allocator)
 	defer builder.Release()
-	
+
 	length := s.Len()
 	builder.Reserve(length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -267,22 +267,22 @@ func (w *Writer) int32SeriesToArrow(name string, s series.Series) (arrow.Field, 
 			builder.Append(val)
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	field := arrow.Field{Name: name, Type: arrow.PrimitiveTypes.Int32, Nullable: s.NullCount() > 0}
 	chunk := arrow.NewChunked(field.Type, []arrow.Array{arr})
 	col := arrow.NewColumn(field, chunk)
-	
+
 	return field, col, nil
 }
 
 func (w *Writer) int64SeriesToArrow(name string, s series.Series) (arrow.Field, *arrow.Column, error) {
 	builder := array.NewInt64Builder(w.opts.Allocator)
 	defer builder.Release()
-	
+
 	length := s.Len()
 	builder.Reserve(length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -294,22 +294,22 @@ func (w *Writer) int64SeriesToArrow(name string, s series.Series) (arrow.Field, 
 			builder.Append(val)
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	field := arrow.Field{Name: name, Type: arrow.PrimitiveTypes.Int64, Nullable: s.NullCount() > 0}
 	chunk := arrow.NewChunked(field.Type, []arrow.Array{arr})
 	col := arrow.NewColumn(field, chunk)
-	
+
 	return field, col, nil
 }
 
 func (w *Writer) float32SeriesToArrow(name string, s series.Series) (arrow.Field, *arrow.Column, error) {
 	builder := array.NewFloat32Builder(w.opts.Allocator)
 	defer builder.Release()
-	
+
 	length := s.Len()
 	builder.Reserve(length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -321,22 +321,22 @@ func (w *Writer) float32SeriesToArrow(name string, s series.Series) (arrow.Field
 			builder.Append(val)
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	field := arrow.Field{Name: name, Type: arrow.PrimitiveTypes.Float32, Nullable: s.NullCount() > 0}
 	chunk := arrow.NewChunked(field.Type, []arrow.Array{arr})
 	col := arrow.NewColumn(field, chunk)
-	
+
 	return field, col, nil
 }
 
 func (w *Writer) float64SeriesToArrow(name string, s series.Series) (arrow.Field, *arrow.Column, error) {
 	builder := array.NewFloat64Builder(w.opts.Allocator)
 	defer builder.Release()
-	
+
 	length := s.Len()
 	builder.Reserve(length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -348,22 +348,22 @@ func (w *Writer) float64SeriesToArrow(name string, s series.Series) (arrow.Field
 			builder.Append(val)
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	field := arrow.Field{Name: name, Type: arrow.PrimitiveTypes.Float64, Nullable: s.NullCount() > 0}
 	chunk := arrow.NewChunked(field.Type, []arrow.Array{arr})
 	col := arrow.NewColumn(field, chunk)
-	
+
 	return field, col, nil
 }
 
 func (w *Writer) stringSeriesToArrow(name string, s series.Series) (arrow.Field, *arrow.Column, error) {
 	builder := array.NewStringBuilder(w.opts.Allocator)
 	defer builder.Release()
-	
+
 	length := s.Len()
 	builder.Reserve(length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			builder.AppendNull()
@@ -375,12 +375,12 @@ func (w *Writer) stringSeriesToArrow(name string, s series.Series) (arrow.Field,
 			builder.Append(val)
 		}
 	}
-	
+
 	arr := builder.NewArray()
 	field := arrow.Field{Name: name, Type: arrow.BinaryTypes.String, Nullable: s.NullCount() > 0}
 	chunk := arrow.NewChunked(field.Type, []arrow.Array{arr})
 	col := arrow.NewColumn(field, chunk)
-	
+
 	return field, col, nil
 }
 

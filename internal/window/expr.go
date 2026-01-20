@@ -3,8 +3,8 @@ package window
 import (
 	"fmt"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // Expr represents a window expression that combines a function with a window specification
@@ -47,9 +47,9 @@ func (e *Expr) String() string {
 	if e.input != nil {
 		base = fmt.Sprintf("%s(%s)", e.function.Name(), e.input.String())
 	}
-	
+
 	over := "OVER ("
-	
+
 	// Add PARTITION BY clause
 	if e.spec.IsPartitioned() {
 		over += "PARTITION BY "
@@ -61,7 +61,7 @@ func (e *Expr) String() string {
 		}
 		over += " "
 	}
-	
+
 	// Add ORDER BY clause
 	if e.spec.HasOrderBy() {
 		over += "ORDER BY "
@@ -80,7 +80,7 @@ func (e *Expr) String() string {
 		}
 		over += " "
 	}
-	
+
 	// Add frame clause
 	if frame := e.spec.GetFrame(); frame != nil {
 		frameStr := e.frameString(frame)
@@ -88,13 +88,13 @@ func (e *Expr) String() string {
 			over += frameStr + " "
 		}
 	}
-	
+
 	over += ")"
-	
+
 	if e.alias != "" {
 		return fmt.Sprintf("%s %s AS %s", base, over, e.alias)
 	}
-	
+
 	return base + " " + over
 }
 
@@ -103,7 +103,7 @@ func (e *Expr) frameString(frame *FrameSpec) string {
 	if frame == nil {
 		return ""
 	}
-	
+
 	frameType := "ROWS"
 	switch frame.Type {
 	case RangeFrame:
@@ -111,10 +111,10 @@ func (e *Expr) frameString(frame *FrameSpec) string {
 	case GroupsFrame:
 		frameType = "GROUPS"
 	}
-	
+
 	start := e.boundString(frame.Start)
 	end := e.boundString(frame.End)
-	
+
 	return fmt.Sprintf("%s BETWEEN %s AND %s", frameType, start, end)
 }
 

@@ -3,9 +3,9 @@ package frame
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestMergeAsof(t *testing.T) {
@@ -41,11 +41,11 @@ func TestMergeAsof(t *testing.T) {
 		// Check bid values (should be from the last quote before each trade)
 		bid, err := result.Column("bid")
 		require.NoError(t, err)
-		assert.Equal(t, 99.5, bid.Get(0))   // Trade at 1, quote at 0
-		assert.Equal(t, 100.5, bid.Get(1))  // Trade at 5, quote at 3
-		assert.Equal(t, 101.5, bid.Get(2))  // Trade at 10, quote at 7
-		assert.Equal(t, 102.5, bid.Get(3))  // Trade at 15, quote at 12
-		assert.Equal(t, 103.5, bid.Get(4))  // Trade at 20, quote at 18
+		assert.Equal(t, 99.5, bid.Get(0))  // Trade at 1, quote at 0
+		assert.Equal(t, 100.5, bid.Get(1)) // Trade at 5, quote at 3
+		assert.Equal(t, 101.5, bid.Get(2)) // Trade at 10, quote at 7
+		assert.Equal(t, 102.5, bid.Get(3)) // Trade at 15, quote at 12
+		assert.Equal(t, 103.5, bid.Get(4)) // Trade at 20, quote at 18
 	})
 
 	t.Run("Forward merge", func(t *testing.T) {
@@ -72,9 +72,9 @@ func TestMergeAsof(t *testing.T) {
 		// Check forward matches
 		value, err := result.Column("value")
 		require.NoError(t, err)
-		assert.Equal(t, 1.0, value.Get(0))  // Time 1 -> next is 2
-		assert.Equal(t, 2.0, value.Get(1))  // Time 5 -> next is 6
-		assert.Equal(t, 4.0, value.Get(2))  // Time 10 -> next is 12
+		assert.Equal(t, 1.0, value.Get(0)) // Time 1 -> next is 2
+		assert.Equal(t, 2.0, value.Get(1)) // Time 5 -> next is 6
+		assert.Equal(t, 4.0, value.Get(2)) // Time 10 -> next is 12
 	})
 
 	t.Run("Nearest merge", func(t *testing.T) {
@@ -101,9 +101,9 @@ func TestMergeAsof(t *testing.T) {
 		// Check nearest matches
 		value, err := result.Column("value")
 		require.NoError(t, err)
-		assert.Equal(t, 1.0, value.Get(0))  // Time 3 -> nearest is 1 (distance 2)
-		assert.Equal(t, 2.0, value.Get(1))  // Time 7 -> nearest is 5 (distance 2)
-		assert.Equal(t, 3.0, value.Get(2))  // Time 11 -> nearest is 10 (distance 1)
+		assert.Equal(t, 1.0, value.Get(0)) // Time 3 -> nearest is 1 (distance 2)
+		assert.Equal(t, 2.0, value.Get(1)) // Time 7 -> nearest is 5 (distance 2)
+		assert.Equal(t, 3.0, value.Get(2)) // Time 11 -> nearest is 10 (distance 1)
 	})
 
 	t.Run("Merge with tolerance", func(t *testing.T) {
@@ -131,9 +131,9 @@ func TestMergeAsof(t *testing.T) {
 		// Check matches with tolerance
 		value, err := result.Column("value")
 		require.NoError(t, err)
-		assert.True(t, value.IsNull(0))   // Time 5, nearest backward is 1 (distance 4 > tolerance 3)
-		assert.True(t, value.IsNull(1))   // Time 15, nearest backward is 10 (distance 5 > tolerance 3)
-		assert.True(t, value.IsNull(2))   // Time 25, nearest backward is 20 (distance 5 > tolerance 3)
+		assert.True(t, value.IsNull(0)) // Time 5, nearest backward is 1 (distance 4 > tolerance 3)
+		assert.True(t, value.IsNull(1)) // Time 15, nearest backward is 10 (distance 5 > tolerance 3)
+		assert.True(t, value.IsNull(2)) // Time 25, nearest backward is 20 (distance 5 > tolerance 3)
 	})
 
 	t.Run("Merge without exact matches", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestMergeAsof(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Right DataFrame  
+		// Right DataFrame
 		right, err := NewDataFrame(
 			series.NewInt64Series("time", []int64{2, 4, 6}), // Exact same times
 			series.NewFloat64Series("value", []float64{1.0, 2.0, 3.0}),
@@ -166,8 +166,8 @@ func TestMergeAsof(t *testing.T) {
 		value, err := result.Column("value")
 		require.NoError(t, err)
 		assert.True(t, value.IsNull(0))    // No backward match for time 2
-		assert.Equal(t, 1.0, value.Get(1))  // Time 4 matches time 2 (value 1.0)
-		assert.Equal(t, 2.0, value.Get(2))  // Time 6 matches time 4 (value 2.0)
+		assert.Equal(t, 1.0, value.Get(1)) // Time 4 matches time 2 (value 1.0)
+		assert.Equal(t, 2.0, value.Get(2)) // Time 6 matches time 4 (value 2.0)
 	})
 
 	t.Run("Different merge column names", func(t *testing.T) {
@@ -195,9 +195,9 @@ func TestMergeAsof(t *testing.T) {
 		// Check matches
 		value, err := result.Column("value")
 		require.NoError(t, err)
-		assert.Equal(t, 1.0, value.Get(0))  // Trade at 5, quote at 3
-		assert.Equal(t, 2.0, value.Get(1))  // Trade at 10, quote at 8
-		assert.Equal(t, 3.0, value.Get(2))  // Trade at 15, quote at 13
+		assert.Equal(t, 1.0, value.Get(0)) // Trade at 5, quote at 3
+		assert.Equal(t, 2.0, value.Get(1)) // Trade at 10, quote at 8
+		assert.Equal(t, 3.0, value.Get(2)) // Trade at 15, quote at 13
 	})
 
 	t.Run("No matches", func(t *testing.T) {

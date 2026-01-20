@@ -71,7 +71,7 @@ func (s *Spec) OrderBy(col string, ascending ...bool) *Spec {
 	if len(ascending) > 0 {
 		asc = ascending[0]
 	}
-	
+
 	s.orderBy = append(s.orderBy, OrderClause{
 		Column:    col,
 		Expr:      expr.Col(col),
@@ -86,7 +86,7 @@ func (s *Spec) OrderByExpr(expression expr.Expr, ascending ...bool) *Spec {
 	if len(ascending) > 0 {
 		asc = ascending[0]
 	}
-	
+
 	s.orderBy = append(s.orderBy, OrderClause{
 		Expr:      expression,
 		Ascending: asc,
@@ -202,7 +202,7 @@ func (s *Spec) createRangeBound(value interface{}) FrameBound {
 	if value == nil {
 		return FrameBound{Type: UnboundedPreceding}
 	}
-	
+
 	// Check if value is a special string indicating unbounded
 	if str, ok := value.(string); ok {
 		switch str {
@@ -214,7 +214,7 @@ func (s *Spec) createRangeBound(value interface{}) FrameBound {
 			return FrameBound{Type: CurrentRow}
 		}
 	}
-	
+
 	// Numeric values indicate PRECEDING or FOLLOWING with offset
 	switch v := value.(type) {
 	case int:
@@ -276,7 +276,7 @@ func (s *Spec) DefaultFrame() *FrameSpec {
 			End:   FrameBound{Type: CurrentRow},
 		}
 	}
-	
+
 	return &FrameSpec{
 		Type:  RowsFrame,
 		Start: FrameBound{Type: UnboundedPreceding},

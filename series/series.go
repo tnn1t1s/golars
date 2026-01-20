@@ -14,60 +14,60 @@ import (
 type Series interface {
 	// Name returns the name of the series
 	Name() string
-	
+
 	// Rename returns a new series with a different name
 	Rename(name string) Series
-	
+
 	// DataType returns the data type of the series
 	DataType() datatypes.DataType
-	
+
 	// Len returns the number of elements
 	Len() int
-	
+
 	// IsNull returns true if the value at index i is null
 	IsNull(i int) bool
-	
+
 	// IsValid returns true if the value at index i is valid (not null)
 	IsValid(i int) bool
-	
+
 	// NullCount returns the number of null values
 	NullCount() int
-	
+
 	// Slice returns a new series with elements from start to end (exclusive)
 	Slice(start, end int) (Series, error)
-	
+
 	// Head returns the first n elements
 	Head(n int) Series
-	
-	// Tail returns the last n elements  
+
+	// Tail returns the last n elements
 	Tail(n int) Series
-	
+
 	// Cast attempts to cast the series to a different data type
 	Cast(dt datatypes.DataType) (Series, error)
-	
+
 	// Equals returns true if the series are equal
 	Equals(other Series) bool
-	
+
 	// Clone returns a copy of the series
 	Clone() Series
-	
+
 	// Get returns the value at index i as an interface{}
 	Get(i int) interface{}
-	
+
 	// GetAsString returns the value at index i as a string representation
 	GetAsString(i int) string
-	
+
 	// ToSlice returns the underlying data as a slice
 	ToSlice() interface{}
-	
+
 	// String returns a string representation of the series
 	String() string
-	
+
 	// Sorting
 	Sort(ascending bool) Series
 	ArgSort(config SortConfig) []int
 	Take(indices []int) Series
-	
+
 	// Aggregation methods
 	Sum() float64
 	Mean() float64
@@ -91,7 +91,7 @@ func NewSeries[T datatypes.ArrayValue](name string, values []T, dt datatypes.Dat
 	if len(values) > 0 {
 		_ = ca.AppendSlice(values, nil)
 	}
-	
+
 	return &TypedSeries[T]{
 		chunkedArray: ca,
 		name:         name,
@@ -104,7 +104,7 @@ func NewSeriesWithValidity[T datatypes.ArrayValue](name string, values []T, vali
 	if len(values) > 0 {
 		_ = ca.AppendSlice(values, validity)
 	}
-	
+
 	return &TypedSeries[T]{
 		chunkedArray: ca,
 		name:         name,
@@ -130,7 +130,7 @@ func (s *TypedSeries[T]) Rename(name string) Series {
 	for _, chunk := range s.chunkedArray.Chunks() {
 		_ = newCA.AppendArray(chunk)
 	}
-	
+
 	return &TypedSeries[T]{
 		chunkedArray: newCA,
 		name:         name,
@@ -162,7 +162,7 @@ func (s *TypedSeries[T]) Slice(start, end int) (Series, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &TypedSeries[T]{
 		chunkedArray: sliced,
 		name:         s.name,
@@ -195,15 +195,15 @@ func (s *TypedSeries[T]) Equals(other Series) bool {
 	if other == nil {
 		return false
 	}
-	
+
 	if s.Len() != other.Len() {
 		return false
 	}
-	
+
 	if !s.DataType().Equals(other.DataType()) {
 		return false
 	}
-	
+
 	// Compare values
 	for i := 0; i < s.Len(); i++ {
 		if s.IsNull(i) != other.IsNull(i) {
@@ -217,7 +217,7 @@ func (s *TypedSeries[T]) Equals(other Series) bool {
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -248,23 +248,23 @@ func (s *TypedSeries[T]) ToSlice() interface{} {
 
 func (s *TypedSeries[T]) String() string {
 	const maxDisplay = 10
-	
+
 	str := fmt.Sprintf("Series: %s [%s]\n", s.name, s.DataType())
 	str += "[\n"
-	
+
 	displayLen := s.Len()
 	if displayLen > maxDisplay {
 		displayLen = maxDisplay
 	}
-	
+
 	for i := 0; i < displayLen; i++ {
 		str += fmt.Sprintf("\t%s\n", s.GetAsString(i))
 	}
-	
+
 	if s.Len() > maxDisplay {
 		str += fmt.Sprintf("\t... %d more values\n", s.Len()-maxDisplay)
 	}
-	
+
 	str += "]"
 	return str
 }
@@ -326,7 +326,7 @@ func NewBinarySeries(name string, values [][]byte) Series {
 // SeriesFromArrowArray creates a Series from an Arrow array
 func SeriesFromArrowArray(name string, arr arrow.Array) (Series, error) {
 	dt := datatypes.FromArrowType(arr.DataType())
-	
+
 	switch dt.(type) {
 	case datatypes.Boolean:
 		ca := chunked.NewChunkedArray[bool](name, dt)

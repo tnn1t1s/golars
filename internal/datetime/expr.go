@@ -3,8 +3,8 @@ package datetime
 import (
 	"fmt"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // DateTimeExpr provides datetime-specific operations on expressions

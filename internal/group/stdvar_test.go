@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -21,7 +21,7 @@ func TestStdAggregation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"std_value": expr.Col("value").Std(),
 	})
@@ -50,13 +50,13 @@ func TestStdAggregation(t *testing.T) {
 	// Group B: [4, 5, 6] -> mean = 5, variance = 1, std = 1
 	groupCol := result.Columns[0]
 	expectedStds := map[string]float64{"A": 1.0, "B": 1.0}
-	
+
 	for i := 0; i < stdCol.Len(); i++ {
 		groupVal := groupCol.Get(i).(string)
 		stdVal := stdCol.Get(i).(float64)
-		
+
 		if expected, ok := expectedStds[groupVal]; ok {
-			if math.Abs(stdVal - expected) > 1e-10 {
+			if math.Abs(stdVal-expected) > 1e-10 {
 				t.Errorf("Group %s: expected std %f, got %f", groupVal, expected, stdVal)
 			}
 		}
@@ -75,7 +75,7 @@ func TestVarAggregation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"var_value": expr.Col("value").Var(),
 	})
@@ -89,8 +89,8 @@ func TestVarAggregation(t *testing.T) {
 	varCol := result.Columns[1]
 	varVal := varCol.Get(0).(float64)
 	expectedVar := 8.0 / 3.0
-	
-	if math.Abs(varVal - expectedVar) > 1e-10 {
+
+	if math.Abs(varVal-expectedVar) > 1e-10 {
 		t.Errorf("Expected variance %f, got %f", expectedVar, varVal)
 	}
 }
@@ -99,7 +99,7 @@ func TestStdVarWithNulls(t *testing.T) {
 	// Create test data with null values
 	values := []float64{1.0, 2.0, 0.0, 3.0}
 	validity := []bool{true, true, false, true}
-	
+
 	df := newMockDataFrame(
 		series.NewStringSeries("group", []string{"A", "A", "A", "A"}),
 		series.NewSeriesWithValidity("value", values, validity, datatypes.Float64{}),
@@ -110,7 +110,7 @@ func TestStdVarWithNulls(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"std_value": expr.Col("value").Std(),
 		"var_value": expr.Col("value").Var(),
@@ -123,15 +123,15 @@ func TestStdVarWithNulls(t *testing.T) {
 	// Mean = 2, Variance = 1, Std = 1
 	stdCol := result.Columns[1]
 	varCol := result.Columns[2]
-	
+
 	stdVal := stdCol.Get(0).(float64)
 	varVal := varCol.Get(0).(float64)
-	
-	if math.Abs(stdVal - 1.0) > 1e-10 {
+
+	if math.Abs(stdVal-1.0) > 1e-10 {
 		t.Errorf("Expected std 1.0, got %f", stdVal)
 	}
-	
-	if math.Abs(varVal - 1.0) > 1e-10 {
+
+	if math.Abs(varVal-1.0) > 1e-10 {
 		t.Errorf("Expected variance 1.0, got %f", varVal)
 	}
 }
@@ -147,7 +147,7 @@ func TestStdVarInsufficientData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"std_value": expr.Col("value").Std(),
 		"var_value": expr.Col("value").Var(),
@@ -159,11 +159,11 @@ func TestStdVarInsufficientData(t *testing.T) {
 	// With only one value and ddof=1, std and var should be nil
 	stdCol := result.Columns[1]
 	varCol := result.Columns[2]
-	
+
 	if stdCol.Get(0) != nil {
 		t.Errorf("Expected std to be nil with single value, got %v", stdCol.Get(0))
 	}
-	
+
 	if varCol.Get(0) != nil {
 		t.Errorf("Expected variance to be nil with single value, got %v", varCol.Get(0))
 	}

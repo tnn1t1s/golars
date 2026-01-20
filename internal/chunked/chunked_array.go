@@ -98,20 +98,20 @@ func (ca *ChunkedArray[T]) AppendArray(arr arrow.Array) error {
 
 	// Validate data type compatibility
 	if !arrow.TypeEqual(arr.DataType(), ca.polarsType.ArrowType()) {
-		return fmt.Errorf("incompatible array type: expected %s, got %s", 
+		return fmt.Errorf("incompatible array type: expected %s, got %s",
 			ca.polarsType.ArrowType(), arr.DataType())
 	}
 
 	// Add reference to keep array alive
 	arr.Retain()
-	
+
 	ca.chunks = append(ca.chunks, arr)
 	ca.length += int64(arr.Len())
 	ca.nullCount += int64(arr.NullN())
-	
+
 	// Invalidate statistics when new data is added
 	ca.flags = StatisticsFlags{}
-	
+
 	return nil
 }
 
@@ -258,7 +258,7 @@ func (ca *ChunkedArray[T]) Get(i int64) (T, bool) {
 // getValue extracts a value from a specific chunk at a local index
 func (ca *ChunkedArray[T]) getValue(chunk arrow.Array, idx int) T {
 	var zero T
-	
+
 	switch arr := chunk.(type) {
 	case *array.Boolean:
 		if _, ok := any(zero).(bool); ok {
@@ -329,7 +329,7 @@ func (ca *ChunkedArray[T]) getValue(chunk arrow.Array, idx int) T {
 			return any(int64(arr.Value(idx))).(T)
 		}
 	}
-	
+
 	return zero
 }
 
@@ -343,7 +343,7 @@ func (ca *ChunkedArray[T]) Slice(start, end int64) (*ChunkedArray[T], error) {
 	}
 
 	result := NewChunkedArray[T](ca.field.Name, ca.dataType)
-	
+
 	if start == end {
 		return result, nil
 	}
@@ -352,22 +352,22 @@ func (ca *ChunkedArray[T]) Slice(start, end int64) (*ChunkedArray[T], error) {
 	offset := int64(0)
 	for _, chunk := range ca.chunks {
 		chunkEnd := offset + int64(chunk.Len())
-		
+
 		// Skip chunks before the start
 		if chunkEnd <= start {
 			offset = chunkEnd
 			continue
 		}
-		
+
 		// Stop if we've passed the end
 		if offset >= end {
 			break
 		}
-		
+
 		// Calculate slice bounds within this chunk
 		localStart := max(int64(0), start-offset)
 		localEnd := min(int64(chunk.Len()), end-offset)
-		
+
 		if localStart < localEnd {
 			slicedChunk := array.NewSlice(chunk, localStart, localEnd)
 			if err := result.AppendArray(slicedChunk); err != nil {
@@ -376,7 +376,7 @@ func (ca *ChunkedArray[T]) Slice(start, end int64) (*ChunkedArray[T], error) {
 			}
 			slicedChunk.Release()
 		}
-		
+
 		offset = chunkEnd
 	}
 
@@ -390,13 +390,13 @@ func (ca *ChunkedArray[T]) ToSlice() ([]T, []bool) {
 
 	values := make([]T, ca.length)
 	validity := make([]bool, ca.length)
-	
+
 	offset := 0
 	for _, chunk := range ca.chunks {
 		ca.copyChunkToSlice(chunk, values[offset:], validity[offset:])
 		offset += chunk.Len()
 	}
-	
+
 	return values, validity
 }
 
@@ -426,7 +426,7 @@ func (ca *ChunkedArray[T]) IsValid(i int64) bool {
 		}
 		offset += int64(chunk.Len())
 	}
-	
+
 	return false
 }
 

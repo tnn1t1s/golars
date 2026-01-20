@@ -19,12 +19,12 @@ func NewDateTimeSeries(name string, values []time.Time) series.Series {
 	for i, t := range values {
 		timestamps[i] = t.UnixNano()
 	}
-	
+
 	dt := datatypes.Datetime{
 		Unit:     datatypes.Nanoseconds,
 		TimeZone: time.UTC,
 	}
-	
+
 	return series.NewSeries(name, timestamps, dt)
 }
 
@@ -32,22 +32,22 @@ func NewDateTimeSeries(name string, values []time.Time) series.Series {
 func NewDateTimeSeriesFromStrings(name string, values []string, format string) (series.Series, error) {
 	timestamps := make([]int64, len(values))
 	validity := make([]bool, len(values))
-	
+
 	for i, v := range values {
 		if v == "" {
 			validity[i] = false
 			continue
 		}
-		
+
 		var dt DateTime
 		var err error
-		
+
 		if format == "" {
 			dt, err = ParseDateTime(v)
 		} else {
 			dt, err = ParseDateTimeWithFormat(v, format)
 		}
-		
+
 		if err != nil {
 			validity[i] = false
 		} else {
@@ -55,29 +55,29 @@ func NewDateTimeSeriesFromStrings(name string, values []string, format string) (
 			validity[i] = true
 		}
 	}
-	
+
 	dataType := datatypes.Datetime{
 		Unit:     datatypes.Nanoseconds,
 		TimeZone: time.UTC,
 	}
-	
+
 	return series.NewSeriesWithValidity(name, timestamps, validity, dataType), nil
 }
 
 // NewDateTimeSeriesFromEpoch creates a DateTime series from epoch values
 func NewDateTimeSeriesFromEpoch(name string, values []int64, unit TimeUnit) series.Series {
 	timestamps := make([]int64, len(values))
-	
+
 	for i, v := range values {
 		dt := ParseDateTimeFromEpoch(v, unit)
 		timestamps[i] = dt.timestamp
 	}
-	
+
 	dataType := datatypes.Datetime{
 		Unit:     datatypes.Nanoseconds,
 		TimeZone: time.UTC,
 	}
-	
+
 	return series.NewSeries(name, timestamps, dataType)
 }
 
@@ -88,7 +88,7 @@ func NewDateSeries(name string, values []time.Time) series.Series {
 		date := NewDateFromTime(t)
 		days[i] = date.days
 	}
-	
+
 	return series.NewSeries(name, days, datatypes.Date{})
 }
 
@@ -96,22 +96,22 @@ func NewDateSeries(name string, values []time.Time) series.Series {
 func NewDateSeriesFromStrings(name string, values []string, format string) (series.Series, error) {
 	days := make([]int32, len(values))
 	validity := make([]bool, len(values))
-	
+
 	for i, v := range values {
 		if v == "" {
 			validity[i] = false
 			continue
 		}
-		
+
 		var date Date
 		var err error
-		
+
 		if format == "" {
 			date, err = ParseDate(v)
 		} else {
 			date, err = ParseDateWithFormat(v, format)
 		}
-		
+
 		if err != nil {
 			validity[i] = false
 		} else {
@@ -119,7 +119,7 @@ func NewDateSeriesFromStrings(name string, values []string, format string) (seri
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, days, validity, datatypes.Date{}), nil
 }
 
@@ -128,13 +128,13 @@ func NewTimeSeries(name string, hours, minutes, seconds []int) (series.Series, e
 	if len(hours) != len(minutes) || len(hours) != len(seconds) {
 		return nil, fmt.Errorf("hours, minutes, and seconds must have the same length")
 	}
-	
+
 	nanoseconds := make([]int64, len(hours))
 	for i := range hours {
 		t := NewTime(hours[i], minutes[i], seconds[i], 0)
 		nanoseconds[i] = t.nanoseconds
 	}
-	
+
 	return series.NewSeries(name, nanoseconds, datatypes.Time{}), nil
 }
 
@@ -157,7 +157,7 @@ func DtSeries(s series.Series) (*DateTimeSeries, error) {
 // Year extracts the year component
 func (dts *DateTimeSeries) Year() series.Series {
 	name := fmt.Sprintf("%s.year", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -177,7 +177,7 @@ func (dts *DateTimeSeries) Year() series.Series {
 // Month extracts the month component
 func (dts *DateTimeSeries) Month() series.Series {
 	name := fmt.Sprintf("%s.month", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -197,7 +197,7 @@ func (dts *DateTimeSeries) Month() series.Series {
 // Day extracts the day component
 func (dts *DateTimeSeries) Day() series.Series {
 	name := fmt.Sprintf("%s.day", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -217,7 +217,7 @@ func (dts *DateTimeSeries) Day() series.Series {
 // Hour extracts the hour component
 func (dts *DateTimeSeries) Hour() series.Series {
 	name := fmt.Sprintf("%s.hour", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -237,7 +237,7 @@ func (dts *DateTimeSeries) Hour() series.Series {
 // Minute extracts the minute component
 func (dts *DateTimeSeries) Minute() series.Series {
 	name := fmt.Sprintf("%s.minute", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -257,7 +257,7 @@ func (dts *DateTimeSeries) Minute() series.Series {
 // Second extracts the second component
 func (dts *DateTimeSeries) Second() series.Series {
 	name := fmt.Sprintf("%s.second", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -277,7 +277,7 @@ func (dts *DateTimeSeries) Second() series.Series {
 // DayOfWeek extracts the day of week (0=Sunday, 6=Saturday)
 func (dts *DateTimeSeries) DayOfWeek() series.Series {
 	name := fmt.Sprintf("%s.dayofweek", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -297,7 +297,7 @@ func (dts *DateTimeSeries) DayOfWeek() series.Series {
 // DayOfYear extracts the day of year
 func (dts *DateTimeSeries) DayOfYear() series.Series {
 	name := fmt.Sprintf("%s.dayofyear", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -317,7 +317,7 @@ func (dts *DateTimeSeries) DayOfYear() series.Series {
 // Quarter extracts the quarter (1-4)
 func (dts *DateTimeSeries) Quarter() series.Series {
 	name := fmt.Sprintf("%s.quarter", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractComponent(dts.s, name, func(ts int64) int32 {
@@ -338,7 +338,7 @@ func (dts *DateTimeSeries) Quarter() series.Series {
 // IsLeapYear returns a boolean series indicating leap years
 func (dts *DateTimeSeries) IsLeapYear() series.Series {
 	name := fmt.Sprintf("%s.is_leap_year", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractBoolComponent(dts.s, name, func(ts int64) bool {
@@ -359,7 +359,7 @@ func (dts *DateTimeSeries) IsLeapYear() series.Series {
 // Format formats the DateTime values according to the given layout
 func (dts *DateTimeSeries) Format(layout string) series.Series {
 	name := fmt.Sprintf("%s.formatted", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractStringComponent(dts.s, name, func(ts int64) string {
@@ -385,7 +385,7 @@ func (dts *DateTimeSeries) Format(layout string) series.Series {
 // IsWeekend returns a boolean series indicating whether each datetime is a weekend
 func (dts *DateTimeSeries) IsWeekend() series.Series {
 	name := fmt.Sprintf("%s.is_weekend", dts.s.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return extractBoolComponent(dts.s, name, func(ts int64) bool {
@@ -405,13 +405,13 @@ func (dts *DateTimeSeries) IsWeekend() series.Series {
 // Floor rounds down to the specified time unit
 func (dts *DateTimeSeries) Floor(unit TimeUnit) series.Series {
 	name := fmt.Sprintf("%s.floor_%s", dts.s.Name(), unit.String())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		length := dts.s.Len()
 		values := make([]int64, length)
 		validity := make([]bool, length)
-		
+
 		for i := 0; i < length; i++ {
 			if dts.s.IsNull(i) {
 				validity[i] = false
@@ -423,20 +423,20 @@ func (dts *DateTimeSeries) Floor(unit TimeUnit) series.Series {
 				validity[i] = true
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, dts.s.DataType())
-		
+
 	case datatypes.Date:
 		// For dates, only certain units make sense
 		if unit < Day {
 			// Can't floor to units smaller than day for Date type
 			return dts.s
 		}
-		
+
 		length := dts.s.Len()
 		values := make([]int32, length)
 		validity := make([]bool, length)
-		
+
 		for i := 0; i < length; i++ {
 			if dts.s.IsNull(i) {
 				validity[i] = false
@@ -450,9 +450,9 @@ func (dts *DateTimeSeries) Floor(unit TimeUnit) series.Series {
 				validity[i] = true
 			}
 		}
-		
+
 		return series.NewSeriesWithValidity(name, values, validity, datatypes.Date{})
-		
+
 	default:
 		return series.NewSeries(name, []int64{}, dts.s.DataType())
 	}
@@ -464,7 +464,7 @@ func extractComponent(s series.Series, name string, extractor func(int64) int32)
 	length := s.Len()
 	values := make([]int32, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -474,7 +474,7 @@ func extractComponent(s series.Series, name string, extractor func(int64) int32)
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int32{})
 }
 
@@ -482,7 +482,7 @@ func extractComponentFromDate(s series.Series, name string, extractor func(int32
 	length := s.Len()
 	values := make([]int32, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -492,7 +492,7 @@ func extractComponentFromDate(s series.Series, name string, extractor func(int32
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int32{})
 }
 
@@ -500,7 +500,7 @@ func extractComponentFromTime(s series.Series, name string, extractor func(int64
 	length := s.Len()
 	values := make([]int32, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -510,7 +510,7 @@ func extractComponentFromTime(s series.Series, name string, extractor func(int64
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int32{})
 }
 
@@ -518,7 +518,7 @@ func extractBoolComponent(s series.Series, name string, extractor func(int64) bo
 	length := s.Len()
 	values := make([]bool, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -528,7 +528,7 @@ func extractBoolComponent(s series.Series, name string, extractor func(int64) bo
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Boolean{})
 }
 
@@ -536,7 +536,7 @@ func extractBoolComponentFromDate(s series.Series, name string, extractor func(i
 	length := s.Len()
 	values := make([]bool, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -546,7 +546,7 @@ func extractBoolComponentFromDate(s series.Series, name string, extractor func(i
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Boolean{})
 }
 
@@ -554,7 +554,7 @@ func extractStringComponent(s series.Series, name string, extractor func(int64) 
 	length := s.Len()
 	values := make([]string, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -564,7 +564,7 @@ func extractStringComponent(s series.Series, name string, extractor func(int64) 
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.String{})
 }
 
@@ -572,7 +572,7 @@ func extractStringComponentFromDate(s series.Series, name string, extractor func
 	length := s.Len()
 	values := make([]string, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -582,6 +582,6 @@ func extractStringComponentFromDate(s series.Series, name string, extractor func
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.String{})
 }

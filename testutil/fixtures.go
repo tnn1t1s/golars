@@ -23,11 +23,11 @@ func NewDataGenerator(seed int64) *DataGenerator {
 func (g *DataGenerator) GenerateInts(size int, min, max int32) []int32 {
 	result := make([]int32, size)
 	rangeSize := max - min + 1
-	
+
 	for i := 0; i < size; i++ {
 		result[i] = min + int32(g.rand.Intn(int(rangeSize)))
 	}
-	
+
 	return result
 }
 
@@ -35,34 +35,34 @@ func (g *DataGenerator) GenerateInts(size int, min, max int32) []int32 {
 func (g *DataGenerator) GenerateFloats(size int, min, max float64) []float64 {
 	result := make([]float64, size)
 	rangeSize := max - min
-	
+
 	for i := 0; i < size; i++ {
 		result[i] = min + g.rand.Float64()*rangeSize
 	}
-	
+
 	return result
 }
 
 // GenerateStrings generates a slice of random strings
 func (g *DataGenerator) GenerateStrings(size int, prefix string, uniqueCount int) []string {
 	result := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		suffix := g.rand.Intn(uniqueCount)
 		result[i] = fmt.Sprintf("%s_%d", prefix, suffix)
 	}
-	
+
 	return result
 }
 
 // GenerateBools generates a slice of random booleans
 func (g *DataGenerator) GenerateBools(size int, trueProb float64) []bool {
 	result := make([]bool, size)
-	
+
 	for i := 0; i < size; i++ {
 		result[i] = g.rand.Float64() < trueProb
 	}
-	
+
 	return result
 }
 
@@ -70,62 +70,62 @@ func (g *DataGenerator) GenerateBools(size int, trueProb float64) []bool {
 func (g *DataGenerator) GenerateDates(size int, start, end time.Time) []string {
 	result := make([]string, size)
 	duration := end.Sub(start)
-	
+
 	for i := 0; i < size; i++ {
 		randomDuration := time.Duration(g.rand.Int63n(int64(duration)))
 		date := start.Add(randomDuration)
 		result[i] = date.Format("2006-01-02")
 	}
-	
+
 	return result
 }
 
 // GenerateCategories generates categorical data
 func (g *DataGenerator) GenerateCategories(size int, categories []string) []string {
 	result := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		idx := g.rand.Intn(len(categories))
 		result[i] = categories[idx]
 	}
-	
+
 	return result
 }
 
 // TestData provides common test data patterns
 var TestData = struct {
 	// Small datasets for unit tests
-	SmallInts      []int32
-	SmallFloats    []float64
-	SmallStrings   []string
-	SmallBools     []bool
-	
+	SmallInts    []int32
+	SmallFloats  []float64
+	SmallStrings []string
+	SmallBools   []bool
+
 	// Common categories
-	Colors         []string
-	Departments    []string
-	Statuses       []string
-	
+	Colors      []string
+	Departments []string
+	Statuses    []string
+
 	// Names for testing
-	FirstNames     []string
-	LastNames      []string
-	
+	FirstNames []string
+	LastNames  []string
+
 	// Special values
-	NaNFloat       float64
-	InfFloat       float64
-	NegInfFloat    float64
+	NaNFloat    float64
+	InfFloat    float64
+	NegInfFloat float64
 }{
 	SmallInts:    []int32{1, 2, 3, 4, 5},
 	SmallFloats:  []float64{1.1, 2.2, 3.3, 4.4, 5.5},
 	SmallStrings: []string{"a", "b", "c", "d", "e"},
 	SmallBools:   []bool{true, false, true, false, true},
-	
+
 	Colors:      []string{"red", "blue", "green", "yellow", "orange"},
 	Departments: []string{"Sales", "Marketing", "Engineering", "HR", "Finance"},
 	Statuses:    []string{"active", "inactive", "pending", "completed"},
-	
+
 	FirstNames: []string{"Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Henry"},
 	LastNames:  []string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Davis", "Miller", "Wilson"},
-	
+
 	NaNFloat:    math.NaN(),
 	InfFloat:    math.Inf(1),
 	NegInfFloat: math.Inf(-1),
@@ -134,7 +134,7 @@ var TestData = struct {
 // GenerateMixedData creates a map suitable for DataFrame creation with mixed types
 func GenerateMixedData(rows int) map[string]interface{} {
 	gen := NewDataGenerator(42) // Fixed seed for reproducibility
-	
+
 	return map[string]interface{}{
 		"id":         generateSequence(1, rows),
 		"name":       generateNames(rows),
@@ -159,26 +159,26 @@ func generateSequence(start, count int) []int {
 func generateNames(count int) []string {
 	gen := NewDataGenerator(42)
 	result := make([]string, count)
-	
+
 	for i := 0; i < count; i++ {
 		firstName := TestData.FirstNames[gen.rand.Intn(len(TestData.FirstNames))]
 		lastName := TestData.LastNames[gen.rand.Intn(len(TestData.LastNames))]
 		result[i] = fmt.Sprintf("%s %s", firstName, lastName)
 	}
-	
+
 	return result
 }
 
 // GenerateGroupedData creates data suitable for testing groupby operations
 func GenerateGroupedData(rows int, groupCardinality int) map[string]interface{} {
 	gen := NewDataGenerator(42)
-	
+
 	// Generate group keys with specified cardinality
 	groups := make([]string, groupCardinality)
 	for i := 0; i < groupCardinality; i++ {
 		groups[i] = fmt.Sprintf("Group_%c", 'A'+i)
 	}
-	
+
 	return map[string]interface{}{
 		"group":  gen.GenerateCategories(rows, groups),
 		"value1": gen.GenerateInts(rows, 1, 100),
@@ -190,12 +190,12 @@ func GenerateGroupedData(rows int, groupCardinality int) map[string]interface{} 
 // GenerateTimeSeriesData creates time series data for testing
 func GenerateTimeSeriesData(points int, interval time.Duration) map[string]interface{} {
 	gen := NewDataGenerator(42)
-	
+
 	timestamps := make([]time.Time, points)
 	values := make([]float64, points)
-	
+
 	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-	
+
 	for i := 0; i < points; i++ {
 		timestamps[i] = start.Add(time.Duration(i) * interval)
 		// Generate values with trend and noise
@@ -203,7 +203,7 @@ func GenerateTimeSeriesData(points int, interval time.Duration) map[string]inter
 		noise := (gen.rand.Float64() - 0.5) * 10
 		values[i] = 100 + trend + noise
 	}
-	
+
 	return map[string]interface{}{
 		"timestamp": timestamps,
 		"value":     values,

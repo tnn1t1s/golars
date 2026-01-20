@@ -9,10 +9,10 @@ import (
 
 // PivotOptions configures the pivot operation
 type PivotOptions struct {
-	Index     []string // Columns to use as index
-	Columns   string   // Column to pivot (becomes new column names)
-	Values    string   // Column containing values
-	AggFunc   string   // Aggregation function: "sum", "mean", "count", "first", "last", "min", "max"
+	Index     []string    // Columns to use as index
+	Columns   string      // Column to pivot (becomes new column names)
+	Values    string      // Column containing values
+	AggFunc   string      // Aggregation function: "sum", "mean", "count", "first", "last", "min", "max"
 	FillValue interface{} // Value to use for missing combinations
 }
 
@@ -43,7 +43,7 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 		return nil, fmt.Errorf("pivot column '%s' not found", options.Columns)
 	}
 	pivotCol := df.columns[pivotColIdx]
-	
+
 	valueColIdx, exists := columnMap[options.Values]
 	if !exists {
 		return nil, fmt.Errorf("value column '%s' not found", options.Values)
@@ -70,7 +70,7 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 	type indexKey string
 	indexMap := make(map[indexKey]int) // Maps index combination to row number
 	indexValues := make([][]interface{}, 0)
-	
+
 	if len(options.Index) == 0 {
 		// No index columns, just one row
 		indexMap[indexKey("")] = 0
@@ -84,7 +84,7 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 				keyParts[j] = df.columns[idxIdx].Get(i)
 			}
 			key := fmt.Sprintf("%v", keyParts)
-			
+
 			if _, exists := indexMap[indexKey(key)]; !exists {
 				indexMap[indexKey(key)] = len(indexValues)
 				indexValues = append(indexValues, keyParts)
@@ -94,7 +94,7 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 
 	// Initialize result columns
 	resultColumns := make([]series.Series, 0)
-	
+
 	// Add index columns to result
 	for i, idxName := range options.Index {
 		idxIdx := columnMap[idxName]
@@ -112,7 +112,7 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 	for _, pivotVal := range uniquePivotValues {
 		// Collect values for this pivot value grouped by index
 		groupedValues := make(map[indexKey][]interface{})
-		
+
 		for i := 0; i < df.height; i++ {
 			if pivotCol.Get(i) == pivotVal && !valueCol.IsNull(i) {
 				// Build index key
@@ -126,19 +126,19 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 					}
 					key = indexKey(fmt.Sprintf("%v", keyParts))
 				}
-				
+
 				if _, exists := groupedValues[key]; !exists {
 					groupedValues[key] = make([]interface{}, 0)
 				}
 				groupedValues[key] = append(groupedValues[key], valueCol.Get(i))
 			}
 		}
-		
+
 		// Aggregate values and create column
 		colName := fmt.Sprintf("%v", pivotVal)
 		values := make([]interface{}, len(indexValues))
 		validity := make([]bool, len(indexValues))
-		
+
 		for key, rowIdx := range indexMap {
 			if vals, exists := groupedValues[key]; exists && len(vals) > 0 {
 				aggValue := aggregate(vals, options.AggFunc, valueCol.DataType())
@@ -154,7 +154,7 @@ func (df *DataFrame) Pivot(options PivotOptions) (*DataFrame, error) {
 				}
 			}
 		}
-		
+
 		resultColumns = append(resultColumns, createSeriesFromValues(colName, values, validity, valueCol.DataType()))
 	}
 
@@ -173,7 +173,7 @@ func (df *DataFrame) PivotTable(options PivotOptions) (*DataFrame, error) {
 func getUniqueValues(s series.Series) []interface{} {
 	seen := make(map[string]bool)
 	unique := make([]interface{}, 0)
-	
+
 	for i := 0; i < s.Len(); i++ {
 		if !s.IsNull(i) {
 			val := s.Get(i)
@@ -184,7 +184,7 @@ func getUniqueValues(s series.Series) []interface{} {
 			}
 		}
 	}
-	
+
 	return unique
 }
 
@@ -197,13 +197,13 @@ func aggregate(values []interface{}, aggFunc string, dataType datatypes.DataType
 	switch aggFunc {
 	case "first":
 		return values[0]
-		
+
 	case "last":
 		return values[len(values)-1]
-		
+
 	case "count":
 		return int64(len(values))
-		
+
 	case "sum":
 		// Type-specific sum
 		switch dataType.(type) {
@@ -226,12 +226,12 @@ func aggregate(values []interface{}, aggFunc string, dataType datatypes.DataType
 		default:
 			return values[0] // Can't sum non-numeric types
 		}
-		
+
 	case "mean", "avg":
 		// Type-specific mean
 		switch dataType.(type) {
-		case datatypes.Int8, datatypes.Int16, datatypes.Int32, datatypes.Int64, 
-		     datatypes.Float32, datatypes.Float64:
+		case datatypes.Int8, datatypes.Int16, datatypes.Int32, datatypes.Int64,
+			datatypes.Float32, datatypes.Float64:
 			sum := float64(0)
 			count := 0
 			for _, v := range values {
@@ -247,7 +247,7 @@ func aggregate(values []interface{}, aggFunc string, dataType datatypes.DataType
 		default:
 			return values[0] // Can't average non-numeric types
 		}
-		
+
 	case "min":
 		// Type-specific min
 		switch dataType.(type) {
@@ -276,7 +276,7 @@ func aggregate(values []interface{}, aggFunc string, dataType datatypes.DataType
 		default:
 			return values[0]
 		}
-		
+
 	case "max":
 		// Type-specific max
 		switch dataType.(type) {
@@ -305,7 +305,7 @@ func aggregate(values []interface{}, aggFunc string, dataType datatypes.DataType
 		default:
 			return values[0]
 		}
-		
+
 	default:
 		return values[0]
 	}
@@ -349,4 +349,3 @@ func toFloat64(v interface{}) float64 {
 		return 0
 	}
 }
-

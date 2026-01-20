@@ -146,7 +146,7 @@ func valuesEqual(expected, actual interface{}) bool {
 // floatEquals compares two floats with a small epsilon for precision issues
 func floatEquals(a, b float64) bool {
 	const epsilon = 1e-10
-	
+
 	// Handle special cases
 	if math.IsNaN(a) && math.IsNaN(b) {
 		return true
@@ -157,7 +157,7 @@ func floatEquals(a, b float64) bool {
 	if math.IsInf(a, -1) && math.IsInf(b, -1) {
 		return true
 	}
-	
+
 	return math.Abs(a-b) < epsilon
 }
 

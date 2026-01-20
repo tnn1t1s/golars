@@ -3,8 +3,8 @@ package compute
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/series"
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/series"
 )
 
 func TestBuildHashTable(t *testing.T) {
@@ -25,7 +25,7 @@ func TestBuildHashTable(t *testing.T) {
 	t.Run("MultiColumn", func(t *testing.T) {
 		s1 := series.NewInt32Series("year", []int32{2020, 2020, 2021, 2021})
 		s2 := series.NewInt32Series("month", []int32{1, 2, 1, 2})
-		
+
 		ht, err := BuildHashTable([]series.Series{s1, s2})
 		assert.NoError(t, err)
 		assert.NotNil(t, ht)
@@ -83,10 +83,10 @@ func TestProbe(t *testing.T) {
 	t.Run("ExactMatches", func(t *testing.T) {
 		probe1 := series.NewInt32Series("id", []int32{2})
 		probe2 := series.NewStringSeries("name", []string{"B"})
-		
+
 		matches := ht.Probe([]series.Series{probe1, probe2}, 0)
 		assert.Len(t, matches, 2) // Should find indices 1 and 3
-		
+
 		// Verify the matched indices
 		expectedIndices := map[int]bool{1: true, 3: true}
 		for _, idx := range matches {
@@ -98,7 +98,7 @@ func TestProbe(t *testing.T) {
 	t.Run("NoMatch", func(t *testing.T) {
 		probe1 := series.NewInt32Series("id", []int32{4})
 		probe2 := series.NewStringSeries("name", []string{"D"})
-		
+
 		matches := ht.Probe([]series.Series{probe1, probe2}, 0)
 		assert.Len(t, matches, 0)
 	})
@@ -107,7 +107,7 @@ func TestProbe(t *testing.T) {
 	t.Run("PartialMatch", func(t *testing.T) {
 		probe1 := series.NewInt32Series("id", []int32{1})
 		probe2 := series.NewStringSeries("name", []string{"B"}) // id=1 but name=B doesn't exist
-		
+
 		matches := ht.Probe([]series.Series{probe1, probe2}, 0)
 		assert.Len(t, matches, 0)
 	})
@@ -116,10 +116,10 @@ func TestProbe(t *testing.T) {
 	t.Run("OutOfBounds", func(t *testing.T) {
 		probe1 := series.NewInt32Series("id", []int32{1})
 		probe2 := series.NewStringSeries("name", []string{"A"})
-		
+
 		matches := ht.Probe([]series.Series{probe1, probe2}, -1)
 		assert.Nil(t, matches)
-		
+
 		matches = ht.Probe([]series.Series{probe1, probe2}, 10)
 		assert.Nil(t, matches)
 	})
@@ -146,7 +146,7 @@ func TestHashValueTypes(t *testing.T) {
 			ht, err := BuildHashTable([]series.Series{tc.series})
 			assert.NoError(t, err)
 			assert.NotNil(t, ht)
-			
+
 			// Boolean has only 2 unique values
 			expectedSize := 3
 			if tc.name == "Bool" {
@@ -161,15 +161,15 @@ func TestValuesEqual(t *testing.T) {
 	// Test type-safe equality
 	assert.True(t, valuesEqual(int32(1), int32(1)))
 	assert.False(t, valuesEqual(int32(1), int32(2)))
-	
+
 	// Different types should not be equal
 	assert.False(t, valuesEqual(int32(1), int64(1)))
 	assert.False(t, valuesEqual(int32(1), float64(1.0)))
-	
+
 	// String equality
 	assert.True(t, valuesEqual("hello", "hello"))
 	assert.False(t, valuesEqual("hello", "world"))
-	
+
 	// Bool equality
 	assert.True(t, valuesEqual(true, true))
 	assert.False(t, valuesEqual(true, false))
@@ -203,15 +203,15 @@ func BenchmarkBuildHashTable(b *testing.B) {
 	size := 10000
 	ids := make([]int32, size)
 	names := make([]string, size)
-	
+
 	for i := 0; i < size; i++ {
 		ids[i] = int32(i % 1000) // 1000 unique values
 		names[i] = string(rune('A' + (i % 26)))
 	}
-	
+
 	s1 := series.NewInt32Series("id", ids)
 	s2 := series.NewStringSeries("name", names)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		BuildHashTable([]series.Series{s1, s2})
@@ -225,13 +225,13 @@ func BenchmarkProbe(b *testing.B) {
 	for i := 0; i < size; i++ {
 		ids[i] = int32(i)
 	}
-	
+
 	s := series.NewInt32Series("id", ids)
 	ht, _ := BuildHashTable([]series.Series{s})
-	
+
 	// Create probe series
 	probeS := series.NewInt32Series("id", []int32{5000})
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ht.Probe([]series.Series{probeS}, 0)

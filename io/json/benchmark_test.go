@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -17,7 +17,7 @@ func createBenchmarkDataFrame(rows int) *frame.DataFrame {
 	names := make([]string, rows)
 	scores := make([]float64, rows)
 	active := make([]bool, rows)
-	
+
 	for i := 0; i < rows; i++ {
 		ids[i] = int64(i)
 		names[i] = "User" + string(rune(i%26+'A'))
@@ -36,7 +36,7 @@ func createBenchmarkDataFrame(rows int) *frame.DataFrame {
 
 func BenchmarkJSONReader(b *testing.B) {
 	sizes := []int{100, 1000, 10000}
-	
+
 	for _, size := range sizes {
 		// Create JSON data
 		df := createBenchmarkDataFrame(size)
@@ -48,7 +48,7 @@ func BenchmarkJSONReader(b *testing.B) {
 		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
 			b.SetBytes(int64(len(jsonData)))
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				reader := NewReader()
 				_, err := reader.Read(strings.NewReader(jsonData))
@@ -67,11 +67,11 @@ func BenchmarkJSONReaderWithInference(b *testing.B) {
 		{"id": 2, "value": 10.5, "flag": false, "name": "Bob"},
 		{"id": 3, "value": 20, "flag": true, "name": "Charlie"}
 	]`
-	
+
 	b.Run("with_inference", func(b *testing.B) {
 		b.SetBytes(int64(len(jsonData)))
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			reader := NewReader(WithInferSchema(true))
 			_, err := reader.Read(strings.NewReader(jsonData))
@@ -84,7 +84,7 @@ func BenchmarkJSONReaderWithInference(b *testing.B) {
 	b.Run("without_inference", func(b *testing.B) {
 		b.SetBytes(int64(len(jsonData)))
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			reader := NewReader(WithInferSchema(false))
 			_, err := reader.Read(strings.NewReader(jsonData))
@@ -97,13 +97,13 @@ func BenchmarkJSONReaderWithInference(b *testing.B) {
 
 func BenchmarkJSONWriter(b *testing.B) {
 	sizes := []int{100, 1000, 10000}
-	
+
 	for _, size := range sizes {
 		df := createBenchmarkDataFrame(size)
-		
+
 		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				writer := NewWriter()
 				var buf bytes.Buffer
@@ -120,11 +120,11 @@ func BenchmarkJSONWriter(b *testing.B) {
 func BenchmarkJSONWriterOrientations(b *testing.B) {
 	df := createBenchmarkDataFrame(1000)
 	orientations := []string{"records", "columns", "values"}
-	
+
 	for _, orient := range orientations {
 		b.Run(orient, func(b *testing.B) {
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				writer := NewWriter(WithOrient(orient))
 				var buf bytes.Buffer
@@ -140,7 +140,7 @@ func BenchmarkJSONWriterOrientations(b *testing.B) {
 
 func BenchmarkNDJSONReader(b *testing.B) {
 	sizes := []int{100, 1000, 10000}
-	
+
 	for _, size := range sizes {
 		// Create NDJSON data
 		var buf bytes.Buffer
@@ -150,7 +150,7 @@ func BenchmarkNDJSONReader(b *testing.B) {
 			buf.WriteString(`,"name":"User`)
 			buf.WriteByte(byte(i%26 + 'A'))
 			buf.WriteString(`","score":`)
-			buf.WriteString(string(rune(i%100)))
+			buf.WriteString(string(rune(i % 100)))
 			buf.WriteString(`.5,"active":`)
 			if i%2 == 0 {
 				buf.WriteString("true")
@@ -164,7 +164,7 @@ func BenchmarkNDJSONReader(b *testing.B) {
 		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
 			b.SetBytes(int64(len(ndjsonData)))
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				reader := NewNDJSONReader()
 				_, err := reader.Read(strings.NewReader(ndjsonData))
@@ -186,12 +186,12 @@ func BenchmarkNDJSONReaderChunked(b *testing.B) {
 	ndjsonData := buf.String()
 
 	chunkSizes := []int{100, 1000, 5000}
-	
+
 	for _, chunkSize := range chunkSizes {
 		b.Run(fmt.Sprintf("chunk=%d", chunkSize), func(b *testing.B) {
 			b.SetBytes(int64(len(ndjsonData)))
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				reader := NewNDJSONReader().WithChunkSize(chunkSize)
 				_, err := reader.Read(strings.NewReader(ndjsonData))
@@ -205,13 +205,13 @@ func BenchmarkNDJSONReaderChunked(b *testing.B) {
 
 func BenchmarkNDJSONWriter(b *testing.B) {
 	sizes := []int{100, 1000, 10000}
-	
+
 	for _, size := range sizes {
 		df := createBenchmarkDataFrame(size)
-		
+
 		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				writer := NewNDJSONWriter()
 				var buf bytes.Buffer
@@ -227,7 +227,7 @@ func BenchmarkNDJSONWriter(b *testing.B) {
 
 func BenchmarkCompression(b *testing.B) {
 	df := createBenchmarkDataFrame(1000)
-	
+
 	b.Run("json_uncompressed", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -308,7 +308,7 @@ func BenchmarkNestedJSON(b *testing.B) {
 	b.Run("with_flattening", func(b *testing.B) {
 		b.SetBytes(int64(len(nestedJSON)))
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			reader := NewReader(WithFlatten(true))
 			_, err := reader.Read(strings.NewReader(nestedJSON))
@@ -321,7 +321,7 @@ func BenchmarkNestedJSON(b *testing.B) {
 	b.Run("without_flattening", func(b *testing.B) {
 		b.SetBytes(int64(len(nestedJSON)))
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			reader := NewReader(WithFlatten(false))
 			_, err := reader.Read(strings.NewReader(nestedJSON))
@@ -344,7 +344,7 @@ func BenchmarkStreaming(b *testing.B) {
 	b.Run("full_read", func(b *testing.B) {
 		b.SetBytes(int64(len(ndjsonData)))
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			reader := NewNDJSONReader()
 			_, err := reader.Read(bytes.NewReader(ndjsonData))
@@ -357,7 +357,7 @@ func BenchmarkStreaming(b *testing.B) {
 	b.Run("streaming_read", func(b *testing.B) {
 		b.SetBytes(int64(len(ndjsonData)))
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			reader := NewNDJSONReader().WithChunkSize(10000)
 			totalRows := 0

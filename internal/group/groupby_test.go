@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
-	"github.com/stretchr/testify/assert"
 )
 
 // mockDataFrame implements DataFrameInterface for testing
@@ -124,7 +124,7 @@ func TestGroupBySum(t *testing.T) {
 	}
 	assert.NotNil(t, sumCol)
 	assert.NotNil(t, catCol)
-	
+
 	sums := make(map[string]int32)
 	for i := 0; i < catCol.Len(); i++ {
 		cat := catCol.Get(i).(string)
@@ -132,8 +132,8 @@ func TestGroupBySum(t *testing.T) {
 		sums[cat] = sum
 	}
 
-	assert.Equal(t, int32(9), sums["A"])  // 1 + 3 + 5 = 9
-	assert.Equal(t, int32(6), sums["B"])  // 2 + 4 = 6
+	assert.Equal(t, int32(9), sums["A"]) // 1 + 3 + 5 = 9
+	assert.Equal(t, int32(6), sums["B"]) // 2 + 4 = 6
 
 	// Sum multiple columns
 	result, err = gb.Sum("value", "score")
@@ -306,8 +306,8 @@ func TestGroupByWithNulls(t *testing.T) {
 		sums[cat] = sum
 	}
 
-	assert.InDelta(t, 9.0, sums["A"], 0.001)  // 1 + 3 + 5 = 9
-	assert.InDelta(t, 4.0, sums["B"], 0.001)  // null + 4 = 4 (null ignored)
+	assert.InDelta(t, 9.0, sums["A"], 0.001) // 1 + 3 + 5 = 9
+	assert.InDelta(t, 4.0, sums["B"], 0.001) // null + 4 = 4 (null ignored)
 
 	// Mean should also ignore nulls
 	result, err = gb.Mean("value")
@@ -328,8 +328,8 @@ func TestGroupByWithNulls(t *testing.T) {
 		means[cat] = mean
 	}
 
-	assert.InDelta(t, 3.0, means["A"], 0.001)  // (1 + 3 + 5) / 3 = 3
-	assert.InDelta(t, 4.0, means["B"], 0.001)  // 4 / 1 = 4 (only one non-null value)
+	assert.InDelta(t, 3.0, means["A"], 0.001) // (1 + 3 + 5) / 3 = 3
+	assert.InDelta(t, 4.0, means["B"], 0.001) // 4 / 1 = 4 (only one non-null value)
 }
 
 func TestGroupByErrors(t *testing.T) {

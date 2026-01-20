@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
-	"github.com/tnn1t1s/golars/expr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 func TestDateTimeArithmeticSeries(t *testing.T) {
@@ -26,7 +26,7 @@ func TestDateTimeArithmeticSeries(t *testing.T) {
 		result := dts.Add(Days(1))
 		assert.Equal(t, "timestamps_plus_1 day", result.Name())
 		assert.Equal(t, 3, result.Len())
-		
+
 		// Check first value
 		ts := result.Get(0).(int64)
 		dt := DateTime{timestamp: ts, timezone: time.UTC}
@@ -59,17 +59,17 @@ func TestDateTimeArithmeticSeries(t *testing.T) {
 
 	t.Run("Diff between series", func(t *testing.T) {
 		times2 := []time.Time{
-			time.Date(2024, 1, 14, 10, 30, 45, 0, time.UTC), // 1 day before
-			time.Date(2024, 7, 30, 23, 59, 59, 0, time.UTC), // 1 day before
+			time.Date(2024, 1, 14, 10, 30, 45, 0, time.UTC),  // 1 day before
+			time.Date(2024, 7, 30, 23, 59, 59, 0, time.UTC),  // 1 day before
 			time.Date(2023, 12, 24, 14, 15, 30, 0, time.UTC), // 1 day before
 		}
 		s2 := NewDateTimeSeries("other", times2)
-		
+
 		diff, err := dts.Diff(s2)
 		require.NoError(t, err)
 		assert.Equal(t, "timestamps_diff_other", diff.Name())
 		assert.IsType(t, datatypes.Duration{}, diff.DataType())
-		
+
 		// First difference should be 1 day in nanoseconds
 		nsDiff := diff.Get(0).(int64)
 		assert.Equal(t, int64(24*time.Hour), nsDiff)
@@ -113,7 +113,7 @@ func TestDateArithmeticSeries(t *testing.T) {
 		// Add 10 days
 		result := dts.Add(Days(10))
 		assert.Equal(t, "dates_plus_10 days", result.Name())
-		
+
 		days := result.Get(0).(int32)
 		date := Date{days: days}
 		assert.Equal(t, 25, date.Day())
@@ -123,7 +123,7 @@ func TestDateArithmeticSeries(t *testing.T) {
 	t.Run("Add months to date", func(t *testing.T) {
 		// Add 2 months
 		result := dts.Add(Months(2))
-		
+
 		days := result.Get(0).(int32)
 		date := Date{days: days}
 		assert.Equal(t, 15, date.Day())
@@ -132,16 +132,16 @@ func TestDateArithmeticSeries(t *testing.T) {
 
 	t.Run("Date diff", func(t *testing.T) {
 		dates2 := []time.Time{
-			time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), // 5 days before
-			time.Date(2024, 7, 20, 0, 0, 0, 0, time.UTC), // 11 days before
+			time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),  // 5 days before
+			time.Date(2024, 7, 20, 0, 0, 0, 0, time.UTC),  // 11 days before
 			time.Date(2023, 12, 20, 0, 0, 0, 0, time.UTC), // 5 days before
 		}
 		s2 := NewDateSeries("other", dates2)
-		
+
 		diff, err := dts.Diff(s2)
 		require.NoError(t, err)
 		assert.Equal(t, datatypes.Int32{}, diff.DataType())
-		
+
 		// Check differences
 		assert.Equal(t, int32(5), diff.Get(0))
 		assert.Equal(t, int32(11), diff.Get(1))
@@ -171,7 +171,7 @@ func TestDateTimeArithmeticExpr(t *testing.T) {
 		diffExpr := dtExpr.Diff(other)
 		assert.Equal(t, "col(timestamp) - col(other_timestamp)", diffExpr.String())
 		assert.Equal(t, "timestamp_diff_other_timestamp", diffExpr.Name())
-		
+
 		// Should return Duration type for datetime diff
 		assert.Equal(t, datatypes.Duration{Unit: datatypes.Nanoseconds}, diffExpr.DataType())
 	})
@@ -189,7 +189,7 @@ func TestNullHandlingArithmetic(t *testing.T) {
 	values := []string{"2024-01-15", "", "2024-07-31"}
 	s, err := NewDateTimeSeriesFromStrings("dates", values, "")
 	require.NoError(t, err)
-	
+
 	dts, err := DtSeries(s)
 	require.NoError(t, err)
 
@@ -205,13 +205,13 @@ func TestNullHandlingArithmetic(t *testing.T) {
 		values2 := []string{"2024-01-14", "2024-07-30", ""}
 		s2, err := NewDateTimeSeriesFromStrings("other", values2, "")
 		require.NoError(t, err)
-		
+
 		diff, err := dts.Diff(s2)
 		require.NoError(t, err)
-		
+
 		assert.False(t, diff.IsNull(0))
-		assert.True(t, diff.IsNull(1))  // null in first series
-		assert.True(t, diff.IsNull(2))  // null in second series
+		assert.True(t, diff.IsNull(1)) // null in first series
+		assert.True(t, diff.IsNull(2)) // null in second series
 	})
 }
 

@@ -17,7 +17,7 @@ func (so *StringOps) Format(formatStr string, args ...series.Series) (series.Ser
 			return formatStr
 		}, "format"), nil
 	}
-	
+
 	// Ensure all series have the same length
 	length := so.s.Len()
 	for _, arg := range args {
@@ -25,17 +25,17 @@ func (so *StringOps) Format(formatStr string, args ...series.Series) (series.Ser
 			return nil, fmt.Errorf("all series must have the same length")
 		}
 	}
-	
+
 	values := make([]string, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		// Check if any argument is null
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		anyNull := false
 		for _, arg := range args {
 			if arg.IsNull(i) {
@@ -43,24 +43,24 @@ func (so *StringOps) Format(formatStr string, args ...series.Series) (series.Ser
 				break
 			}
 		}
-		
+
 		if anyNull {
 			validity[i] = false
 			continue
 		}
-		
+
 		// Collect arguments for this row
 		formatArgs := make([]interface{}, len(args)+1)
 		formatArgs[0] = so.s.Get(i)
 		for j, arg := range args {
 			formatArgs[j+1] = arg.Get(i)
 		}
-		
+
 		// Apply formatting
 		values[i] = fmt.Sprintf(formatStr, formatArgs...)
 		validity[i] = true
 	}
-	
+
 	return series.NewSeriesWithValidity(so.s.Name()+"_formatted", values, validity, datatypes.String{}), nil
 }
 
@@ -71,7 +71,7 @@ func (so *StringOps) FormatTemplate(templateStr string, data map[string]series.S
 	if err != nil {
 		return nil, fmt.Errorf("invalid template: %w", err)
 	}
-	
+
 	// Ensure all series have the same length
 	length := so.s.Len()
 	for _, s := range data {
@@ -79,21 +79,21 @@ func (so *StringOps) FormatTemplate(templateStr string, data map[string]series.S
 			return nil, fmt.Errorf("all series must have the same length")
 		}
 	}
-	
+
 	values := make([]string, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		// Check for nulls
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		anyNull := false
 		rowData := make(map[string]interface{})
 		rowData["Value"] = so.s.Get(i)
-		
+
 		for name, s := range data {
 			if s.IsNull(i) {
 				anyNull = true
@@ -101,12 +101,12 @@ func (so *StringOps) FormatTemplate(templateStr string, data map[string]series.S
 			}
 			rowData[name] = s.Get(i)
 		}
-		
+
 		if anyNull {
 			validity[i] = false
 			continue
 		}
-		
+
 		// Execute template
 		var buf strings.Builder
 		err := tmpl.Execute(&buf, rowData)
@@ -114,11 +114,11 @@ func (so *StringOps) FormatTemplate(templateStr string, data map[string]series.S
 			validity[i] = false
 			continue
 		}
-		
+
 		values[i] = buf.String()
 		validity[i] = true
 	}
-	
+
 	return series.NewSeriesWithValidity(so.s.Name()+"_templated", values, validity, datatypes.String{}), nil
 }
 
@@ -131,20 +131,20 @@ func (so *StringOps) Join(separator string, others ...series.Series) (series.Ser
 			return nil, fmt.Errorf("all series must have the same length")
 		}
 	}
-	
+
 	values := make([]string, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		// Check for nulls
 		if so.s.IsNull(i) {
 			validity[i] = false
 			continue
 		}
-		
+
 		parts := make([]string, 0, len(others)+1)
 		parts = append(parts, fmt.Sprint(so.s.Get(i)))
-		
+
 		anyNull := false
 		for _, other := range others {
 			if other.IsNull(i) {
@@ -153,16 +153,16 @@ func (so *StringOps) Join(separator string, others ...series.Series) (series.Ser
 			}
 			parts = append(parts, fmt.Sprint(other.Get(i)))
 		}
-		
+
 		if anyNull {
 			validity[i] = false
 			continue
 		}
-		
+
 		values[i] = strings.Join(parts, separator)
 		validity[i] = true
 	}
-	
+
 	return series.NewSeriesWithValidity(so.s.Name()+"_joined", values, validity, datatypes.String{}), nil
 }
 
@@ -172,16 +172,16 @@ func (so *StringOps) Center(width int, fillChar ...string) series.Series {
 	if len(fillChar) > 0 && len(fillChar[0]) > 0 {
 		fill = string(fillChar[0][0])
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		if len(str) >= width {
 			return str
 		}
-		
+
 		totalPad := width - len(str)
 		leftPad := totalPad / 2
 		rightPad := totalPad - leftPad
-		
+
 		return strings.Repeat(fill, leftPad) + str + strings.Repeat(fill, rightPad)
 	}, "center")
 }
@@ -192,7 +192,7 @@ func (so *StringOps) LJust(width int, fillChar ...string) series.Series {
 	if len(fillChar) > 0 && len(fillChar[0]) > 0 {
 		fill = string(fillChar[0][0])
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		if len(str) >= width {
 			return str
@@ -207,7 +207,7 @@ func (so *StringOps) RJust(width int, fillChar ...string) series.Series {
 	if len(fillChar) > 0 && len(fillChar[0]) > 0 {
 		fill = string(fillChar[0][0])
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		if len(str) >= width {
 			return str
@@ -222,15 +222,15 @@ func (so *StringOps) ExpandTabs(tabsize ...int) series.Series {
 	if len(tabsize) > 0 {
 		size = tabsize[0]
 	}
-	
+
 	return applyUnaryOp(so.s, func(str string) interface{} {
 		if !strings.Contains(str, "\t") {
 			return str
 		}
-		
+
 		var result strings.Builder
 		col := 0
-		
+
 		for _, ch := range str {
 			if ch == '\t' {
 				spaces := size - (col % size)
@@ -244,7 +244,7 @@ func (so *StringOps) ExpandTabs(tabsize ...int) series.Series {
 				col++
 			}
 		}
-		
+
 		return result.String()
 	}, "expand_tabs")
 }
@@ -255,19 +255,19 @@ func (so *StringOps) Wrap(width int) series.Series {
 		if len(str) <= width {
 			return str
 		}
-		
+
 		words := strings.Fields(str)
 		if len(words) == 0 {
 			return str
 		}
-		
+
 		var lines []string
 		var currentLine strings.Builder
 		currentLen := 0
-		
+
 		for _, word := range words {
 			wordLen := len(word)
-			
+
 			if currentLen > 0 && currentLen+1+wordLen > width {
 				// Start new line
 				lines = append(lines, currentLine.String())
@@ -284,11 +284,11 @@ func (so *StringOps) Wrap(width int) series.Series {
 				currentLen += wordLen
 			}
 		}
-		
+
 		if currentLen > 0 {
 			lines = append(lines, currentLine.String())
 		}
-		
+
 		return strings.Join(lines, "\n")
 	}, "wrap")
 }

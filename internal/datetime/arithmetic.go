@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -17,7 +17,7 @@ type DateTimeArithmetic struct {
 // Add adds a duration to each datetime value
 func (dts *DateTimeSeries) Add(duration Duration) series.Series {
 	name := fmt.Sprintf("%s_plus_%s", dts.s.Name(), duration.String())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return addDurationToDateTime(dts.s, name, duration)
@@ -38,7 +38,7 @@ func (dts *DateTimeSeries) Diff(other series.Series) (series.Series, error) {
 	if dts.s.Len() != other.Len() {
 		return nil, fmt.Errorf("series lengths must match: %d != %d", dts.s.Len(), other.Len())
 	}
-	
+
 	// Check that other is also a datetime type
 	switch other.DataType().(type) {
 	case datatypes.Datetime, datatypes.Date:
@@ -46,9 +46,9 @@ func (dts *DateTimeSeries) Diff(other series.Series) (series.Series, error) {
 	default:
 		return nil, fmt.Errorf("can only diff with datetime or date series, got %s", other.DataType())
 	}
-	
+
 	name := fmt.Sprintf("%s_diff_%s", dts.s.Name(), other.Name())
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return diffDateTime(dts.s, other, name)
@@ -62,7 +62,7 @@ func (dts *DateTimeSeries) Diff(other series.Series) (series.Series, error) {
 // AddBusinessDays adds business days to datetime/date series
 func (dts *DateTimeSeries) AddBusinessDays(days int) series.Series {
 	name := fmt.Sprintf("%s_plus_%d_business_days", dts.s.Name(), days)
-	
+
 	switch dts.s.DataType().(type) {
 	case datatypes.Datetime:
 		return addBusinessDaysToDateTime(dts.s, name, days)
@@ -79,7 +79,7 @@ func addDurationToDateTime(s series.Series, name string, duration Duration) seri
 	length := s.Len()
 	values := make([]int64, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -91,7 +91,7 @@ func addDurationToDateTime(s series.Series, name string, duration Duration) seri
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, s.DataType())
 }
 
@@ -99,7 +99,7 @@ func addDurationToDate(s series.Series, name string, duration Duration) series.S
 	length := s.Len()
 	values := make([]int32, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -107,7 +107,7 @@ func addDurationToDate(s series.Series, name string, duration Duration) series.S
 			days := s.Get(i).(int32)
 			date := Date{days: days}
 			t := date.Time()
-			
+
 			// Add duration components
 			if duration.months != 0 {
 				t = t.AddDate(0, int(duration.months), 0)
@@ -118,13 +118,13 @@ func addDurationToDate(s series.Series, name string, duration Duration) series.S
 			if duration.nanoseconds != 0 {
 				t = t.Add(time.Duration(duration.nanoseconds))
 			}
-			
+
 			newDate := NewDateFromTime(t)
 			values[i] = newDate.days
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Date{})
 }
 
@@ -132,14 +132,14 @@ func diffDateTime(s1, s2 series.Series, name string) (series.Series, error) {
 	length := s1.Len()
 	values := make([]int64, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s1.IsNull(i) || s2.IsNull(i) {
 			validity[i] = false
 		} else {
 			ts1 := s1.Get(i).(int64)
 			var ts2 int64
-			
+
 			switch s2.DataType().(type) {
 			case datatypes.Datetime:
 				ts2 = s2.Get(i).(int64)
@@ -148,13 +148,13 @@ func diffDateTime(s1, s2 series.Series, name string) (series.Series, error) {
 				date := Date{days: days}
 				ts2 = date.Time().UnixNano()
 			}
-			
+
 			// Difference in nanoseconds
 			values[i] = ts1 - ts2
 			validity[i] = true
 		}
 	}
-	
+
 	// Return as Duration type
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Duration{Unit: datatypes.Nanoseconds}), nil
 }
@@ -163,14 +163,14 @@ func diffDate(s1, s2 series.Series, name string) (series.Series, error) {
 	length := s1.Len()
 	values := make([]int32, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s1.IsNull(i) || s2.IsNull(i) {
 			validity[i] = false
 		} else {
 			days1 := s1.Get(i).(int32)
 			var days2 int32
-			
+
 			switch s2.DataType().(type) {
 			case datatypes.Date:
 				days2 = s2.Get(i).(int32)
@@ -180,13 +180,13 @@ func diffDate(s1, s2 series.Series, name string) (series.Series, error) {
 				date := NewDateFromTime(dt.Time())
 				days2 = date.days
 			}
-			
+
 			// Difference in days
 			values[i] = days1 - days2
 			validity[i] = true
 		}
 	}
-	
+
 	// Return as days (Int32)
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int32{}), nil
 }
@@ -195,7 +195,7 @@ func addBusinessDaysToDateTime(s series.Series, name string, days int) series.Se
 	length := s.Len()
 	values := make([]int64, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -203,7 +203,7 @@ func addBusinessDaysToDateTime(s series.Series, name string, days int) series.Se
 			ts := s.Get(i).(int64)
 			dt := DateTime{timestamp: ts, timezone: time.UTC}
 			t := dt.Time()
-			
+
 			// Add business days
 			daysToAdd := days
 			direction := 1
@@ -211,7 +211,7 @@ func addBusinessDaysToDateTime(s series.Series, name string, days int) series.Se
 				direction = -1
 				daysToAdd = -daysToAdd
 			}
-			
+
 			for daysToAdd > 0 {
 				t = t.AddDate(0, 0, direction)
 				weekday := t.Weekday()
@@ -219,12 +219,12 @@ func addBusinessDaysToDateTime(s series.Series, name string, days int) series.Se
 					daysToAdd--
 				}
 			}
-			
+
 			values[i] = t.UnixNano()
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, s.DataType())
 }
 
@@ -232,7 +232,7 @@ func addBusinessDaysToDate(s series.Series, name string, days int) series.Series
 	length := s.Len()
 	values := make([]int32, length)
 	validity := make([]bool, length)
-	
+
 	for i := 0; i < length; i++ {
 		if s.IsNull(i) {
 			validity[i] = false
@@ -240,7 +240,7 @@ func addBusinessDaysToDate(s series.Series, name string, days int) series.Series
 			daysSinceEpoch := s.Get(i).(int32)
 			date := Date{days: daysSinceEpoch}
 			t := date.Time()
-			
+
 			// Add business days
 			daysToAdd := days
 			direction := 1
@@ -248,7 +248,7 @@ func addBusinessDaysToDate(s series.Series, name string, days int) series.Series
 				direction = -1
 				daysToAdd = -daysToAdd
 			}
-			
+
 			for daysToAdd > 0 {
 				t = t.AddDate(0, 0, direction)
 				weekday := t.Weekday()
@@ -256,13 +256,13 @@ func addBusinessDaysToDate(s series.Series, name string, days int) series.Series
 					daysToAdd--
 				}
 			}
-			
+
 			newDate := NewDateFromTime(t)
 			values[i] = newDate.days
 			validity[i] = true
 		}
 	}
-	
+
 	return series.NewSeriesWithValidity(name, values, validity, datatypes.Date{})
 }
 
@@ -349,12 +349,12 @@ func (e *DateTimeDiffExpr) String() string {
 func (e *DateTimeDiffExpr) DataType() datatypes.DataType {
 	// Returns duration for datetime diff, int32 for date diff
 	leftType := e.left.DataType()
-	
+
 	// If left is a column expression, assume it's datetime by default
 	if _, ok := leftType.(datatypes.Unknown); ok {
 		return datatypes.Duration{Unit: datatypes.Nanoseconds}
 	}
-	
+
 	switch leftType.(type) {
 	case datatypes.Datetime:
 		return datatypes.Duration{Unit: datatypes.Nanoseconds}

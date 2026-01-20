@@ -3,8 +3,8 @@ package group
 import (
 	"testing"
 
-	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -20,7 +20,7 @@ func TestMedianAggregation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"median_value": expr.Col("value").Median(),
 	})
@@ -81,7 +81,7 @@ func TestMedianWithNulls(t *testing.T) {
 	// Create test data with null values
 	values := []float64{1.0, 2.0, 0.0, 4.0, 5.0, 0.0}
 	validity := []bool{true, true, false, true, true, false}
-	
+
 	df := newMockDataFrame(
 		series.NewStringSeries("group", []string{"A", "A", "A", "B", "B", "B"}),
 		series.NewSeriesWithValidity("value", values, validity, datatypes.Float64{}),
@@ -92,7 +92,7 @@ func TestMedianWithNulls(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	result, err := gb.Agg(map[string]expr.Expr{
 		"median_value": expr.Col("value").Median(),
 	})
@@ -105,13 +105,13 @@ func TestMedianWithNulls(t *testing.T) {
 	// Group B: [4, 5, null] -> median = 4.5 (average of 4 and 5)
 	medianCol := result.Columns[1]
 	groupCol := result.Columns[0]
-	
+
 	expectedMedians := map[string]float64{"A": 1.5, "B": 4.5}
-	
+
 	for i := 0; i < medianCol.Len(); i++ {
 		groupVal := groupCol.Get(i).(string)
 		medianVal := medianCol.Get(i).(float64)
-		
+
 		if expected, ok := expectedMedians[groupVal]; ok {
 			if medianVal != expected {
 				t.Errorf("Group %s: expected median %f, got %f", groupVal, expected, medianVal)
@@ -131,7 +131,7 @@ func TestMedianOddEven(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	resultOdd, err := gbOdd.Agg(map[string]expr.Expr{
 		"median": expr.Col("value").Median(),
 	})
@@ -155,7 +155,7 @@ func TestMedianOddEven(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create GroupBy: %v", err)
 	}
-	
+
 	resultEven, err := gbEven.Agg(map[string]expr.Expr{
 		"median": expr.Col("value").Median(),
 	})
