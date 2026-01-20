@@ -33,21 +33,17 @@ fmt:
 # Run all checks (fmt, vet, test)
 check: fmt vet test
 
-# Run benchmarks (small dataset)
-bench-small:
-    cd benchmarks && make bench-small
-
-# Run benchmarks (medium dataset)
-bench-medium:
-    cd benchmarks && make bench-medium
-
-# Run benchmarks (large dataset)
-bench-large:
-    cd benchmarks && make bench-large
-
 # Generate benchmark data
-bench-data size="small":
-    cd benchmarks && make data-{{size}}
+bench-generate size="medium":
+    cd benchmarks && make generate SIZE={{size}}
+
+# Run group-by benchmarks
+bench-groupby size="medium":
+    cd benchmarks && make benchmark-groupby SIZE={{size}}
+
+# Run all benchmarks
+bench-all size="medium":
+    cd benchmarks && make benchmark-all SIZE={{size}}
 
 # Clean benchmark data
 bench-clean:
@@ -73,8 +69,7 @@ help:
     @echo "  just vet         - Run go vet"
     @echo ""
     @echo "Benchmarks:"
-    @echo "  just bench-small  - Run benchmarks (small dataset)"
-    @echo "  just bench-medium - Run benchmarks (medium dataset)"
-    @echo "  just bench-large  - Run benchmarks (large dataset)"
-    @echo "  just bench-data   - Generate benchmark data"
-    @echo "  just bench-clean  - Clean benchmark data"
+    @echo "  just bench-generate  - Generate benchmark data (SIZE=small|medium|large)"
+    @echo "  just bench-groupby   - Run group-by benchmarks"
+    @echo "  just bench-all       - Run all benchmarks"
+    @echo "  just bench-clean     - Clean benchmark data"

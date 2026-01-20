@@ -1,0 +1,15 @@
+# golangci-lint configuration
+run:
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - gofmt
+    - goimports
+
+issues:
+  # Don't fail on issues for now - report only
+  max-issues-per-linter: 0
+  max-same-issues: 0
