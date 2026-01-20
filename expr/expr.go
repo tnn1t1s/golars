@@ -122,6 +122,37 @@ type TopKExpr struct {
 }
 
 // Input returns the input expression
+func (e *TopKExpr) Input() Expr {
+	return e.expr
+}
+
+// K returns the number of values to return
+func (e *TopKExpr) K() int {
+	return e.k
+}
+
+// IsLargest returns true if this is top-k (largest), false if bottom-k
+func (e *TopKExpr) IsLargest() bool {
+	return e.largest
+}
+
+// CorrExpr represents a correlation between two columns
+type CorrExpr struct {
+	col1 *ColumnExpr
+	col2 *ColumnExpr
+}
+
+// Col1 returns the first column
+func (e *CorrExpr) Col1() *ColumnExpr {
+	return e.col1
+}
+
+// Col2 returns the second column
+func (e *CorrExpr) Col2() *ColumnExpr {
+	return e.col2
+}
+
+// Input returns the input expression
 func (e *AggExpr) Input() Expr {
 	return e.expr
 }
@@ -508,6 +539,100 @@ func (e *AggExpr) IsColumn() bool {
 
 func (e *AggExpr) Name() string {
 	return ""
+}
+
+// Arithmetic methods for AggExpr to support expression arithmetic in aggregations
+
+// Add creates an addition expression
+func (e *AggExpr) Add(other interface{}) *BinaryExpr {
+	return &BinaryExpr{
+		left:  e,
+		right: toExpr(other),
+		op:    OpAdd,
+	}
+}
+
+// Sub creates a subtraction expression
+func (e *AggExpr) Sub(other interface{}) *BinaryExpr {
+	return &BinaryExpr{
+		left:  e,
+		right: toExpr(other),
+		op:    OpSubtract,
+	}
+}
+
+// Mul creates a multiplication expression
+func (e *AggExpr) Mul(other interface{}) *BinaryExpr {
+	return &BinaryExpr{
+		left:  e,
+		right: toExpr(other),
+		op:    OpMultiply,
+	}
+}
+
+// Div creates a division expression
+func (e *AggExpr) Div(other interface{}) *BinaryExpr {
+	return &BinaryExpr{
+		left:  e,
+		right: toExpr(other),
+		op:    OpDivide,
+	}
+}
+
+// Implementation of Expr interface for TopKExpr
+
+func (e *TopKExpr) String() string {
+	if e.largest {
+		return fmt.Sprintf("%s.top_k(%d)", e.expr.String(), e.k)
+	}
+	return fmt.Sprintf("%s.bottom_k(%d)", e.expr.String(), e.k)
+}
+
+func (e *TopKExpr) DataType() datatypes.DataType {
+	// TopK returns a list of the same type as input
+	return e.expr.DataType()
+}
+
+func (e *TopKExpr) Alias(name string) Expr {
+	return &AliasExpr{expr: e, alias: name}
+}
+
+func (e *TopKExpr) IsColumn() bool {
+	return false
+}
+
+func (e *TopKExpr) Name() string {
+	return ""
+}
+
+// Implementation of Expr interface for CorrExpr
+
+func (e *CorrExpr) String() string {
+	return fmt.Sprintf("corr(%s, %s)", e.col1.String(), e.col2.String())
+}
+
+func (e *CorrExpr) DataType() datatypes.DataType {
+	return datatypes.Float64{}
+}
+
+func (e *CorrExpr) Alias(name string) Expr {
+	return &AliasExpr{expr: e, alias: name}
+}
+
+func (e *CorrExpr) IsColumn() bool {
+	return false
+}
+
+func (e *CorrExpr) Name() string {
+	return ""
+}
+
+// Corr creates a correlation expression between two columns
+func Corr(col1, col2 string) *CorrExpr {
+	return &CorrExpr{
+		col1: Col(col1),
+		col2: Col(col2),
+	}
 }
 
 // Implementation of Expr interface for WhenThenExpr

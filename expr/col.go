@@ -241,6 +241,32 @@ func (c *ColumnExpr) Last() *AggExpr {
 	}
 }
 
+// TopK returns the top k largest values
+func (c *ColumnExpr) TopK(k int) *TopKExpr {
+	return &TopKExpr{
+		expr:    c,
+		k:       k,
+		largest: true,
+	}
+}
+
+// BottomK returns the k smallest values
+func (c *ColumnExpr) BottomK(k int) *TopKExpr {
+	return &TopKExpr{
+		expr:    c,
+		k:       k,
+		largest: false,
+	}
+}
+
+// Corr creates a correlation expression between this column and another
+func (c *ColumnExpr) Corr(other *ColumnExpr) *CorrExpr {
+	return &CorrExpr{
+		col1: c,
+		col2: other,
+	}
+}
+
 // Other operations
 
 // Cast converts the column to a different type

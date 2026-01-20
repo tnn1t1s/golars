@@ -2,13 +2,76 @@
 //
 // Source: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_join_where.py
 //
-// SKIPPED: golars does not have JoinWhere (inequality join) functionality.
-// All benchmarks in this file are skipped to clearly show the feature gap.
+// Note: Using smaller data size than Polars (1000x100 vs 50000x5000)
+// because nested loop join is O(n*m) and we want reasonable benchmark times.
 package join_where
 
 import (
+	"math/rand"
 	"testing"
+
+	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/series"
 )
+
+// Test data matching Polars east_west fixture (scaled down for golars)
+// Polars uses 50,000 x 5,000 rows; we use 1,000 x 100 for reasonable benchmark times
+var east, west *frame.DataFrame
+
+func init() {
+	rng := rand.New(rand.NewSource(42))
+	numRowsLeft, numRowsRight := 1000, 100
+
+	// Generate east table
+	eastID := make([]int64, numRowsLeft)
+	eastDur := make([]int64, numRowsLeft)
+	eastRev := make([]int32, numRowsLeft)
+	eastCores := make([]int64, numRowsLeft)
+
+	for i := 0; i < numRowsLeft; i++ {
+		eastID[i] = int64(i)
+		eastDur[i] = int64(rng.Intn(49000) + 1000) // 1000-50000
+		eastRev[i] = int32(float64(eastDur[i]) * 0.123)
+		eastCores[i] = int64(rng.Intn(9) + 1) // 1-10
+	}
+
+	// Generate west table
+	westID := make([]int64, numRowsRight)
+	westTime := make([]int64, numRowsRight)
+	westCost := make([]int32, numRowsRight)
+	westCores := make([]int64, numRowsRight)
+
+	for i := 0; i < numRowsRight; i++ {
+		westID[i] = int64(i)
+		westTime[i] = int64(rng.Intn(49000) + 1000) // 1000-50000
+		cost := float64(westTime[i]) * 0.123
+		cost += rng.NormFloat64() // Add noise
+		westCost[i] = int32(cost)
+		westCores[i] = int64(rng.Intn(9) + 1) // 1-10
+	}
+
+	var err error
+	east, err = frame.NewDataFrame(
+		series.NewInt64Series("id", eastID),
+		series.NewInt64Series("dur", eastDur),
+		series.NewInt32Series("rev", eastRev),
+		series.NewInt64Series("cores", eastCores),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	west, err = frame.NewDataFrame(
+		series.NewInt64Series("t_id", westID),
+		series.NewInt64Series("time", westTime),
+		series.NewInt32Series("cost", westCost),
+		series.NewInt64Series("cores", westCores),
+	)
+	if err != nil {
+		panic(err)
+	}
+}
 
 // =============================================================================
 // Polars test_join_where.py - Exact Translations
@@ -23,10 +86,18 @@ import (
 //	    [pl.col("dur") < pl.col("time"), pl.col("rev") > pl.col("cost")],
 //	)
 //	.collect()
-//
-// SKIPPED: golars does not have JoinWhere for inequality conditions
 func BenchmarkStrictInequalities(b *testing.B) {
-	b.Skip("FEATURE GAP: golars does not have JoinWhere for inequality joins")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		result, err := east.JoinWhere(west,
+			expr.Col("dur").Lt(expr.Col("time")),
+			expr.Col("rev").Gt(expr.Col("cost")),
+		)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
 
 // BenchmarkNonStrictInequalities matches test_non_strict_inequalities
@@ -38,10 +109,18 @@ func BenchmarkStrictInequalities(b *testing.B) {
 //	    [pl.col("dur") <= pl.col("time"), pl.col("rev") >= pl.col("cost")],
 //	)
 //	.collect()
-//
-// SKIPPED: golars does not have JoinWhere for inequality conditions
 func BenchmarkNonStrictInequalities(b *testing.B) {
-	b.Skip("FEATURE GAP: golars does not have JoinWhere for inequality joins")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		result, err := east.JoinWhere(west,
+			expr.Col("dur").Lte(expr.Col("time")),
+			expr.Col("rev").Gte(expr.Col("cost")),
+		)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
 
 // BenchmarkSingleInequality matches test_single_inequality
@@ -55,7 +134,18 @@ func BenchmarkNonStrictInequalities(b *testing.B) {
 //	)
 //	.collect()
 //
-// SKIPPED: golars does not have JoinWhere for inequality conditions
+// Note: We skip the with_columns step and just use dur < time directly
+// since golars doesn't have full expression evaluation in WithColumn yet.
+// The benchmark still tests the JoinWhere functionality.
 func BenchmarkSingleInequality(b *testing.B) {
-	b.Skip("FEATURE GAP: golars does not have JoinWhere for inequality joins")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		result, err := east.JoinWhere(west,
+			expr.Col("dur").Lt(expr.Col("time")),
+		)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
