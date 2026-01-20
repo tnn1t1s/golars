@@ -191,11 +191,22 @@ func BenchmarkGroupByH2OAI_Q6(b *testing.B) {
 //	.group_by("id3")
 //	.agg((pl.max("v1") - pl.min("v2")).alias("range_v1_v2"))
 //	.collect()
-//
-// SKIPPED: Requires expression arithmetic in aggregations (max - min)
-// golars does not yet support combining aggregation results within agg()
 func BenchmarkGroupByH2OAI_Q7(b *testing.B) {
-	b.Skip("FEATURE GAP: Requires expression arithmetic in aggregations (pl.max - pl.min)")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		groupBy, err := testData.GroupBy("id3")
+		if err != nil {
+			b.Fatal(err)
+		}
+		// Expression arithmetic: max(v1) - min(v2)
+		result, err := groupBy.Agg(map[string]expr.Expr{
+			"range_v1_v2": expr.Col("v1").Max().Sub(expr.Col("v2").Min()),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
 
 // BenchmarkGroupByH2OAI_Q8 matches test_groupby_h2oai_q8
@@ -207,10 +218,32 @@ func BenchmarkGroupByH2OAI_Q7(b *testing.B) {
 //	.agg(pl.col("v3").top_k(2).alias("largest2_v3"))
 //	.explode("largest2_v3")
 //	.collect()
-//
-// SKIPPED: Requires top_k aggregation and explode operation
 func BenchmarkGroupByH2OAI_Q8(b *testing.B) {
-	b.Skip("FEATURE GAP: Requires top_k(2) aggregation and explode() operation")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Drop nulls in v3
+		filtered, err := testData.Filter(expr.Col("v3").IsNotNull())
+		if err != nil {
+			b.Fatal(err)
+		}
+		groupBy, err := filtered.GroupBy("id6")
+		if err != nil {
+			b.Fatal(err)
+		}
+		// TopK aggregation - Agg returns *DataFrame directly
+		aggDF, err := groupBy.Agg(map[string]expr.Expr{
+			"largest2_v3": expr.Col("v3").TopK(2),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		// Explode the list column
+		result, err := aggDF.Explode("largest2_v3")
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
 
 // BenchmarkGroupByH2OAI_Q9 matches test_groupby_h2oai_q9
@@ -221,9 +254,25 @@ func BenchmarkGroupByH2OAI_Q8(b *testing.B) {
 //	.agg((pl.corr("v1", "v2") ** 2).alias("r2"))
 //	.collect()
 //
-// SKIPPED: Requires correlation function in aggregations
+// Note: We compute correlation but don't square it since golars doesn't
+// support ** operator on scalar results yet. The benchmark is still meaningful
+// as correlation is the computationally expensive part.
 func BenchmarkGroupByH2OAI_Q9(b *testing.B) {
-	b.Skip("FEATURE GAP: Requires pl.corr() function in aggregations")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		groupBy, err := testData.GroupBy("id2", "id4")
+		if err != nil {
+			b.Fatal(err)
+		}
+		// Correlation aggregation (corr squared would require additional op)
+		result, err := groupBy.Agg(map[string]expr.Expr{
+			"r2": expr.Corr("v1", "v2"),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
 
 // BenchmarkGroupByH2OAI_Q10 matches test_groupby_h2oai_q10

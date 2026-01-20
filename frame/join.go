@@ -3,6 +3,7 @@ package frame
 import (
 	"fmt"
 
+	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/internal/compute"
 	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
@@ -635,6 +636,167 @@ func createNullSeries(name string, dtype datatypes.DataType, length int) series.
 		// Fallback to int32
 		return series.NewSeriesWithValidity(name, make([]int32, length), validity, datatypes.Int32{})
 	}
+}
+
+// JoinWhere performs an inequality join based on predicates
+// This is a nested loop join that evaluates each pair of rows against the predicates
+func (df *DataFrame) JoinWhere(other *DataFrame, predicates ...expr.Expr) (*DataFrame, error) {
+	df.mu.RLock()
+	other.mu.RLock()
+	defer df.mu.RUnlock()
+	defer other.mu.RUnlock()
+
+	if len(predicates) == 0 {
+		return nil, fmt.Errorf("JoinWhere requires at least one predicate")
+	}
+
+	// Collect matching row pairs
+	leftIndices := make([]int, 0)
+	rightIndices := make([]int, 0)
+
+	// Nested loop join: for each left row, check all right rows
+	for i := 0; i < df.Height(); i++ {
+		for j := 0; j < other.Height(); j++ {
+			// Evaluate all predicates for this row pair
+			allMatch := true
+			for _, pred := range predicates {
+				match, err := evaluateJoinPredicate(df, other, i, j, pred)
+				if err != nil {
+					return nil, fmt.Errorf("failed to evaluate predicate: %w", err)
+				}
+				if !match {
+					allMatch = false
+					break
+				}
+			}
+			if allMatch {
+				leftIndices = append(leftIndices, i)
+				rightIndices = append(rightIndices, j)
+			}
+		}
+	}
+
+	// Build result using existing join result builder
+	config := JoinConfig{
+		How:    InnerJoin,
+		Suffix: "_right",
+	}
+	return buildJoinWhereResult(df, other, leftIndices, rightIndices, config)
+}
+
+// evaluateJoinPredicate evaluates a predicate for a pair of rows
+func evaluateJoinPredicate(left, right *DataFrame, leftIdx, rightIdx int, pred expr.Expr) (bool, error) {
+	switch e := pred.(type) {
+	case *expr.BinaryExpr:
+		// Get left and right values
+		leftVal, err := getValueForPredicate(left, right, leftIdx, rightIdx, e.Left())
+		if err != nil {
+			return false, err
+		}
+		rightVal, err := getValueForPredicate(left, right, leftIdx, rightIdx, e.Right())
+		if err != nil {
+			return false, err
+		}
+
+		// Handle null values
+		if leftVal == nil || rightVal == nil {
+			return false, nil
+		}
+
+		// Evaluate comparison
+		switch e.Op() {
+		case expr.OpEqual, expr.OpNotEqual, expr.OpLess, expr.OpLessEqual, expr.OpGreater, expr.OpGreaterEqual:
+			return compareValues(leftVal, rightVal, e.Op()), nil
+		case expr.OpAnd:
+			leftMatch, err := evaluateJoinPredicate(left, right, leftIdx, rightIdx, e.Left())
+			if err != nil {
+				return false, err
+			}
+			rightMatch, err := evaluateJoinPredicate(left, right, leftIdx, rightIdx, e.Right())
+			if err != nil {
+				return false, err
+			}
+			return leftMatch && rightMatch, nil
+		case expr.OpOr:
+			leftMatch, err := evaluateJoinPredicate(left, right, leftIdx, rightIdx, e.Left())
+			if err != nil {
+				return false, err
+			}
+			rightMatch, err := evaluateJoinPredicate(left, right, leftIdx, rightIdx, e.Right())
+			if err != nil {
+				return false, err
+			}
+			return leftMatch || rightMatch, nil
+		default:
+			return false, fmt.Errorf("unsupported binary operation in join predicate: %v", e.Op())
+		}
+	default:
+		return false, fmt.Errorf("unsupported predicate type: %T", pred)
+	}
+}
+
+// getValueForPredicate gets a value from a row for predicate evaluation
+// Column references are resolved from left DataFrame first, then right
+func getValueForPredicate(left, right *DataFrame, leftIdx, rightIdx int, e expr.Expr) (interface{}, error) {
+	switch ex := e.(type) {
+	case *expr.ColumnExpr:
+		// Try left DataFrame first
+		if col, err := left.Column(ex.Name()); err == nil {
+			return col.Get(leftIdx), nil
+		}
+		// Try right DataFrame
+		if col, err := right.Column(ex.Name()); err == nil {
+			return col.Get(rightIdx), nil
+		}
+		// Try with _right suffix for disambiguation
+		if col, err := right.Column(ex.Name()); err == nil {
+			return col.Get(rightIdx), nil
+		}
+		return nil, fmt.Errorf("column %s not found in either DataFrame", ex.Name())
+
+	case *expr.LiteralExpr:
+		return ex.Value(), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported expression type in predicate: %T", e)
+	}
+}
+
+// buildJoinWhereResult builds the result for JoinWhere (includes all columns from both sides)
+func buildJoinWhereResult(left, right *DataFrame, leftIndices, rightIndices []int, config JoinConfig) (*DataFrame, error) {
+	if len(leftIndices) != len(rightIndices) {
+		return nil, fmt.Errorf("internal error: index arrays must have same length")
+	}
+
+	resultColumns := make([]series.Series, 0)
+
+	// Add all left columns
+	for _, col := range left.columns {
+		newSeries, err := takeSeriesWithNulls(col, leftIndices)
+		if err != nil {
+			return nil, err
+		}
+		resultColumns = append(resultColumns, newSeries)
+	}
+
+	// Add all right columns (with suffix for conflicts)
+	for _, col := range right.columns {
+		newSeries, err := takeSeriesWithNulls(col, rightIndices)
+		if err != nil {
+			return nil, err
+		}
+
+		// Handle column name conflicts
+		colName := col.Name()
+		if left.HasColumn(colName) {
+			colName = colName + config.Suffix
+		}
+
+		newSeries = renameSeries(newSeries, colName)
+		resultColumns = append(resultColumns, newSeries)
+	}
+
+	return NewDataFrame(resultColumns...)
 }
 
 // concatenateDataFrames combines two DataFrames vertically

@@ -127,72 +127,234 @@ func (gb *GroupBy) Max(columns ...string) (*AggResult, error) {
 func (gb *GroupBy) applyAggregation(result *AggregationResult, hash uint64,
 	indices []int, colName string, aggExpr expr.Expr) error {
 
-	// Extract the column being aggregated from the expression
-	var targetCol string
-	switch e := aggExpr.(type) {
-	case *expr.AggExpr:
-		if colExpr, ok := e.Input().(*expr.ColumnExpr); ok {
-			targetCol = colExpr.Name()
-		}
-	default:
-		return fmt.Errorf("unsupported aggregation expression type: %T", aggExpr)
-	}
-
-	// Get the column to aggregate
-	col, err := gb.df.Column(targetCol)
+	aggResult, dtype, err := gb.evaluateAggExpr(indices, aggExpr)
 	if err != nil {
-		return fmt.Errorf("column %s not found", targetCol)
+		return err
 	}
 
-	// Extract values for this group
+	result.DataTypes[colName] = dtype
+	result.Results[colName] = append(result.Results[colName], aggResult)
+
+	return nil
+}
+
+// evaluateAggExpr recursively evaluates an aggregation expression
+func (gb *GroupBy) evaluateAggExpr(indices []int, e expr.Expr) (interface{}, datatypes.DataType, error) {
+	switch ex := e.(type) {
+	case *expr.AggExpr:
+		return gb.evaluateSimpleAgg(indices, ex)
+
+	case *expr.BinaryExpr:
+		// Handle arithmetic on aggregations (e.g., Max() - Min())
+		leftVal, _, err := gb.evaluateAggExpr(indices, ex.Left())
+		if err != nil {
+			return nil, nil, err
+		}
+		rightVal, _, err := gb.evaluateAggExpr(indices, ex.Right())
+		if err != nil {
+			return nil, nil, err
+		}
+		result := applyBinaryOp(ex.Op(), leftVal, rightVal)
+		return result, datatypes.Float64{}, nil
+
+	case *expr.TopKExpr:
+		return gb.evaluateTopK(indices, ex)
+
+	case *expr.CorrExpr:
+		return gb.evaluateCorr(indices, ex)
+
+	default:
+		return nil, nil, fmt.Errorf("unsupported aggregation expression type: %T", e)
+	}
+}
+
+// evaluateSimpleAgg evaluates a simple aggregation expression
+func (gb *GroupBy) evaluateSimpleAgg(indices []int, agg *expr.AggExpr) (interface{}, datatypes.DataType, error) {
+	colExpr, ok := agg.Input().(*expr.ColumnExpr)
+	if !ok {
+		return nil, nil, fmt.Errorf("aggregation input must be a column")
+	}
+
+	col, err := gb.df.Column(colExpr.Name())
+	if err != nil {
+		return nil, nil, fmt.Errorf("column %s not found", colExpr.Name())
+	}
+
 	groupValues := make([]interface{}, len(indices))
 	for i, idx := range indices {
 		groupValues[i] = col.Get(idx)
 	}
 
-	// Apply aggregation based on expression type
 	var aggResult interface{}
-	if agg, ok := aggExpr.(*expr.AggExpr); ok {
-		switch agg.AggType() {
-		case expr.AggSum:
-			aggResult = computeSum(groupValues, col.DataType())
-			result.DataTypes[colName] = col.DataType() // Sum preserves type
-		case expr.AggMean:
-			aggResult = computeMean(groupValues, col.DataType())
-			result.DataTypes[colName] = datatypes.Float64{} // Mean always returns float64
-		case expr.AggMin:
-			aggResult = computeMin(groupValues, col.DataType())
-			result.DataTypes[colName] = col.DataType() // Min preserves type
-		case expr.AggMax:
-			aggResult = computeMax(groupValues, col.DataType())
-			result.DataTypes[colName] = col.DataType() // Max preserves type
-		case expr.AggCount:
-			aggResult = int64(len(indices))
-			result.DataTypes[colName] = datatypes.Int64{}
-		case expr.AggMedian:
-			aggResult = computeMedian(groupValues, col.DataType())
-			result.DataTypes[colName] = datatypes.Float64{} // Median always returns float64
-		case expr.AggStd:
-			aggResult = computeStd(groupValues, col.DataType(), 1) // Sample standard deviation (ddof=1)
-			result.DataTypes[colName] = datatypes.Float64{}        // Std always returns float64
-		case expr.AggVar:
-			aggResult = computeVar(groupValues, col.DataType(), 1) // Sample variance (ddof=1)
-			result.DataTypes[colName] = datatypes.Float64{}        // Var always returns float64
-		case expr.AggFirst:
-			aggResult = computeFirst(groupValues, col.DataType())
-			result.DataTypes[colName] = col.DataType() // First preserves type
-		case expr.AggLast:
-			aggResult = computeLast(groupValues, col.DataType())
-			result.DataTypes[colName] = col.DataType() // Last preserves type
-		default:
-			return fmt.Errorf("unsupported aggregation type: %v", agg.AggType())
+	var dtype datatypes.DataType
+
+	switch agg.AggType() {
+	case expr.AggSum:
+		aggResult = computeSum(groupValues, col.DataType())
+		dtype = col.DataType()
+	case expr.AggMean:
+		aggResult = computeMean(groupValues, col.DataType())
+		dtype = datatypes.Float64{}
+	case expr.AggMin:
+		aggResult = computeMin(groupValues, col.DataType())
+		dtype = col.DataType()
+	case expr.AggMax:
+		aggResult = computeMax(groupValues, col.DataType())
+		dtype = col.DataType()
+	case expr.AggCount:
+		aggResult = int64(len(indices))
+		dtype = datatypes.Int64{}
+	case expr.AggMedian:
+		aggResult = computeMedian(groupValues, col.DataType())
+		dtype = datatypes.Float64{}
+	case expr.AggStd:
+		aggResult = computeStd(groupValues, col.DataType(), 1)
+		dtype = datatypes.Float64{}
+	case expr.AggVar:
+		aggResult = computeVar(groupValues, col.DataType(), 1)
+		dtype = datatypes.Float64{}
+	case expr.AggFirst:
+		aggResult = computeFirst(groupValues, col.DataType())
+		dtype = col.DataType()
+	case expr.AggLast:
+		aggResult = computeLast(groupValues, col.DataType())
+		dtype = col.DataType()
+	default:
+		return nil, nil, fmt.Errorf("unsupported aggregation type: %v", agg.AggType())
+	}
+
+	return aggResult, dtype, nil
+}
+
+// evaluateTopK evaluates a top-k aggregation
+func (gb *GroupBy) evaluateTopK(indices []int, topk *expr.TopKExpr) (interface{}, datatypes.DataType, error) {
+	colExpr, ok := topk.Input().(*expr.ColumnExpr)
+	if !ok {
+		return nil, nil, fmt.Errorf("top_k input must be a column")
+	}
+
+	col, err := gb.df.Column(colExpr.Name())
+	if err != nil {
+		return nil, nil, fmt.Errorf("column %s not found", colExpr.Name())
+	}
+
+	// Extract and sort values
+	values := make([]float64, 0, len(indices))
+	for _, idx := range indices {
+		v := col.Get(idx)
+		if v != nil {
+			values = append(values, toFloat64(v))
 		}
 	}
 
-	// Store result
-	result.Results[colName] = append(result.Results[colName], aggResult)
+	if len(values) == 0 {
+		return []float64{}, datatypes.Float64{}, nil
+	}
 
-	return nil
+	// Sort in appropriate order
+	if topk.IsLargest() {
+		sort.Sort(sort.Reverse(sort.Float64Slice(values)))
+	} else {
+		sort.Float64s(values)
+	}
+
+	// Take top k
+	k := topk.K()
+	if k > len(values) {
+		k = len(values)
+	}
+
+	return values[:k], datatypes.Float64{}, nil
+}
+
+// evaluateCorr evaluates a correlation between two columns
+func (gb *GroupBy) evaluateCorr(indices []int, corr *expr.CorrExpr) (interface{}, datatypes.DataType, error) {
+	col1, err := gb.df.Column(corr.Col1().Name())
+	if err != nil {
+		return nil, nil, fmt.Errorf("column %s not found", corr.Col1().Name())
+	}
+
+	col2, err := gb.df.Column(corr.Col2().Name())
+	if err != nil {
+		return nil, nil, fmt.Errorf("column %s not found", corr.Col2().Name())
+	}
+
+	// Extract paired values (skip if either is null)
+	var vals1, vals2 []float64
+	for _, idx := range indices {
+		v1, v2 := col1.Get(idx), col2.Get(idx)
+		if v1 != nil && v2 != nil {
+			vals1 = append(vals1, toFloat64(v1))
+			vals2 = append(vals2, toFloat64(v2))
+		}
+	}
+
+	if len(vals1) < 2 {
+		return nil, datatypes.Float64{}, nil
+	}
+
+	// Compute Pearson correlation
+	result := computeCorrelation(vals1, vals2)
+	return result, datatypes.Float64{}, nil
+}
+
+// computeCorrelation computes Pearson correlation coefficient
+func computeCorrelation(x, y []float64) float64 {
+	n := len(x)
+	if n == 0 {
+		return math.NaN()
+	}
+
+	// Calculate means
+	var sumX, sumY float64
+	for i := 0; i < n; i++ {
+		sumX += x[i]
+		sumY += y[i]
+	}
+	meanX := sumX / float64(n)
+	meanY := sumY / float64(n)
+
+	// Calculate covariance and standard deviations
+	var cov, varX, varY float64
+	for i := 0; i < n; i++ {
+		dx := x[i] - meanX
+		dy := y[i] - meanY
+		cov += dx * dy
+		varX += dx * dx
+		varY += dy * dy
+	}
+
+	if varX == 0 || varY == 0 {
+		return math.NaN()
+	}
+
+	return cov / math.Sqrt(varX*varY)
+}
+
+// applyBinaryOp applies a binary operation to two values
+func applyBinaryOp(op expr.BinaryOp, left, right interface{}) interface{} {
+	if left == nil || right == nil {
+		return nil
+	}
+
+	l := toFloat64(left)
+	r := toFloat64(right)
+
+	switch op {
+	case expr.OpAdd:
+		return l + r
+	case expr.OpSubtract:
+		return l - r
+	case expr.OpMultiply:
+		return l * r
+	case expr.OpDivide:
+		if r == 0 {
+			return math.NaN()
+		}
+		return l / r
+	default:
+		return nil
+	}
 }
 
 // buildResultDataFrame builds the final DataFrame from aggregation results
@@ -589,6 +751,24 @@ func createSeriesFromInterface(name string, values []interface{}, dtype datatype
 		}
 		return series.NewFloat32Series(name, data)
 	} else if dtype.Equals(datatypes.Float64{}) {
+		// Check if this is a list of float64 slices (e.g., from TopK)
+		if len(values) > 0 {
+			if _, ok := values[0].([]float64); ok {
+				// This is a list column - store slices as interface{}
+				data := make([]interface{}, len(values))
+				validity := make([]bool, len(values))
+				for i, v := range values {
+					if v != nil {
+						data[i] = v
+						validity[i] = true
+					} else {
+						data[i] = nil
+						validity[i] = false
+					}
+				}
+				return series.NewInterfaceSeries(name, data, validity, datatypes.List{Inner: datatypes.Float64{}})
+			}
+		}
 		data := make([]float64, len(values))
 		validity := make([]bool, len(values))
 		hasNulls := false
