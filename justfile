@@ -1,135 +1,80 @@
-# Monitor Claude Code agent sessions
+# Golars development commands
 
-# Default: monitor any active Claude session (last 100 lines)
-monitor:
-    @osascript tools/monitor-agent.scpt "" 100
+# Run all tests
+test:
+    go test ./...
 
-# Monitor with custom line count
-monitor-lines count="200":
-    @osascript tools/monitor-agent.scpt "" {{count}}
+# Run tests with verbose output
+test-v:
+    go test -v ./...
 
-# Monitor a specific session
-monitor-session pattern:
-    @osascript tools/monitor-agent.scpt "{{pattern}}" 100
+# Run tests with race detection
+test-race:
+    go test -race ./...
 
-# Get session statistics (tokens, commands, etc.)
-stats:
-    @osascript tools/monitor-agent.scpt "" stats
+# Run tests with coverage
+test-cover:
+    go test -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out -o coverage.html
+    @echo "Coverage report: coverage.html"
 
-# Get session statistics for specific window
-stats-session pattern:
-    @osascript tools/monitor-agent.scpt "{{pattern}}" stats
+# Build the project
+build:
+    go build ./...
 
-# Get full transcript
-transcript:
-    @osascript tools/monitor-agent.scpt "" full
+# Run go vet
+vet:
+    go vet ./...
 
-# Save full transcript to file
-save-transcript:
-    @osascript tools/monitor-agent.scpt "" full > transcripts/session_$(date +%Y%m%d_%H%M%S).txt
-    @echo "Transcript saved to transcripts/session_$(date +%Y%m%d_%H%M%S).txt"
+# Run go fmt
+fmt:
+    go fmt ./...
 
-# Monitor golars sessions specifically
-golars:
-    @osascript tools/monitor-agent.scpt "golars — ✳" 100
+# Run all checks (fmt, vet, test)
+check: fmt vet test
 
-# Monitor golars with more context
-golars-context:
-    @osascript tools/monitor-agent.scpt "golars — ✳" 500
+# Run benchmarks (small dataset)
+bench-small:
+    cd benchmarks && make bench-small
 
-# Get golars session stats
-golars-stats:
-    @osascript tools/monitor-agent.scpt "golars — ✳" stats
+# Run benchmarks (medium dataset)
+bench-medium:
+    cd benchmarks && make bench-medium
 
-# Extract conversation from current session
-conversation:
-    @osascript tools/monitor-agent.scpt "" conversation
+# Run benchmarks (large dataset)
+bench-large:
+    cd benchmarks && make bench-large
 
-# Extract and save conversation to context
-save-conversation:
-    @osascript tools/monitor-agent.scpt "" conversation > .claude/context_$(date +%Y%m%d_%H%M%S).md
-    @echo "Conversation saved to .claude/context_$(date +%Y%m%d_%H%M%S).md"
+# Generate benchmark data
+bench-data size="small":
+    cd benchmarks && make data-{{size}}
 
-# Extract conversation from specific session
-conversation-session pattern:
-    @osascript tools/monitor-agent.scpt "{{pattern}}" conversation
+# Clean benchmark data
+bench-clean:
+    cd benchmarks && make clean
 
-# Create a CLAUDE.md context file from current conversation
-update-context:
-    @mkdir -p .claude
-    @echo "# Context from $(date +%Y-%m-%d)" > .claude/CLAUDE_context.md
-    @echo "" >> .claude/CLAUDE_context.md
-    @osascript tools/monitor-agent.scpt "" conversation >> .claude/CLAUDE_context.md
-    @echo "Context updated in .claude/CLAUDE_context.md"
-
-# Analyze user prompts
-analyze-prompts:
-    @osascript tools/monitor-agent.scpt "" prompts
-
-# Show prompt statistics
-prompt-stats:
-    @osascript tools/monitor-agent.scpt "" prompt-stats
-
-# Analyze prompts from specific session
-analyze-prompts-session pattern:
-    @osascript tools/monitor-agent.scpt "{{pattern}}" prompts
-
-# Save prompt analysis
-save-prompt-analysis:
-    @mkdir -p .claude/prompt-analysis
-    @osascript tools/monitor-agent.scpt "" prompts > .claude/prompt-analysis/analysis_$(date +%Y%m%d_%H%M%S).txt
-    @echo "Prompt analysis saved to .claude/prompt-analysis/analysis_$(date +%Y%m%d_%H%M%S).txt"
-
-# Watch agent activity (refresh every 5 seconds)
-watch:
-    @while true; do \
-        clear; \
-        osascript tools/monitor-agent.scpt "" 50; \
-        sleep 5; \
-    done
-
-# Watch with stats
-watch-stats:
-    @while true; do \
-        clear; \
-        osascript tools/monitor-agent.scpt "" stats; \
-        sleep 10; \
-    done
-
-# List all available Claude sessions
-list-sessions:
-    @osascript -e 'tell application "Terminal" to name of every window' | tr ',' '\n' | grep "✳" | sed 's/^ //'
-
-# Show tool usage
+# Show help
 help:
-    @echo "Golars Monitoring Tools"
-    @echo "======================"
+    @echo "Golars Development Commands"
+    @echo "==========================="
     @echo ""
-    @echo "Quick commands:"
-    @echo "  just monitor          - View current agent activity"
-    @echo "  just stats           - Show session statistics"
-    @echo "  just transcript      - Get full session transcript"
-    @echo "  just conversation    - Extract compact conversation"
-    @echo "  just golars          - Monitor golars sessions"
-    @echo "  just watch           - Live monitoring (updates every 5s)"
-    @echo "  just list-sessions   - Show all Claude sessions"
+    @echo "Testing:"
+    @echo "  just test        - Run all tests"
+    @echo "  just test-v      - Run tests with verbose output"
+    @echo "  just test-race   - Run tests with race detection"
+    @echo "  just test-cover  - Run tests with coverage report"
     @echo ""
-    @echo "Advanced usage:"
-    @echo "  just monitor-lines 500                - Show last 500 lines"
-    @echo "  just monitor-session 'Next Steps'     - Monitor specific window"
-    @echo "  just save-transcript                  - Save transcript to file"
-    @echo "  just save-conversation                - Save conversation to context"
-    @echo "  just update-context                   - Update CLAUDE.md context"
+    @echo "Building:"
+    @echo "  just build       - Build the project"
+    @echo "  just check       - Run fmt, vet, and tests"
     @echo ""
-    @echo "Conversation commands:"
-    @echo "  just conversation                     - View compact conversation"
-    @echo "  just conversation-session 'pattern'   - Extract from specific session"
-    @echo "  just save-conversation                - Save to timestamped file"
-    @echo "  just update-context                   - Create/update context file"
+    @echo "Linting:"
+    @echo "  just fmt         - Run go fmt"
+    @echo "  just vet         - Run go vet"
     @echo ""
-    @echo "Prompt analysis:"
-    @echo "  just analyze-prompts                  - Analyze your prompts"
-    @echo "  just prompt-stats                     - Show prompting statistics"
-    @echo "  just save-prompt-analysis             - Save analysis to file"
-    @echo ""
-    @echo "Run 'just help' to see this message again"
+    @echo "Benchmarks:"
+    @echo "  just bench-small  - Run benchmarks (small dataset)"
+    @echo "  just bench-medium - Run benchmarks (medium dataset)"
+    @echo "  just bench-large  - Run benchmarks (large dataset)"
+    @echo "  just bench-data   - Generate benchmark data"
+    @echo "  just bench-clean  - Clean benchmark data"

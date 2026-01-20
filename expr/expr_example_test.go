@@ -222,8 +222,8 @@ func ExampleWhen() {
 	// Grade A check: when((col(score) >= lit(90))).then(lit(A)).otherwise(lit(Not A))
 }
 
-// ExampleAlias demonstrates aliasing expressions
-func ExampleAlias() {
+// Example_aliasing demonstrates aliasing expressions
+func Example_aliasing() {
 	// Simple alias
 	totalPrice := expr.Col("price").Mul(expr.Col("quantity")).Alias("total_price")
 	fmt.Println("Aliased:", totalPrice.String())
