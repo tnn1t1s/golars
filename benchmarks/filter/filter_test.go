@@ -1,3 +1,10 @@
+// Package filter contains filter operation benchmarks.
+//
+// Polars Comparable: BenchmarkFilter1, BenchmarkFilter2
+// These match: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_filter.py
+//
+// Golars Additional: BenchmarkFilterNumeric, BenchmarkFilterCompound, BenchmarkFilterOr
+// These are additional benchmarks not in the Polars test suite.
 package filter
 
 import (
@@ -8,44 +15,89 @@ import (
 	"github.com/tnn1t1s/golars/frame"
 )
 
-// Global variable to store test data
 var testData struct {
 	small  *frame.DataFrame
 	medium *frame.DataFrame
-	large  *frame.DataFrame
 }
 
-// init loads the test data once
 func init() {
-	// Load small dataset
 	small, err := data.GenerateH2OAIData(data.H2OAISmall)
 	if err != nil {
 		panic(err)
 	}
 	testData.small = small
 
-	// Load medium dataset
-	medium, err := data.GenerateH2OAIData(data.H2OAIMedium)
+	medium, err := data.GenerateH2OAIData(data.H2OAIMediumSafe)
 	if err != nil {
 		panic(err)
 	}
 	testData.medium = medium
 }
 
-// BenchmarkFilterSimple - Simple filter on single column
-// Polars: df.filter(pl.col("v1") > 5)
-func BenchmarkFilterSimple_Small(b *testing.B) {
-	benchmarkFilterSimple(b, testData.small)
+// =============================================================================
+// Polars-Comparable Benchmarks (match test_filter.py)
+// =============================================================================
+
+// BenchmarkFilter1 - Matches Polars test_filter1
+// Polars: df.lazy().filter(pl.col("id1").eq_missing(pl.lit("id046"))).select(...).collect()
+// Note: Polars also does aggregation after filter; golars tests filter only
+func BenchmarkFilter1_Small(b *testing.B) {
+	benchmarkFilter1(b, testData.small)
 }
 
-func BenchmarkFilterSimple_Medium(b *testing.B) {
-	benchmarkFilterSimple(b, testData.medium)
+func BenchmarkFilter1_Medium(b *testing.B) {
+	benchmarkFilter1(b, testData.medium)
 }
 
-func benchmarkFilterSimple(b *testing.B, df *frame.DataFrame) {
+func benchmarkFilter1(b *testing.B, df *frame.DataFrame) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(expr.Col("v1").Gt(5))
+		result, err := df.Filter(expr.Col("id1").Eq(expr.Lit("id046")))
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
+}
+
+// BenchmarkFilter2 - Matches Polars test_filter2
+// Polars: df.lazy().filter(~(pl.col("id1").eq_missing(pl.lit("id046")))).select(...).collect()
+func BenchmarkFilter2_Small(b *testing.B) {
+	benchmarkFilter2(b, testData.small)
+}
+
+func BenchmarkFilter2_Medium(b *testing.B) {
+	benchmarkFilter2(b, testData.medium)
+}
+
+func benchmarkFilter2(b *testing.B, df *frame.DataFrame) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		result, err := df.Filter(expr.Col("id1").Ne(expr.Lit("id046")))
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
+}
+
+// =============================================================================
+// Additional Benchmarks (not in Polars test suite)
+// =============================================================================
+
+// BenchmarkFilterNumeric - Filter on numeric column
+func BenchmarkFilterNumeric_Small(b *testing.B) {
+	benchmarkFilterNumeric(b, testData.small)
+}
+
+func BenchmarkFilterNumeric_Medium(b *testing.B) {
+	benchmarkFilterNumeric(b, testData.medium)
+}
+
+func benchmarkFilterNumeric(b *testing.B, df *frame.DataFrame) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		result, err := df.Filter(expr.Col("v1").Gt(3))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -54,7 +106,6 @@ func benchmarkFilterSimple(b *testing.B, df *frame.DataFrame) {
 }
 
 // BenchmarkFilterCompound - Compound filter with AND
-// Polars: df.filter((pl.col("v1") > 5) & (pl.col("v2") < 10))
 func BenchmarkFilterCompound_Small(b *testing.B) {
 	benchmarkFilterCompound(b, testData.small)
 }
@@ -67,9 +118,7 @@ func benchmarkFilterCompound(b *testing.B, df *frame.DataFrame) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		result, err := df.Filter(
-			expr.Col("v1").Gt(5).And(
-				expr.Col("v2").Lt(10),
-			),
+			expr.Col("v1").Gt(3).And(expr.Col("v2").Lt(10)),
 		)
 		if err != nil {
 			b.Fatal(err)
@@ -78,29 +127,7 @@ func benchmarkFilterCompound(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkFilterString - Filter on string column
-// Polars: df.filter(pl.col("id1") == "id010")
-func BenchmarkFilterString_Small(b *testing.B) {
-	benchmarkFilterString(b, testData.small)
-}
-
-func BenchmarkFilterString_Medium(b *testing.B) {
-	benchmarkFilterString(b, testData.medium)
-}
-
-func benchmarkFilterString(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		result, err := df.Filter(expr.Col("id1").Eq(expr.Lit("id010")))
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = result
-	}
-}
-
 // BenchmarkFilterOr - Filter with OR condition
-// Polars: df.filter((pl.col("v1") > 4) | (pl.col("v2") < 5))
 func BenchmarkFilterOr_Small(b *testing.B) {
 	benchmarkFilterOr(b, testData.small)
 }
@@ -113,7 +140,7 @@ func benchmarkFilterOr(b *testing.B, df *frame.DataFrame) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		result, err := df.Filter(
-			expr.Col("v1").Gt(4).Or(expr.Col("v2").Lt(5)),
+			expr.Col("v1").Gt(3).Or(expr.Col("v2").Lt(5)),
 		)
 		if err != nil {
 			b.Fatal(err)

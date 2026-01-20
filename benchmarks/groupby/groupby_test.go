@@ -208,96 +208,17 @@ func benchmarkGroupByQ6(b *testing.B, df *frame.DataFrame) {
 	}
 }
 
-// BenchmarkGroupByQ7 - Group by with range calculation (max - min)
-// Polars: df.group_by("id3").agg((pl.max("v1") - pl.min("v2")).alias("range_v1_v2"))
-func BenchmarkGroupByQ7_Small(b *testing.B) {
-	benchmarkGroupByQ7(b, testData.small)
-}
-
-func BenchmarkGroupByQ7_Medium(b *testing.B) {
-	benchmarkGroupByQ7(b, testData.medium)
-}
-
-func benchmarkGroupByQ7(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		groupBy, err := df.GroupBy("id3")
-		if err != nil {
-			b.Fatal(err)
-		}
-		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v1_max": expr.Col("v1").Max(), // Simplified - Sub not available on AggExpr
-			"v2_min": expr.Col("v2").Min(),
-		})
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = result
-	}
-}
-
-// BenchmarkGroupByQ8 - Group by with top-k
-// Polars: df.drop_nulls("v3").group_by("id6").agg(pl.col("v3").top_k(2).alias("largest2_v3")).explode("largest2_v3")
-func BenchmarkGroupByQ8_Small(b *testing.B) {
-	benchmarkGroupByQ8(b, testData.small)
-}
-
-func BenchmarkGroupByQ8_Medium(b *testing.B) {
-	benchmarkGroupByQ8(b, testData.medium)
-}
-
-func benchmarkGroupByQ8(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Note: This is simplified - actual implementation would need:
-		// 1. Drop nulls from v3
-		// 2. Group by id6
-		// 3. Get top 2 values of v3 per group
-		// 4. Explode the result
-		// For now, we'll do a simpler version
-		dfNoNulls := df // TODO: Implement DropNulls when available
-		groupBy, err := dfNoNulls.GroupBy("id6")
-		if err != nil {
-			b.Fatal(err)
-		}
-		result, err := groupBy.Agg(map[string]expr.Expr{
-			"v3_max": expr.Col("v3").Max(), // Simplified version
-		})
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = result
-	}
-}
-
-// BenchmarkGroupByQ9 - Group by with correlation
-// Polars: df.group_by("id2", "id4").agg((pl.corr("v1", "v2") ** 2).alias("r2"))
-func BenchmarkGroupByQ9_Small(b *testing.B) {
-	benchmarkGroupByQ9(b, testData.small)
-}
-
-func BenchmarkGroupByQ9_Medium(b *testing.B) {
-	benchmarkGroupByQ9(b, testData.medium)
-}
-
-func benchmarkGroupByQ9(b *testing.B, df *frame.DataFrame) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Note: If Corr is not implemented, this is a placeholder
-		// In reality, we'd compute correlation between v1 and v2, then square it
-		groupBy, err := df.GroupBy("id2", "id4")
-		if err != nil {
-			b.Fatal(err)
-		}
-		result, err := groupBy.Agg(map[string]expr.Expr{
-			"r2": expr.Col("v1").Mean(), // Placeholder - should be corr(v1,v2)^2
-		})
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = result
-	}
-}
+// =============================================================================
+// Q7, Q8, Q9 are SKIPPED - NOT COMPARABLE with Polars
+// =============================================================================
+// These benchmarks require operations not yet implemented in golars:
+// - Q7: Expression arithmetic in aggregations (max - min)
+// - Q8: top_k, drop_nulls, explode operations
+// - Q9: correlation function
+//
+// Including simplified versions would produce misleading benchmark comparisons.
+// See: https://github.com/tnn1t1s/golars/issues/1 (Advanced Data Types)
+// =============================================================================
 
 // BenchmarkGroupByQ10 - Group by all ID columns with sum and count
 // Polars: df.group_by("id1", "id2", "id3", "id4", "id5", "id6").agg([pl.sum("v3").alias("v3_sum"), pl.count("v1").alias("v1_count")])

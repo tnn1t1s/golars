@@ -1,12 +1,31 @@
 # golars vs Polars Benchmarks
 
-This directory contains comprehensive benchmarks comparing golars (Go implementation) with Polars (Rust/Python) using industry-standard tests.
+This directory contains benchmarks comparing golars (Go implementation) with Polars (Rust/Python) using industry-standard tests.
+
+## Polars Comparability
+
+**IMPORTANT**: Not all benchmarks are directly comparable with Polars. See table below.
+
+| Suite | Benchmark | Polars Comparable | Notes |
+|-------|-----------|-------------------|-------|
+| groupby | Q1-Q6 | Yes | Matches Polars test_group_by.py |
+| groupby | Q7 | **No** | Requires expression arithmetic (max-min) |
+| groupby | Q8 | **No** | Requires top_k, drop_nulls, explode |
+| groupby | Q9 | **No** | Requires correlation function |
+| groupby | Q10 | Yes | Matches Polars test_group_by.py |
+| filter | Filter1, Filter2 | Yes | Matches Polars test_filter.py |
+| filter | Others | No | golars-specific tests |
+| join | All | Partial | Different join types than Polars test_join_where.py |
+| io | All | Partial | Polars tests include lazy scan |
+| agg, sort | All | No | golars-specific, not in Polars test suite |
+
+Polars benchmark source: https://github.com/pola-rs/polars/tree/main/py-polars/tests/benchmark
 
 ## Overview
 
 The benchmarks are based on:
-- **H2O.ai db-benchmark**: Group-by aggregation queries (Q1-Q10)
-- **TPC-H inspired**: Join and complex query patterns
+- **H2O.ai db-benchmark**: Group-by aggregation queries (Q1-Q6, Q10)
+- **Filter operations**: String equality filters
 - **I/O operations**: CSV and Parquet read/write performance
 - **Core operations**: Filtering, sorting, and data manipulation
 
