@@ -8,6 +8,7 @@ import (
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/memory"
+	parquetlib "github.com/apache/arrow/go/v14/parquet"
 	"github.com/apache/arrow/go/v14/parquet/file"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
 	"github.com/tnn1t1s/golars/frame"
@@ -26,12 +27,22 @@ type ReaderOptions struct {
 	NumRows int64
 	// Memory allocator
 	Allocator memory.Allocator
+	// Read columns in parallel when possible
+	Parallel bool
+	// Batch size used by the Arrow reader
+	BatchSize int64
+	// Use buffered stream reader for parquet pages
+	BufferedStream bool
+	// Buffer size for buffered streams (0 uses default)
+	BufferSize int64
 }
 
 // DefaultReaderOptions returns default reader options
 func DefaultReaderOptions() ReaderOptions {
 	return ReaderOptions{
 		Allocator: memory.DefaultAllocator,
+		Parallel:  true,
+		BatchSize: 1024 * 1024,
 	}
 }
 
@@ -45,6 +56,9 @@ func NewReader(opts ReaderOptions) *Reader {
 	if opts.Allocator == nil {
 		opts.Allocator = memory.DefaultAllocator
 	}
+	if opts.BatchSize <= 0 {
+		opts.BatchSize = 1024 * 1024
+	}
 	return &Reader{opts: opts}
 }
 
@@ -56,8 +70,14 @@ func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
 	}
 	defer f.Close()
 
+	readProps := parquetlib.NewReaderProperties(r.opts.Allocator)
+	if r.opts.BufferSize > 0 {
+		readProps.BufferSize = r.opts.BufferSize
+	}
+	readProps.BufferedStreamEnabled = r.opts.BufferedStream
+
 	// Create parquet file reader
-	pqReader, err := file.NewParquetReader(f)
+	pqReader, err := file.NewParquetReader(f, file.WithReadProps(readProps))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create parquet reader: %w", err)
 	}
@@ -66,7 +86,8 @@ func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
 	// Create arrow file reader
 	arrowReader, err := pqarrow.NewFileReader(pqReader,
 		pqarrow.ArrowReadProperties{
-			BatchSize: 1024 * 1024, // 1MB batches
+			BatchSize: r.opts.BatchSize,
+			Parallel:  r.opts.Parallel,
 		}, r.opts.Allocator)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create arrow reader: %w", err)
@@ -155,32 +176,18 @@ func (r *Reader) readTable(reader *pqarrow.FileReader, columnIndices []int, rowG
 	// Use context for the read operation
 	ctx := context.Background()
 
-	// Read the entire table
-	table, err := reader.ReadTable(ctx)
+	// Read only requested columns and row groups
+	table, err := reader.ReadRowGroups(ctx, columnIndices, rowGroups)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read parquet table: %w", err)
-	}
-
-	// Filter columns if needed
-	if len(columnIndices) < int(table.NumCols()) {
-		// Need to select specific columns
-		selectedCols := make([]arrow.Column, len(columnIndices))
-		schema := table.Schema()
-
-		selectedFields := make([]arrow.Field, len(columnIndices))
-		for i, idx := range columnIndices {
-			selectedCols[i] = *table.Column(idx)
-			selectedFields[i] = schema.Field(idx)
-		}
-
-		newSchema := arrow.NewSchema(selectedFields, nil)
-		table = array.NewTable(newSchema, selectedCols, table.NumRows())
 	}
 
 	// Apply row limit if specified
 	if r.opts.NumRows > 0 && table.NumRows() > r.opts.NumRows {
 		// Slice the table
-		table = array.NewTableFromSlice(table.Schema(), sliceColumns(table, r.opts.NumRows))
+		sliced := array.NewTableFromSlice(table.Schema(), sliceColumns(table, r.opts.NumRows))
+		table.Release()
+		table = sliced
 	}
 
 	return table, nil
