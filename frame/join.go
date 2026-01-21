@@ -135,6 +135,134 @@ func getJoinColumns(df *DataFrame, columns []string) ([]series.Series, error) {
 
 // innerJoin performs an inner join operation
 func innerJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
+	// Try fast path for single-column numeric joins
+	if len(config.LeftOn) == 1 && len(config.RightOn) == 1 {
+		leftCol, _ := left.Column(config.LeftOn[0])
+		rightCol, _ := right.Column(config.RightOn[0])
+
+		if leftIndices, rightIndices, ok := tryFastJoin(leftCol, rightCol); ok {
+			return buildJoinResult(left, right, leftIndices, rightIndices, config)
+		}
+	}
+	if len(config.LeftOn) == 2 && len(config.RightOn) == 2 {
+		leftA, _ := left.Column(config.LeftOn[0])
+		leftB, _ := left.Column(config.LeftOn[1])
+		rightA, _ := right.Column(config.RightOn[0])
+		rightB, _ := right.Column(config.RightOn[1])
+
+		if leftIndices, rightIndices, ok := tryFastJoinPair(leftA, leftB, rightA, rightB); ok {
+			return buildJoinResult(left, right, leftIndices, rightIndices, config)
+		}
+	}
+
+	// Fall back to generic hash join for multi-column or non-numeric joins
+	return innerJoinGeneric(left, right, config)
+}
+
+// tryFastJoin attempts to use optimized hash join for numeric types
+// Returns indices and true if fast path was used, false otherwise
+func tryFastJoin(leftCol, rightCol series.Series) ([]int, []int, bool) {
+	// Check if both columns are compatible numeric types
+	switch leftCol.DataType().(type) {
+	case datatypes.Int64:
+		if _, ok := rightCol.DataType().(datatypes.Int64); ok {
+			leftIdx, rightIdx, err := compute.Int64JoinIndices(leftCol, rightCol)
+			if err == nil {
+				return leftIdx, rightIdx, true
+			}
+		}
+	case datatypes.Int32:
+		if _, ok := rightCol.DataType().(datatypes.Int32); ok {
+			leftIdx, rightIdx, err := compute.Int32JoinIndices(leftCol, rightCol)
+			if err == nil {
+				return leftIdx, rightIdx, true
+			}
+		}
+	case datatypes.String:
+		if _, ok := rightCol.DataType().(datatypes.String); ok {
+			leftIdx, rightIdx, err := compute.StringJoinIndices(leftCol, rightCol)
+			if err == nil {
+				return leftIdx, rightIdx, true
+			}
+		}
+	}
+	return nil, nil, false
+}
+
+// tryFastJoinPair attempts to use optimized hash join for two string columns.
+func tryFastJoinPair(leftA, leftB, rightA, rightB series.Series) ([]int, []int, bool) {
+	if _, ok := leftA.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	if _, ok := leftB.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	if _, ok := rightA.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	if _, ok := rightB.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	leftIdx, rightIdx, err := compute.StringPairJoinIndices(leftA, leftB, rightA, rightB)
+	if err == nil {
+		return leftIdx, rightIdx, true
+	}
+	return nil, nil, false
+}
+
+// tryFastLeftJoin attempts to use optimized left hash join for numeric types
+// Returns indices and true if fast path was used, false otherwise
+// rightIndices contains -1 for non-matching left rows
+func tryFastLeftJoin(leftCol, rightCol series.Series) ([]int, []int, bool) {
+	switch leftCol.DataType().(type) {
+	case datatypes.Int64:
+		if _, ok := rightCol.DataType().(datatypes.Int64); ok {
+			leftIdx, rightIdx, err := compute.Int64LeftJoinIndices(leftCol, rightCol)
+			if err == nil {
+				return leftIdx, rightIdx, true
+			}
+		}
+	case datatypes.Int32:
+		if _, ok := rightCol.DataType().(datatypes.Int32); ok {
+			leftIdx, rightIdx, err := compute.Int32LeftJoinIndices(leftCol, rightCol)
+			if err == nil {
+				return leftIdx, rightIdx, true
+			}
+		}
+	case datatypes.String:
+		if _, ok := rightCol.DataType().(datatypes.String); ok {
+			leftIdx, rightIdx, err := compute.StringLeftJoinIndices(leftCol, rightCol)
+			if err == nil {
+				return leftIdx, rightIdx, true
+			}
+		}
+	}
+	return nil, nil, false
+}
+
+// tryFastLeftJoinPair attempts to use optimized left join for two string columns.
+func tryFastLeftJoinPair(leftA, leftB, rightA, rightB series.Series) ([]int, []int, bool) {
+	if _, ok := leftA.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	if _, ok := leftB.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	if _, ok := rightA.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	if _, ok := rightB.DataType().(datatypes.String); !ok {
+		return nil, nil, false
+	}
+	leftIdx, rightIdx, err := compute.StringPairLeftJoinIndices(leftA, leftB, rightA, rightB)
+	if err == nil {
+		return leftIdx, rightIdx, true
+	}
+	return nil, nil, false
+}
+
+// innerJoinGeneric performs inner join using the generic hash table (for multi-column or string joins)
+func innerJoinGeneric(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 	// Get join columns
 	leftKeys, err := getJoinColumns(left, config.LeftOn)
 	if err != nil {
@@ -144,6 +272,12 @@ func innerJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 	rightKeys, err := getJoinColumns(right, config.RightOn)
 	if err != nil {
 		return nil, err
+	}
+
+	if leftIndices, rightIndices, ok, err := compute.PartitionedInnerJoinIndices(leftKeys, rightKeys); err != nil {
+		return nil, err
+	} else if ok {
+		return buildJoinResult(left, right, leftIndices, rightIndices, config)
 	}
 
 	// Build hash table on smaller side for efficiency
@@ -191,6 +325,32 @@ func innerJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 
 // leftJoin performs a left join operation
 func leftJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
+	// Try fast path for single-column numeric joins
+	if len(config.LeftOn) == 1 && len(config.RightOn) == 1 {
+		leftCol, _ := left.Column(config.LeftOn[0])
+		rightCol, _ := right.Column(config.RightOn[0])
+
+		if leftIndices, rightIndices, ok := tryFastLeftJoin(leftCol, rightCol); ok {
+			return buildJoinResult(left, right, leftIndices, rightIndices, config)
+		}
+	}
+	if len(config.LeftOn) == 2 && len(config.RightOn) == 2 {
+		leftA, _ := left.Column(config.LeftOn[0])
+		leftB, _ := left.Column(config.LeftOn[1])
+		rightA, _ := right.Column(config.RightOn[0])
+		rightB, _ := right.Column(config.RightOn[1])
+
+		if leftIndices, rightIndices, ok := tryFastLeftJoinPair(leftA, leftB, rightA, rightB); ok {
+			return buildJoinResult(left, right, leftIndices, rightIndices, config)
+		}
+	}
+
+	// Fall back to generic hash join
+	return leftJoinGeneric(left, right, config)
+}
+
+// leftJoinGeneric performs left join using the generic hash table
+func leftJoinGeneric(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 	leftKeys, err := getJoinColumns(left, config.LeftOn)
 	if err != nil {
 		return nil, err
@@ -199,6 +359,12 @@ func leftJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 	rightKeys, err := getJoinColumns(right, config.RightOn)
 	if err != nil {
 		return nil, err
+	}
+
+	if leftIndices, rightIndices, ok, err := compute.PartitionedLeftJoinIndices(leftKeys, rightKeys); err != nil {
+		return nil, err
+	} else if ok {
+		return buildJoinResult(left, right, leftIndices, rightIndices, config)
 	}
 
 	// Build hash table on right side
@@ -249,18 +415,30 @@ func outerJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 		return nil, err
 	}
 
-	// Build hash table on left side
-	ht, err := compute.BuildHashTable(leftKeys)
-	if err != nil {
+	var unmatchedRightIndices []int
+	if matches, ok, err := compute.PartitionedMatchExists(leftKeys, rightKeys); err != nil {
 		return nil, err
-	}
+	} else if ok {
+		unmatchedRightIndices = make([]int, 0)
+		for i, matched := range matches {
+			if !matched {
+				unmatchedRightIndices = append(unmatchedRightIndices, i)
+			}
+		}
+	} else {
+		// Build hash table on left side
+		ht, err := compute.BuildHashTable(leftKeys)
+		if err != nil {
+			return nil, err
+		}
 
-	// Find unmatched right rows
-	unmatchedRightIndices := make([]int, 0)
-	for i := 0; i < right.Height(); i++ {
-		matches := ht.Probe(rightKeys, i)
-		if len(matches) == 0 {
-			unmatchedRightIndices = append(unmatchedRightIndices, i)
+		// Find unmatched right rows
+		unmatchedRightIndices = make([]int, 0)
+		for i := 0; i < right.Height(); i++ {
+			matches := ht.Probe(rightKeys, i)
+			if len(matches) == 0 {
+				unmatchedRightIndices = append(unmatchedRightIndices, i)
+			}
 		}
 	}
 
@@ -312,18 +490,28 @@ func antiJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 		return nil, err
 	}
 
-	// Build hash table on right side
-	ht, err := compute.BuildHashTable(rightKeys)
-	if err != nil {
-		return nil, err
-	}
-
 	// Find unmatched left rows
 	unmatchedIndices := make([]int, 0)
-	for i := 0; i < left.Height(); i++ {
-		matches := ht.Probe(leftKeys, i)
-		if len(matches) == 0 {
-			unmatchedIndices = append(unmatchedIndices, i)
+	if matches, ok, err := compute.PartitionedMatchExists(rightKeys, leftKeys); err != nil {
+		return nil, err
+	} else if ok {
+		for i, matched := range matches {
+			if !matched {
+				unmatchedIndices = append(unmatchedIndices, i)
+			}
+		}
+	} else {
+		// Build hash table on right side
+		ht, err := compute.BuildHashTable(rightKeys)
+		if err != nil {
+			return nil, err
+		}
+
+		for i := 0; i < left.Height(); i++ {
+			matches := ht.Probe(leftKeys, i)
+			if len(matches) == 0 {
+				unmatchedIndices = append(unmatchedIndices, i)
+			}
 		}
 	}
 
@@ -343,21 +531,32 @@ func semiJoin(left, right *DataFrame, config JoinConfig) (*DataFrame, error) {
 		return nil, err
 	}
 
-	// Build hash table on right side
-	ht, err := compute.BuildHashTable(rightKeys)
-	if err != nil {
-		return nil, err
-	}
-
 	// Find matched left rows (deduplicated)
 	matchedIndices := make([]int, 0)
 	seen := make(map[int]bool)
 
-	for i := 0; i < left.Height(); i++ {
-		matches := ht.Probe(leftKeys, i)
-		if len(matches) > 0 && !seen[i] {
-			matchedIndices = append(matchedIndices, i)
-			seen[i] = true
+	if matches, ok, err := compute.PartitionedMatchExists(rightKeys, leftKeys); err != nil {
+		return nil, err
+	} else if ok {
+		for i, matched := range matches {
+			if matched && !seen[i] {
+				matchedIndices = append(matchedIndices, i)
+				seen[i] = true
+			}
+		}
+	} else {
+		// Build hash table on right side
+		ht, err := compute.BuildHashTable(rightKeys)
+		if err != nil {
+			return nil, err
+		}
+
+		for i := 0; i < left.Height(); i++ {
+			matches := ht.Probe(leftKeys, i)
+			if len(matches) > 0 && !seen[i] {
+				matchedIndices = append(matchedIndices, i)
+				seen[i] = true
+			}
 		}
 	}
 
@@ -416,6 +615,12 @@ func buildJoinResult(left, right *DataFrame, leftIndices, rightIndices []int, co
 
 // takeSeriesWithNulls takes values from a series using indices, with -1 meaning null
 func takeSeriesWithNulls(s series.Series, indices []int) (series.Series, error) {
+	// Try fast path first (direct slice access, handles -1 as null)
+	if result, ok := series.TakeFast(s, indices); ok {
+		return result, nil
+	}
+
+	// Fall back to slow path for unsupported types
 	// If all indices are valid (no -1), use regular Take
 	hasNulls := false
 	for _, idx := range indices {
@@ -639,49 +844,10 @@ func createNullSeries(name string, dtype datatypes.DataType, length int) series.
 }
 
 // JoinWhere performs an inequality join based on predicates
-// This is a nested loop join that evaluates each pair of rows against the predicates
+// Uses the IEJoin algorithm (Khayyat et al. 2015) for O((n+m) log(n+m)) complexity
+// instead of naive O(n*m) nested loop.
 func (df *DataFrame) JoinWhere(other *DataFrame, predicates ...expr.Expr) (*DataFrame, error) {
-	df.mu.RLock()
-	other.mu.RLock()
-	defer df.mu.RUnlock()
-	defer other.mu.RUnlock()
-
-	if len(predicates) == 0 {
-		return nil, fmt.Errorf("JoinWhere requires at least one predicate")
-	}
-
-	// Collect matching row pairs
-	leftIndices := make([]int, 0)
-	rightIndices := make([]int, 0)
-
-	// Nested loop join: for each left row, check all right rows
-	for i := 0; i < df.Height(); i++ {
-		for j := 0; j < other.Height(); j++ {
-			// Evaluate all predicates for this row pair
-			allMatch := true
-			for _, pred := range predicates {
-				match, err := evaluateJoinPredicate(df, other, i, j, pred)
-				if err != nil {
-					return nil, fmt.Errorf("failed to evaluate predicate: %w", err)
-				}
-				if !match {
-					allMatch = false
-					break
-				}
-			}
-			if allMatch {
-				leftIndices = append(leftIndices, i)
-				rightIndices = append(rightIndices, j)
-			}
-		}
-	}
-
-	// Build result using existing join result builder
-	config := JoinConfig{
-		How:    InnerJoin,
-		Suffix: "_right",
-	}
-	return buildJoinWhereResult(df, other, leftIndices, rightIndices, config)
+	return df.JoinWhereIEJoin(other, predicates...)
 }
 
 // evaluateJoinPredicate evaluates a predicate for a pair of rows

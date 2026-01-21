@@ -2,8 +2,7 @@
 //
 // Source: https://github.com/pola-rs/polars/blob/main/py-polars/tests/benchmark/test_join_where.py
 //
-// Note: Using smaller data size than Polars (1000x100 vs 50000x5000)
-// because nested loop join is O(n*m) and we want reasonable benchmark times.
+// Data size: 50,000 x 5,000 rows (matching Polars exactly)
 package join_where
 
 import (
@@ -15,13 +14,13 @@ import (
 	"github.com/tnn1t1s/golars/series"
 )
 
-// Test data matching Polars east_west fixture (scaled down for golars)
-// Polars uses 50,000 x 5,000 rows; we use 1,000 x 100 for reasonable benchmark times
+// Test data matching Polars east_west fixture exactly
+// Polars uses 50,000 x 5,000 rows - we use the same for fair comparison
 var east, west *frame.DataFrame
 
 func init() {
 	rng := rand.New(rand.NewSource(42))
-	numRowsLeft, numRowsRight := 1000, 100
+	numRowsLeft, numRowsRight := 50000, 5000
 
 	// Generate east table
 	eastID := make([]int64, numRowsLeft)

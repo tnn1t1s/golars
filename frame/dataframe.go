@@ -7,6 +7,8 @@ import (
 
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/parallel"
+	"github.com/tnn1t1s/golars/internal/window"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -190,21 +192,24 @@ func (df *DataFrame) Select(columns ...string) (*DataFrame, error) {
 	df.mu.RLock()
 	defer df.mu.RUnlock()
 
-	selectedCols := make([]series.Series, 0, len(columns))
+	nameToIndex := make(map[string]int, len(df.schema.Fields))
+	for i, field := range df.schema.Fields {
+		nameToIndex[field.Name] = i
+	}
 
-	for _, name := range columns {
-		found := false
-		for i, field := range df.schema.Fields {
-			if field.Name == name {
-				selectedCols = append(selectedCols, df.columns[i])
-				found = true
-				break
+	selectedCols := make([]series.Series, len(columns))
+	if err := parallel.For(len(columns), func(start, end int) error {
+		for i := start; i < end; i++ {
+			name := columns[i]
+			idx, ok := nameToIndex[name]
+			if !ok {
+				return fmt.Errorf("column '%s' not found", name)
 			}
+			selectedCols[i] = df.columns[idx]
 		}
-
-		if !found {
-			return nil, fmt.Errorf("column '%s' not found", name)
-		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return NewDataFrame(selectedCols...)
@@ -502,17 +507,371 @@ func (df *DataFrame) WithColumn(name string, expr expr.Expr) (*DataFrame, error)
 // WithColumns adds or replaces multiple columns based on expressions
 func (df *DataFrame) WithColumns(exprs map[string]expr.Expr) (*DataFrame, error) {
 	result := df
+	if len(exprs) == 0 {
+		return result, nil
+	}
 
-	// Apply each expression
+	names := make([]string, 0, len(exprs))
+	exprList := make([]expr.Expr, 0, len(exprs))
 	for name, e := range exprs {
-		var err error
-		result, err = result.WithColumn(name, e)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create column '%s': %w", name, err)
+		names = append(names, name)
+		exprList = append(exprList, e)
+	}
+
+	if hasExprDependencies(exprs) {
+		order, ok := orderExpressions(names, exprList)
+		if !ok {
+			order = make([]int, len(names))
+			for i := range names {
+				order[i] = i
+			}
+		}
+		for _, idx := range order {
+			name := names[idx]
+			e := exprList[idx]
+			var err error
+			result, err = result.WithColumn(name, e)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create column '%s': %w", name, err)
+			}
+		}
+		return result, nil
+	}
+
+	if shouldVerticalParallel(df, exprList) {
+		return df.withColumnsVertical(names, exprList)
+	}
+
+	return applyExpressionsToFrame(df, names, exprList, true)
+}
+
+func hasExprDependencies(exprs map[string]expr.Expr) bool {
+	names := make(map[string]struct{}, len(exprs))
+	for name := range exprs {
+		names[name] = struct{}{}
+	}
+
+	for _, e := range exprs {
+		if exprReferencesNames(e, names) {
+			return true
+		}
+	}
+	return false
+}
+
+func orderExpressions(names []string, exprList []expr.Expr) ([]int, bool) {
+	nameSet := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		nameSet[name] = struct{}{}
+	}
+
+	deps := make([]map[string]struct{}, len(names))
+	for i, exprItem := range exprList {
+		depNames, ok := exprDependencyNames(exprItem, nameSet)
+		if !ok {
+			return nil, false
+		}
+		deps[i] = depNames
+	}
+
+	nameToIndex := make(map[string]int, len(names))
+	for i, name := range names {
+		nameToIndex[name] = i
+	}
+
+	inDegree := make([]int, len(names))
+	graph := make(map[int][]int, len(names))
+	for i, depSet := range deps {
+		for depName := range depSet {
+			depIdx, ok := nameToIndex[depName]
+			if !ok || depIdx == i {
+				continue
+			}
+			graph[depIdx] = append(graph[depIdx], i)
+			inDegree[i]++
 		}
 	}
 
-	return result, nil
+	order := make([]int, 0, len(names))
+	queue := make([]int, 0, len(names))
+	for i := range names {
+		if inDegree[i] == 0 {
+			queue = append(queue, i)
+		}
+	}
+
+	for len(queue) > 0 {
+		idx := queue[0]
+		queue = queue[1:]
+		order = append(order, idx)
+		for _, next := range graph[idx] {
+			inDegree[next]--
+			if inDegree[next] == 0 {
+				queue = append(queue, next)
+			}
+		}
+	}
+
+	if len(order) != len(names) {
+		return nil, false
+	}
+	return order, true
+}
+
+func exprDependencyNames(e expr.Expr, names map[string]struct{}) (map[string]struct{}, bool) {
+	deps := make(map[string]struct{})
+	if !collectExprDependencies(e, names, deps) {
+		return nil, false
+	}
+	return deps, true
+}
+
+func collectExprDependencies(e expr.Expr, names map[string]struct{}, deps map[string]struct{}) bool {
+	switch ex := e.(type) {
+	case *expr.ColumnExpr:
+		if _, ok := names[ex.Name()]; ok {
+			deps[ex.Name()] = struct{}{}
+		}
+		return true
+	case *expr.LiteralExpr:
+		return true
+	case *expr.AliasExpr:
+		return collectExprDependencies(ex.Expr(), names, deps)
+	case *expr.BinaryExpr:
+		return collectExprDependencies(ex.Left(), names, deps) &&
+			collectExprDependencies(ex.Right(), names, deps)
+	case *expr.UnaryExpr:
+		return collectExprDependencies(ex.Expr(), names, deps)
+	case *expr.CastExpr:
+		return collectExprDependencies(ex.Expr(), names, deps)
+	case *expr.AggExpr:
+		return collectExprDependencies(ex.Input(), names, deps)
+	case *expr.TopKExpr:
+		return collectExprDependencies(ex.Input(), names, deps)
+	case *expr.CorrExpr:
+		return collectExprDependencies(ex.Col1(), names, deps) &&
+			collectExprDependencies(ex.Col2(), names, deps)
+	case *expr.BetweenExpr:
+		return collectExprDependencies(ex.Expr(), names, deps) &&
+			collectExprDependencies(ex.Lower(), names, deps) &&
+			collectExprDependencies(ex.Upper(), names, deps)
+	case *expr.IsInExpr:
+		if !collectExprDependencies(ex.Expr(), names, deps) {
+			return false
+		}
+		for _, value := range ex.Values() {
+			if !collectExprDependencies(value, names, deps) {
+				return false
+			}
+		}
+		return true
+	case *window.Expr:
+		if input := ex.GetInput(); input != nil {
+			return collectExprDependencies(input, names, deps)
+		}
+		return true
+	default:
+		return false
+	}
+}
+
+func exprReferencesNames(e expr.Expr, names map[string]struct{}) bool {
+	switch ex := e.(type) {
+	case *expr.ColumnExpr:
+		_, ok := names[ex.Name()]
+		return ok
+	case *expr.LiteralExpr:
+		return false
+	case *expr.AliasExpr:
+		return exprReferencesNames(ex.Expr(), names)
+	case *expr.BinaryExpr:
+		return exprReferencesNames(ex.Left(), names) || exprReferencesNames(ex.Right(), names)
+	case *expr.UnaryExpr:
+		return exprReferencesNames(ex.Expr(), names)
+	case *expr.CastExpr:
+		return exprReferencesNames(ex.Expr(), names)
+	case *expr.AggExpr:
+		return exprReferencesNames(ex.Input(), names)
+	case *expr.TopKExpr:
+		return exprReferencesNames(ex.Input(), names)
+	case *expr.CorrExpr:
+		return exprReferencesNames(ex.Col1(), names) || exprReferencesNames(ex.Col2(), names)
+	case *expr.BetweenExpr:
+		return exprReferencesNames(ex.Expr(), names) ||
+			exprReferencesNames(ex.Lower(), names) ||
+			exprReferencesNames(ex.Upper(), names)
+	case *expr.IsInExpr:
+		if exprReferencesNames(ex.Expr(), names) {
+			return true
+		}
+		for _, value := range ex.Values() {
+			if exprReferencesNames(value, names) {
+				return true
+			}
+		}
+		return false
+	case *window.Expr:
+		if input := ex.GetInput(); input != nil {
+			return exprReferencesNames(input, names)
+		}
+		return false
+	default:
+		// Unknown expression type; be conservative and avoid parallel evaluation.
+		return true
+	}
+}
+
+func shouldVerticalParallel(df *DataFrame, exprList []expr.Expr) bool {
+	if !parallel.Enabled() {
+		return false
+	}
+	if df.height < parallel.MaxThreads()*2 {
+		return false
+	}
+	for _, e := range exprList {
+		if !exprIsRowIndependent(e) {
+			return false
+		}
+	}
+	return true
+}
+
+func exprIsRowIndependent(e expr.Expr) bool {
+	switch ex := e.(type) {
+	case *expr.ColumnExpr, *expr.LiteralExpr:
+		return true
+	case *expr.AliasExpr:
+		return exprIsRowIndependent(ex.Expr())
+	case *expr.BinaryExpr:
+		return exprIsRowIndependent(ex.Left()) && exprIsRowIndependent(ex.Right())
+	case *expr.UnaryExpr:
+		return exprIsRowIndependent(ex.Expr())
+	case *expr.CastExpr:
+		return exprIsRowIndependent(ex.Expr())
+	case *expr.BetweenExpr:
+		return exprIsRowIndependent(ex.Expr()) &&
+			exprIsRowIndependent(ex.Lower()) &&
+			exprIsRowIndependent(ex.Upper())
+	case *expr.IsInExpr:
+		if !exprIsRowIndependent(ex.Expr()) {
+			return false
+		}
+		for _, value := range ex.Values() {
+			if !exprIsRowIndependent(value) {
+				return false
+			}
+		}
+		return true
+	case *window.Expr:
+		return false
+	default:
+		return false
+	}
+}
+
+func (df *DataFrame) withColumnsVertical(names []string, exprList []expr.Expr) (*DataFrame, error) {
+	if df.height == 0 {
+		return applyExpressionsToFrame(df, names, exprList, false)
+	}
+
+	chunks := parallel.MaxThreads() * 2
+	if chunks < 1 {
+		chunks = 1
+	}
+	if chunks > df.height {
+		chunks = df.height
+	}
+	chunkSize := (df.height + chunks - 1) / chunks
+	parts := make([]*DataFrame, chunks)
+
+	if err := parallel.For(chunks, func(start, end int) error {
+		for idx := start; idx < end; idx++ {
+			rowStart := idx * chunkSize
+			if rowStart >= df.height {
+				continue
+			}
+			rowEnd := rowStart + chunkSize
+			if rowEnd > df.height {
+				rowEnd = df.height
+			}
+			slice, err := df.Slice(rowStart, rowEnd)
+			if err != nil {
+				return err
+			}
+			part, err := applyExpressionsToFrame(slice, names, exprList, false)
+			if err != nil {
+				return err
+			}
+			parts[idx] = part
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	frames := make([]*DataFrame, 0, len(parts))
+	for _, part := range parts {
+		if part != nil {
+			frames = append(frames, part)
+		}
+	}
+	if len(frames) == 0 {
+		return applyExpressionsToFrame(df, names, exprList, false)
+	}
+
+	return Concat(frames, ConcatOptions{Axis: 0, Join: "outer", VerifySchema: true})
+}
+
+func applyExpressionsToFrame(df *DataFrame, names []string, exprList []expr.Expr, parallelize bool) (*DataFrame, error) {
+	out := make([]series.Series, len(exprList))
+	evalOne := func(i int) error {
+		seriesOut, err := df.evaluateExpr(exprList[i])
+		if err != nil {
+			return fmt.Errorf("failed to evaluate expression '%s': %w", names[i], err)
+		}
+		out[i] = seriesOut.Rename(names[i])
+		return nil
+	}
+
+	if parallelize {
+		if err := parallel.For(len(exprList), func(start, end int) error {
+			for i := start; i < end; i++ {
+				if err := evalOne(i); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	} else {
+		for i := range exprList {
+			if err := evalOne(i); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	df.mu.RLock()
+	newCols := make([]series.Series, len(df.columns))
+	copy(newCols, df.columns)
+
+	nameToIndex := make(map[string]int, len(df.schema.Fields))
+	for i, field := range df.schema.Fields {
+		nameToIndex[field.Name] = i
+	}
+	df.mu.RUnlock()
+
+	for i, name := range names {
+		if idx, ok := nameToIndex[name]; ok {
+			newCols[idx] = out[i]
+			continue
+		}
+		nameToIndex[name] = len(newCols)
+		newCols = append(newCols, out[i])
+	}
+
+	return NewDataFrame(newCols...)
 }
 
 // truncateString truncates a string to the specified length

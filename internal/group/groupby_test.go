@@ -2,10 +2,12 @@ package group
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/parallel"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -349,6 +351,65 @@ func TestGroupByErrors(t *testing.T) {
 
 	_, err = gb.Sum("nonexistent")
 	assert.Error(t, err)
+}
+
+func TestGroupByParallel(t *testing.T) {
+	if os.Getenv("GOLARS_RUN_PAR_TESTS") != "1" {
+		t.Skip("set GOLARS_RUN_PAR_TESTS=1 to run parallel group-by test")
+	}
+
+	t.Setenv("GOLARS_NO_PARALLEL", "")
+	t.Setenv("GOLARS_MAX_THREADS", "4")
+	parallel.ResetForTests()
+	if !parallel.Enabled() {
+		t.Skip("parallel execution not enabled")
+	}
+
+	const rows = 10000
+	cats := make([]string, rows)
+	values := make([]int32, rows)
+	for i := 0; i < rows; i++ {
+		cats[i] = fmt.Sprintf("cat_%d", i%8)
+		values[i] = int32(i % 5)
+	}
+
+	df := newMockDataFrame(
+		series.NewStringSeries("category", cats),
+		series.NewInt32Series("value", values),
+	)
+
+	gb, err := NewGroupBy(df, []string{"category"})
+	assert.NoError(t, err)
+
+	result, err := gb.Sum("value")
+	assert.NoError(t, err)
+
+	var sumCol, catCol series.Series
+	for _, col := range result.Columns {
+		if col.Name() == "value_sum" {
+			sumCol = col
+		} else if col.Name() == "category" {
+			catCol = col
+		}
+	}
+
+	sums := make(map[string]int64)
+	for i := 0; i < catCol.Len(); i++ {
+		cat := catCol.Get(i).(string)
+		sum := sumCol.Get(i).(int32)
+		sums[cat] = int64(sum)
+	}
+
+	total := int64(0)
+	for _, sum := range sums {
+		total += sum
+	}
+
+	expectedTotal := int64(0)
+	for _, v := range values {
+		expectedTotal += int64(v)
+	}
+	assert.Equal(t, expectedTotal, total)
 }
 
 func BenchmarkGroupBy(b *testing.B) {

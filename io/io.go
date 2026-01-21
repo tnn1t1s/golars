@@ -163,6 +163,41 @@ func WithNumRows(n int64) ParquetReadOption {
 	}
 }
 
+// WithParquetParallel enables or disables parallel parquet reads.
+func WithParquetParallel(enabled bool) ParquetReadOption {
+	return func(o *parquet.ReaderOptions) {
+		o.Parallel = enabled
+	}
+}
+
+// WithParquetBatchSize sets the record batch size for parquet reads.
+func WithParquetBatchSize(size int64) ParquetReadOption {
+	return func(o *parquet.ReaderOptions) {
+		o.BatchSize = size
+	}
+}
+
+// WithParquetBufferedStream enables buffered streams for parquet reads.
+func WithParquetBufferedStream(enabled bool) ParquetReadOption {
+	return func(o *parquet.ReaderOptions) {
+		o.BufferedStream = enabled
+	}
+}
+
+// WithParquetBufferSize sets the buffer size for buffered parquet streams.
+func WithParquetBufferSize(size int64) ParquetReadOption {
+	return func(o *parquet.ReaderOptions) {
+		o.BufferSize = size
+	}
+}
+
+// WithParquetMemoryMap enables or disables memory-mapped parquet reads.
+func WithParquetMemoryMap(enabled bool) ParquetReadOption {
+	return func(o *parquet.ReaderOptions) {
+		o.MemoryMap = enabled
+	}
+}
+
 // ReadParquet reads a Parquet file into a DataFrame
 func ReadParquet(filename string, options ...ParquetReadOption) (*frame.DataFrame, error) {
 	opts := parquet.DefaultReaderOptions()

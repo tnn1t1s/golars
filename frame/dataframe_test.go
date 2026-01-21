@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
@@ -108,6 +109,29 @@ func TestDataFrameSelect(t *testing.T) {
 	// Select non-existent column
 	_, err = df.Select("a", "nonexistent")
 	assert.Error(t, err)
+}
+
+func TestDataFrameWithColumnsDependencies(t *testing.T) {
+	df, err := NewDataFrame(series.NewInt32Series("a", []int32{1, 2, 3}))
+	require.NoError(t, err)
+
+	exprs := map[string]expr.Expr{
+		"c": expr.Col("b"),
+		"b": expr.Lit(5),
+	}
+
+	result, err := df.WithColumns(exprs)
+	require.NoError(t, err)
+
+	colB, err := result.Column("b")
+	require.NoError(t, err)
+	colC, err := result.Column("c")
+	require.NoError(t, err)
+
+	for i := 0; i < result.Height(); i++ {
+		assert.Equal(t, int64(5), colB.Get(i))
+		assert.Equal(t, colB.Get(i), colC.Get(i))
+	}
 }
 
 func TestDataFrameDrop(t *testing.T) {

@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"hash"
 	"hash/fnv"
+	"math"
+	"sort"
 	"sync"
 	"unsafe"
 
+	"github.com/tnn1t1s/golars/internal/parallel"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -62,6 +65,21 @@ func (gb *GroupBy) buildGroups() error {
 		groupSeries[i] = s
 	}
 
+	if len(groupSeries) == 1 {
+		if gb.buildGroupsSingleInt64(groupSeries[0]) ||
+			gb.buildGroupsSingleInt32(groupSeries[0]) ||
+			gb.buildGroupsSingleUint64(groupSeries[0]) ||
+			gb.buildGroupsSingleUint32(groupSeries[0]) ||
+			gb.buildGroupsSingleFloat64(groupSeries[0]) ||
+			gb.buildGroupsSingleFloat32(groupSeries[0]) {
+			return nil
+		}
+	}
+
+	if shouldParallelGroupBy(gb.df.Height()) {
+		return gb.buildGroupsParallel(groupSeries)
+	}
+
 	// Build groups by hashing row values
 	for i := 0; i < gb.df.Height(); i++ {
 		key := gb.getGroupKey(groupSeries, i)
@@ -76,6 +94,337 @@ func (gb *GroupBy) buildGroups() error {
 	}
 
 	return nil
+}
+
+type groupPartial struct {
+	groups map[uint64][]int
+	keys   map[uint64][]interface{}
+	first  map[uint64]int
+}
+
+func (gb *GroupBy) buildGroupsParallel(groupSeries []series.Series) error {
+	n := gb.df.Height()
+	if n == 0 {
+		return nil
+	}
+
+	chunks := parallel.MaxThreads() * 2
+	if chunks < 1 {
+		chunks = 1
+	}
+	if chunks > n {
+		chunks = n
+	}
+	chunkSize := (n + chunks - 1) / chunks
+
+	parts := make([]groupPartial, chunks)
+	if err := parallel.For(chunks, func(start, end int) error {
+		for idx := start; idx < end; idx++ {
+			rowStart := idx * chunkSize
+			if rowStart >= n {
+				continue
+			}
+			rowEnd := rowStart + chunkSize
+			if rowEnd > n {
+				rowEnd = n
+			}
+			local := groupPartial{
+				groups: make(map[uint64][]int),
+				keys:   make(map[uint64][]interface{}),
+				first:  make(map[uint64]int),
+			}
+			for i := rowStart; i < rowEnd; i++ {
+				key := gb.getGroupKey(groupSeries, i)
+				if _, exists := local.groups[key.Hash]; !exists {
+					local.keys[key.Hash] = key.Values
+					local.first[key.Hash] = i
+				}
+				local.groups[key.Hash] = append(local.groups[key.Hash], i)
+			}
+			parts[idx] = local
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	firstIndex := make(map[uint64]int, len(parts))
+	for _, part := range parts {
+		for hash, idxs := range part.groups {
+			if existing, ok := gb.groups[hash]; ok {
+				gb.groups[hash] = append(existing, idxs...)
+			} else {
+				gb.groups[hash] = append([]int(nil), idxs...)
+			}
+
+			if _, ok := gb.groupKeys[hash]; !ok {
+				gb.groupKeys[hash] = part.keys[hash]
+			}
+
+			if first, ok := part.first[hash]; ok {
+				if current, ok := firstIndex[hash]; !ok || first < current {
+					firstIndex[hash] = first
+				}
+			}
+		}
+	}
+
+	type orderedGroup struct {
+		hash  uint64
+		first int
+	}
+
+	ordered := make([]orderedGroup, 0, len(firstIndex))
+	for hash, first := range firstIndex {
+		ordered = append(ordered, orderedGroup{hash: hash, first: first})
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		return ordered[i].first < ordered[j].first
+	})
+
+	gb.groupOrder = gb.groupOrder[:0]
+	for _, entry := range ordered {
+		gb.groupOrder = append(gb.groupOrder, entry.hash)
+	}
+
+	return nil
+}
+
+func shouldParallelGroupBy(rows int) bool {
+	if !parallel.Enabled() {
+		return false
+	}
+	return rows >= parallel.MaxThreads()*2048
+}
+
+func (gb *GroupBy) buildGroupsSingleInt64(col series.Series) bool {
+	values, validity, ok := series.Int64ValuesWithValidity(col)
+	if !ok {
+		return false
+	}
+
+	keyToGroup := make(map[int64]uint64, len(values))
+	var nullGroupID uint64
+	hasNull := false
+	nextID := uint64(0)
+
+	for i, val := range values {
+		if !validity[i] {
+			if !hasNull {
+				nullGroupID = nextID
+				nextID++
+				hasNull = true
+				gb.groupKeys[nullGroupID] = []interface{}{nil}
+				gb.groupOrder = append(gb.groupOrder, nullGroupID)
+			}
+			gb.groups[nullGroupID] = append(gb.groups[nullGroupID], i)
+			continue
+		}
+
+		groupID, exists := keyToGroup[val]
+		if !exists {
+			groupID = nextID
+			nextID++
+			keyToGroup[val] = groupID
+			gb.groupKeys[groupID] = []interface{}{val}
+			gb.groupOrder = append(gb.groupOrder, groupID)
+		}
+		gb.groups[groupID] = append(gb.groups[groupID], i)
+	}
+
+	return true
+}
+
+func (gb *GroupBy) buildGroupsSingleInt32(col series.Series) bool {
+	values, validity, ok := series.Int32ValuesWithValidity(col)
+	if !ok {
+		return false
+	}
+
+	keyToGroup := make(map[int32]uint64, len(values))
+	var nullGroupID uint64
+	hasNull := false
+	nextID := uint64(0)
+
+	for i, val := range values {
+		if !validity[i] {
+			if !hasNull {
+				nullGroupID = nextID
+				nextID++
+				hasNull = true
+				gb.groupKeys[nullGroupID] = []interface{}{nil}
+				gb.groupOrder = append(gb.groupOrder, nullGroupID)
+			}
+			gb.groups[nullGroupID] = append(gb.groups[nullGroupID], i)
+			continue
+		}
+
+		groupID, exists := keyToGroup[val]
+		if !exists {
+			groupID = nextID
+			nextID++
+			keyToGroup[val] = groupID
+			gb.groupKeys[groupID] = []interface{}{val}
+			gb.groupOrder = append(gb.groupOrder, groupID)
+		}
+		gb.groups[groupID] = append(gb.groups[groupID], i)
+	}
+
+	return true
+}
+
+func (gb *GroupBy) buildGroupsSingleUint64(col series.Series) bool {
+	values, validity, ok := series.Uint64ValuesWithValidity(col)
+	if !ok {
+		return false
+	}
+
+	keyToGroup := make(map[uint64]uint64, len(values))
+	var nullGroupID uint64
+	hasNull := false
+	nextID := uint64(0)
+
+	for i, val := range values {
+		if !validity[i] {
+			if !hasNull {
+				nullGroupID = nextID
+				nextID++
+				hasNull = true
+				gb.groupKeys[nullGroupID] = []interface{}{nil}
+				gb.groupOrder = append(gb.groupOrder, nullGroupID)
+			}
+			gb.groups[nullGroupID] = append(gb.groups[nullGroupID], i)
+			continue
+		}
+
+		groupID, exists := keyToGroup[val]
+		if !exists {
+			groupID = nextID
+			nextID++
+			keyToGroup[val] = groupID
+			gb.groupKeys[groupID] = []interface{}{val}
+			gb.groupOrder = append(gb.groupOrder, groupID)
+		}
+		gb.groups[groupID] = append(gb.groups[groupID], i)
+	}
+
+	return true
+}
+
+func (gb *GroupBy) buildGroupsSingleUint32(col series.Series) bool {
+	values, validity, ok := series.Uint32ValuesWithValidity(col)
+	if !ok {
+		return false
+	}
+
+	keyToGroup := make(map[uint32]uint64, len(values))
+	var nullGroupID uint64
+	hasNull := false
+	nextID := uint64(0)
+
+	for i, val := range values {
+		if !validity[i] {
+			if !hasNull {
+				nullGroupID = nextID
+				nextID++
+				hasNull = true
+				gb.groupKeys[nullGroupID] = []interface{}{nil}
+				gb.groupOrder = append(gb.groupOrder, nullGroupID)
+			}
+			gb.groups[nullGroupID] = append(gb.groups[nullGroupID], i)
+			continue
+		}
+
+		groupID, exists := keyToGroup[val]
+		if !exists {
+			groupID = nextID
+			nextID++
+			keyToGroup[val] = groupID
+			gb.groupKeys[groupID] = []interface{}{val}
+			gb.groupOrder = append(gb.groupOrder, groupID)
+		}
+		gb.groups[groupID] = append(gb.groups[groupID], i)
+	}
+
+	return true
+}
+
+func (gb *GroupBy) buildGroupsSingleFloat64(col series.Series) bool {
+	values, validity, ok := series.Float64ValuesWithValidity(col)
+	if !ok {
+		return false
+	}
+
+	keyToGroup := make(map[uint64]uint64, len(values))
+	var nullGroupID uint64
+	hasNull := false
+	nextID := uint64(0)
+
+	for i, val := range values {
+		if !validity[i] {
+			if !hasNull {
+				nullGroupID = nextID
+				nextID++
+				hasNull = true
+				gb.groupKeys[nullGroupID] = []interface{}{nil}
+				gb.groupOrder = append(gb.groupOrder, nullGroupID)
+			}
+			gb.groups[nullGroupID] = append(gb.groups[nullGroupID], i)
+			continue
+		}
+
+		key := math.Float64bits(val)
+		groupID, exists := keyToGroup[key]
+		if !exists {
+			groupID = nextID
+			nextID++
+			keyToGroup[key] = groupID
+			gb.groupKeys[groupID] = []interface{}{val}
+			gb.groupOrder = append(gb.groupOrder, groupID)
+		}
+		gb.groups[groupID] = append(gb.groups[groupID], i)
+	}
+
+	return true
+}
+
+func (gb *GroupBy) buildGroupsSingleFloat32(col series.Series) bool {
+	values, validity, ok := series.Float32ValuesWithValidity(col)
+	if !ok {
+		return false
+	}
+
+	keyToGroup := make(map[uint32]uint64, len(values))
+	var nullGroupID uint64
+	hasNull := false
+	nextID := uint64(0)
+
+	for i, val := range values {
+		if !validity[i] {
+			if !hasNull {
+				nullGroupID = nextID
+				nextID++
+				hasNull = true
+				gb.groupKeys[nullGroupID] = []interface{}{nil}
+				gb.groupOrder = append(gb.groupOrder, nullGroupID)
+			}
+			gb.groups[nullGroupID] = append(gb.groups[nullGroupID], i)
+			continue
+		}
+
+		key := math.Float32bits(val)
+		groupID, exists := keyToGroup[key]
+		if !exists {
+			groupID = nextID
+			nextID++
+			keyToGroup[key] = groupID
+			gb.groupKeys[groupID] = []interface{}{val}
+			gb.groupOrder = append(gb.groupOrder, groupID)
+		}
+		gb.groups[groupID] = append(gb.groups[groupID], i)
+	}
+
+	return true
 }
 
 // getGroupKey extracts and hashes the group key for a given row

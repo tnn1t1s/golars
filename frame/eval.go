@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/parallel"
 	"github.com/tnn1t1s/golars/internal/window"
 	"github.com/tnn1t1s/golars/series"
 )
@@ -275,36 +276,61 @@ func (df *DataFrame) createLiteralSeries(value interface{}) (series.Series, erro
 	switch v := value.(type) {
 	case bool:
 		values := make([]bool, df.height)
-		for i := range values {
-			values[i] = v
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = v
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return series.NewBooleanSeries("literal", values), nil
 
 	case int:
 		values := make([]int64, df.height)
-		for i := range values {
-			values[i] = int64(v)
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = int64(v)
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return series.NewInt64Series("literal", values), nil
 
 	case int64:
 		values := make([]int64, df.height)
-		for i := range values {
-			values[i] = v
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = v
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return series.NewInt64Series("literal", values), nil
 
 	case float64:
 		values := make([]float64, df.height)
-		for i := range values {
-			values[i] = v
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = v
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return series.NewFloat64Series("literal", values), nil
 
 	case string:
 		values := make([]string, df.height)
-		for i := range values {
-			values[i] = v
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = v
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return series.NewStringSeries("literal", values), nil
 

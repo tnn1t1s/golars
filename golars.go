@@ -227,6 +227,11 @@ var (
 	WithParquetColumns = io.WithParquetColumns
 	WithRowGroups      = io.WithRowGroups
 	WithNumRows        = io.WithNumRows
+	WithParquetParallel      = io.WithParquetParallel
+	WithParquetBatchSize     = io.WithParquetBatchSize
+	WithParquetBufferedStream = io.WithParquetBufferedStream
+	WithParquetBufferSize    = io.WithParquetBufferSize
+	WithParquetMemoryMap     = io.WithParquetMemoryMap
 )
 
 // Parquet Write Options

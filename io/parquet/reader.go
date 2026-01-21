@@ -2,8 +2,9 @@ package parquet
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
+	"io"
 
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/apache/arrow/go/v14/arrow/array"
@@ -35,6 +36,8 @@ type ReaderOptions struct {
 	BufferedStream bool
 	// Buffer size for buffered streams (0 uses default)
 	BufferSize int64
+	// Use memory-mapped IO when reading local files
+	MemoryMap bool
 }
 
 // DefaultReaderOptions returns default reader options
@@ -43,6 +46,7 @@ func DefaultReaderOptions() ReaderOptions {
 		Allocator: memory.DefaultAllocator,
 		Parallel:  true,
 		BatchSize: 1024 * 1024,
+		MemoryMap: true,
 	}
 }
 
@@ -64,12 +68,6 @@ func NewReader(opts ReaderOptions) *Reader {
 
 // ReadFile reads a Parquet file into a DataFrame
 func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open parquet file: %w", err)
-	}
-	defer f.Close()
-
 	readProps := parquetlib.NewReaderProperties(r.opts.Allocator)
 	if r.opts.BufferSize > 0 {
 		readProps.BufferSize = r.opts.BufferSize
@@ -77,7 +75,7 @@ func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
 	readProps.BufferedStreamEnabled = r.opts.BufferedStream
 
 	// Create parquet file reader
-	pqReader, err := file.NewParquetReader(f, file.WithReadProps(readProps))
+	pqReader, err := file.OpenParquetFile(filename, r.opts.MemoryMap, file.WithReadProps(readProps))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create parquet reader: %w", err)
 	}
@@ -105,15 +103,12 @@ func (r *Reader) ReadFile(filename string) (*frame.DataFrame, error) {
 	// Select row groups if specified
 	rowGroups := r.selectRowGroups(pqReader.NumRowGroups())
 
-	// Read the table
-	table, err := r.readTable(arrowReader, columnIndices, rowGroups)
+	// Read using the record reader for batch scanning
+	df, err := r.readRecordBatches(arrowReader, columnIndices, rowGroups)
 	if err != nil {
 		return nil, err
 	}
-	defer table.Release()
-
-	// Convert to DataFrame
-	return r.tableToDataFrame(table)
+	return df, nil
 }
 
 // selectColumns returns the indices of columns to read
@@ -166,65 +161,176 @@ func (r *Reader) selectRowGroups(numRowGroups int) []int {
 }
 
 // readTable reads the selected columns and row groups into an Arrow table
-func (r *Reader) readTable(reader *pqarrow.FileReader, columnIndices []int, rowGroups []int) (arrow.Table, error) {
+func (r *Reader) readRecordBatches(reader *pqarrow.FileReader, columnIndices []int, rowGroups []int) (*frame.DataFrame, error) {
 	if len(rowGroups) == 0 || len(columnIndices) == 0 {
-		// Nothing to read
-		schema := arrow.NewSchema([]arrow.Field{}, nil)
-		return array.NewTable(schema, []arrow.Column{}, 0), nil
+		return frame.NewDataFrame()
 	}
 
-	// Use context for the read operation
 	ctx := context.Background()
 
-	// Read only requested columns and row groups
-	table, err := reader.ReadRowGroups(ctx, columnIndices, rowGroups)
+	recordReader, err := reader.GetRecordReader(ctx, columnIndices, rowGroups)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read parquet table: %w", err)
+		return nil, fmt.Errorf("failed to create record reader: %w", err)
+	}
+	defer recordReader.Release()
+
+	schema := recordReader.Schema()
+	fields := schema.Fields()
+	if len(fields) == 0 {
+		return frame.NewDataFrame()
 	}
 
-	// Apply row limit if specified
-	if r.opts.NumRows > 0 && table.NumRows() > r.opts.NumRows {
-		// Slice the table
-		sliced := array.NewTableFromSlice(table.Schema(), sliceColumns(table, r.opts.NumRows))
-		table.Release()
-		table = sliced
+	builders := make([]seriesBuilder, len(fields))
+	for i, field := range fields {
+		builder, err := r.newSeriesBuilder(field)
+		if err != nil {
+			return nil, err
+		}
+		builders[i] = builder
 	}
 
-	return table, nil
-}
+	var rowsRead int64
+	for recordReader.Next() {
+		rec := recordReader.Record()
+		if rec == nil {
+			continue
+		}
 
-// sliceColumns slices all columns to the specified number of rows
-func sliceColumns(table arrow.Table, numRows int64) [][]arrow.Array {
-	numCols := int(table.NumCols())
-	result := make([][]arrow.Array, numCols)
-
-	for i := 0; i < numCols; i++ {
-		col := table.Column(i)
-		chunks := make([]arrow.Array, 0)
-
-		rowsRead := int64(0)
-		for _, chunk := range col.Data().Chunks() {
-			if rowsRead >= numRows {
+		batchRows := rec.NumRows()
+		rowsToUse := batchRows
+		if r.opts.NumRows > 0 {
+			remaining := r.opts.NumRows - rowsRead
+			if remaining <= 0 {
 				break
 			}
-
-			remaining := numRows - rowsRead
-			if int64(chunk.Len()) <= remaining {
-				// Take the whole chunk
-				chunks = append(chunks, chunk)
-				rowsRead += int64(chunk.Len())
-			} else {
-				// Slice the chunk
-				sliced := array.NewSlice(chunk, 0, remaining)
-				chunks = append(chunks, sliced)
-				rowsRead = numRows
+			if rowsToUse > remaining {
+				rowsToUse = remaining
 			}
 		}
 
-		result[i] = chunks
+		needSlice := rowsToUse < batchRows
+		for i := 0; i < len(fields); i++ {
+			col := rec.Column(i)
+			releaseAfter := false
+			if needSlice {
+				col = array.NewSlice(col, 0, rowsToUse)
+				releaseAfter = true
+			}
+
+			if err := builders[i].append(col); err != nil {
+				if releaseAfter {
+					col.Release()
+				}
+				return nil, fmt.Errorf("failed to append column %s: %w", fields[i].Name, err)
+			}
+
+			if releaseAfter {
+				col.Release()
+			}
+		}
+
+		rowsRead += rowsToUse
+		if r.opts.NumRows > 0 && rowsRead >= r.opts.NumRows {
+			break
+		}
 	}
 
-	return result
+	if err := recordReader.Err(); err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("failed to read parquet batches: %w", err)
+	}
+
+	seriesList := make([]series.Series, len(builders))
+	for i, builder := range builders {
+		s, err := builder.finish()
+		if err != nil {
+			return nil, err
+		}
+		seriesList[i] = s
+	}
+
+	return frame.NewDataFrame(seriesList...)
+}
+
+type seriesBuilder struct {
+	append func(arrow.Array) error
+	finish func() (series.Series, error)
+}
+
+func (r *Reader) newSeriesBuilder(field arrow.Field) (seriesBuilder, error) {
+	switch field.Type.ID() {
+	case arrow.BOOL:
+		ca := chunked.NewChunkedArray[bool](field.Name, datatypes.Boolean{})
+		return seriesBuilder{
+			append: ca.AppendArray,
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	case arrow.INT32:
+		ca := chunked.NewChunkedArray[int32](field.Name, datatypes.Int32{})
+		return seriesBuilder{
+			append: ca.AppendArray,
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	case arrow.INT64:
+		ca := chunked.NewChunkedArray[int64](field.Name, datatypes.Int64{})
+		return seriesBuilder{
+			append: ca.AppendArray,
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	case arrow.FLOAT32:
+		ca := chunked.NewChunkedArray[float32](field.Name, datatypes.Float32{})
+		return seriesBuilder{
+			append: ca.AppendArray,
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	case arrow.FLOAT64:
+		ca := chunked.NewChunkedArray[float64](field.Name, datatypes.Float64{})
+		return seriesBuilder{
+			append: ca.AppendArray,
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	case arrow.STRING:
+		ca := chunked.NewChunkedArray[string](field.Name, datatypes.String{})
+		return seriesBuilder{
+			append: ca.AppendArray,
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	case arrow.LARGE_STRING:
+		ca := chunked.NewChunkedArray[string](field.Name, datatypes.String{})
+		return seriesBuilder{
+			append: func(arr arrow.Array) error {
+				return r.appendLargeString(ca, arr)
+			},
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
+	default:
+		return seriesBuilder{}, fmt.Errorf("unsupported arrow type: %s", field.Type)
+	}
+}
+
+func (r *Reader) appendLargeString(ca *chunked.ChunkedArray[string], arr arrow.Array) error {
+	largeChunk, ok := arr.(*array.LargeString)
+	if !ok {
+		return fmt.Errorf("expected large string chunk, got %T", arr)
+	}
+
+	builder := array.NewStringBuilder(r.opts.Allocator)
+	builder.Reserve(largeChunk.Len())
+	for i := 0; i < largeChunk.Len(); i++ {
+		if largeChunk.IsNull(i) {
+			builder.AppendNull()
+		} else {
+			builder.Append(largeChunk.Value(i))
+		}
+	}
+	strArr := builder.NewStringArray()
+	builder.Release()
+
+	if err := ca.AppendArray(strArr); err != nil {
+		strArr.Release()
+		return err
+	}
+	strArr.Release()
+	return nil
 }
 
 // tableToDataFrame converts an Arrow table to a Golars DataFrame
@@ -270,6 +376,8 @@ func (r *Reader) columnToSeries(col *arrow.Column, field arrow.Field) (series.Se
 		return r.float64ColumnToSeries(field.Name, chunks)
 	case arrow.STRING:
 		return r.stringColumnToSeries(field.Name, chunks)
+	case arrow.LARGE_STRING:
+		return r.largeStringColumnToSeries(field.Name, chunks)
 	default:
 		return nil, fmt.Errorf("unsupported arrow type: %s", field.Type)
 	}
@@ -345,6 +453,37 @@ func (r *Reader) stringColumnToSeries(name string, chunks []arrow.Array) (series
 		if err := ca.AppendArray(chunk); err != nil {
 			return nil, err
 		}
+	}
+
+	return series.NewSeriesFromChunkedArray(ca), nil
+}
+
+func (r *Reader) largeStringColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
+	ca := chunked.NewChunkedArray[string](name, datatypes.String{})
+
+	for _, chunk := range chunks {
+		largeChunk, ok := chunk.(*array.LargeString)
+		if !ok {
+			return nil, fmt.Errorf("expected large string chunk, got %T", chunk)
+		}
+
+		converted := array.NewStringBuilder(r.opts.Allocator)
+		converted.Reserve(largeChunk.Len())
+		for i := 0; i < largeChunk.Len(); i++ {
+			if largeChunk.IsNull(i) {
+				converted.AppendNull()
+			} else {
+				converted.Append(largeChunk.Value(i))
+			}
+		}
+		strArr := converted.NewStringArray()
+		converted.Release()
+
+		if err := ca.AppendArray(strArr); err != nil {
+			strArr.Release()
+			return nil, err
+		}
+		strArr.Release()
 	}
 
 	return series.NewSeriesFromChunkedArray(ca), nil

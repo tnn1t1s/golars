@@ -7,6 +7,7 @@ import (
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/parallel"
 	"github.com/tnn1t1s/golars/internal/window"
 )
 
@@ -85,28 +86,45 @@ func (p *PhysicalProjection) Execute(ctx context.Context) (*frame.DataFrame, err
 		return df.Select(cols...)
 	}
 
+	type compiledProjection struct {
+		name string
+		expr expr.Expr
+	}
+	compiled := make([]compiledProjection, len(p.Exprs))
+
+	err = parallel.For(len(p.Exprs), func(start, end int) error {
+		for i := start; i < end; i++ {
+			exprID := p.Exprs[i]
+			node, ok := p.Arena.Get(exprID)
+			if !ok {
+				return fmt.Errorf("invalid projection expression")
+			}
+			switch node.Kind {
+			case KindColumn, KindLiteral, KindWindow, KindAlias:
+			default:
+				return fmt.Errorf("unsupported projection expression")
+			}
+			name := OutputName(p.Arena, exprID)
+			compiledExpr, err := exprFromNode(p.Arena, exprID)
+			if err != nil {
+				return err
+			}
+			compiled[i] = compiledProjection{name: name, expr: compiledExpr}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	exprs := make(map[string]expr.Expr, len(p.Exprs))
-	names := make([]string, 0, len(p.Exprs))
-	for _, exprID := range p.Exprs {
-		node, ok := p.Arena.Get(exprID)
-		if !ok {
-			return nil, fmt.Errorf("invalid projection expression")
+	names := make([]string, len(p.Exprs))
+	for i, item := range compiled {
+		if _, exists := exprs[item.name]; exists {
+			return nil, fmt.Errorf("duplicate projection name: %s", item.name)
 		}
-		switch node.Kind {
-		case KindColumn, KindLiteral, KindWindow, KindAlias:
-		default:
-			return nil, fmt.Errorf("unsupported projection expression")
-		}
-		name := OutputName(p.Arena, exprID)
-		compiled, err := exprFromNode(p.Arena, exprID)
-		if err != nil {
-			return nil, err
-		}
-		if _, exists := exprs[name]; exists {
-			return nil, fmt.Errorf("duplicate projection name: %s", name)
-		}
-		exprs[name] = compiled
-		names = append(names, name)
+		exprs[item.name] = item.expr
+		names[i] = item.name
 	}
 
 	withCols, err := df.WithColumns(exprs)
@@ -132,15 +150,28 @@ func (p *PhysicalAggregate) Execute(ctx context.Context) (*frame.DataFrame, erro
 	if err != nil {
 		return nil, err
 	}
-	keys, err := projectionColumns(p.Arena, p.Keys)
+
+	var (
+		keys []string
+		aggs map[string]expr.Expr
+	)
+	err = parallel.Join(
+		func() error {
+			var err error
+			keys, err = projectionColumns(p.Arena, p.Keys)
+			return err
+		},
+		func() error {
+			var err error
+			aggs, err = aggExprs(p.Arena, p.Aggs)
+			return err
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
+
 	grouped, err := df.GroupBy(keys...)
-	if err != nil {
-		return nil, err
-	}
-	aggs, err := aggExprs(p.Arena, p.Aggs)
 	if err != nil {
 		return nil, err
 	}

@@ -246,6 +246,10 @@ func (s *TypedSeries[T]) ToSlice() interface{} {
 	return values
 }
 
+func (s *TypedSeries[T]) ValuesWithValidity() ([]T, []bool) {
+	return s.chunkedArray.ToSlice()
+}
+
 func (s *TypedSeries[T]) String() string {
 	const maxDisplay = 10
 
@@ -410,31 +414,78 @@ func NewInterfaceSeries(name string, data []interface{}, validity []bool, dtype 
 	}
 }
 
-func (s *InterfaceSeries) Name() string                            { return s.name }
-func (s *InterfaceSeries) Rename(name string) Series               { return &InterfaceSeries{name: name, data: s.data, validity: s.validity, dtype: s.dtype} }
-func (s *InterfaceSeries) DataType() datatypes.DataType            { return s.dtype }
-func (s *InterfaceSeries) Len() int                                { return len(s.data) }
-func (s *InterfaceSeries) IsNull(i int) bool                       { return !s.validity[i] }
-func (s *InterfaceSeries) IsValid(i int) bool                      { return s.validity[i] }
-func (s *InterfaceSeries) NullCount() int                          { c := 0; for _, v := range s.validity { if !v { c++ } }; return c }
-func (s *InterfaceSeries) Slice(start, end int) (Series, error)    { return &InterfaceSeries{name: s.name, data: s.data[start:end], validity: s.validity[start:end], dtype: s.dtype}, nil }
-func (s *InterfaceSeries) Head(n int) Series                       { if n > len(s.data) { n = len(s.data) }; return &InterfaceSeries{name: s.name, data: s.data[:n], validity: s.validity[:n], dtype: s.dtype} }
-func (s *InterfaceSeries) Tail(n int) Series                       { start := len(s.data) - n; if start < 0 { start = 0 }; return &InterfaceSeries{name: s.name, data: s.data[start:], validity: s.validity[start:], dtype: s.dtype} }
-func (s *InterfaceSeries) Cast(dt datatypes.DataType) (Series, error) { return nil, fmt.Errorf("cast not supported for InterfaceSeries") }
-func (s *InterfaceSeries) Equals(other Series) bool                { return false }
-func (s *InterfaceSeries) Clone() Series                           { d := make([]interface{}, len(s.data)); copy(d, s.data); v := make([]bool, len(s.validity)); copy(v, s.validity); return &InterfaceSeries{name: s.name, data: d, validity: v, dtype: s.dtype} }
-func (s *InterfaceSeries) Get(i int) interface{}                   { return s.data[i] }
-func (s *InterfaceSeries) GetAsString(i int) string                { return fmt.Sprint(s.data[i]) }
-func (s *InterfaceSeries) ToSlice() interface{}                    { return s.data }
-func (s *InterfaceSeries) String() string                          { return fmt.Sprintf("InterfaceSeries[%s](%d)", s.name, len(s.data)) }
-func (s *InterfaceSeries) Sort(ascending bool) Series              { return s.Clone() }
-func (s *InterfaceSeries) ArgSort(config SortConfig) []int         { idx := make([]int, len(s.data)); for i := range idx { idx[i] = i }; return idx }
-func (s *InterfaceSeries) Take(indices []int) Series               { d := make([]interface{}, len(indices)); v := make([]bool, len(indices)); for i, idx := range indices { d[i] = s.data[idx]; v[i] = s.validity[idx] }; return &InterfaceSeries{name: s.name, data: d, validity: v, dtype: s.dtype} }
-func (s *InterfaceSeries) Sum() float64                            { return 0 }
-func (s *InterfaceSeries) Mean() float64                           { return 0 }
-func (s *InterfaceSeries) Min() interface{}                        { return nil }
-func (s *InterfaceSeries) Max() interface{}                        { return nil }
-func (s *InterfaceSeries) Count() int                              { return len(s.data) - s.NullCount() }
-func (s *InterfaceSeries) Std() float64                            { return 0 }
-func (s *InterfaceSeries) Var() float64                            { return 0 }
-func (s *InterfaceSeries) Median() float64                         { return 0 }
+func (s *InterfaceSeries) Name() string { return s.name }
+func (s *InterfaceSeries) Rename(name string) Series {
+	return &InterfaceSeries{name: name, data: s.data, validity: s.validity, dtype: s.dtype}
+}
+func (s *InterfaceSeries) DataType() datatypes.DataType { return s.dtype }
+func (s *InterfaceSeries) Len() int                     { return len(s.data) }
+func (s *InterfaceSeries) IsNull(i int) bool            { return !s.validity[i] }
+func (s *InterfaceSeries) IsValid(i int) bool           { return s.validity[i] }
+func (s *InterfaceSeries) NullCount() int {
+	c := 0
+	for _, v := range s.validity {
+		if !v {
+			c++
+		}
+	}
+	return c
+}
+func (s *InterfaceSeries) Slice(start, end int) (Series, error) {
+	return &InterfaceSeries{name: s.name, data: s.data[start:end], validity: s.validity[start:end], dtype: s.dtype}, nil
+}
+func (s *InterfaceSeries) Head(n int) Series {
+	if n > len(s.data) {
+		n = len(s.data)
+	}
+	return &InterfaceSeries{name: s.name, data: s.data[:n], validity: s.validity[:n], dtype: s.dtype}
+}
+func (s *InterfaceSeries) Tail(n int) Series {
+	start := len(s.data) - n
+	if start < 0 {
+		start = 0
+	}
+	return &InterfaceSeries{name: s.name, data: s.data[start:], validity: s.validity[start:], dtype: s.dtype}
+}
+func (s *InterfaceSeries) Cast(dt datatypes.DataType) (Series, error) {
+	return nil, fmt.Errorf("cast not supported for InterfaceSeries")
+}
+func (s *InterfaceSeries) Equals(other Series) bool { return false }
+func (s *InterfaceSeries) Clone() Series {
+	d := make([]interface{}, len(s.data))
+	copy(d, s.data)
+	v := make([]bool, len(s.validity))
+	copy(v, s.validity)
+	return &InterfaceSeries{name: s.name, data: d, validity: v, dtype: s.dtype}
+}
+func (s *InterfaceSeries) Get(i int) interface{}    { return s.data[i] }
+func (s *InterfaceSeries) GetAsString(i int) string { return fmt.Sprint(s.data[i]) }
+func (s *InterfaceSeries) ToSlice() interface{}     { return s.data }
+func (s *InterfaceSeries) String() string {
+	return fmt.Sprintf("InterfaceSeries[%s](%d)", s.name, len(s.data))
+}
+func (s *InterfaceSeries) Sort(ascending bool) Series { return s.Clone() }
+func (s *InterfaceSeries) ArgSort(config SortConfig) []int {
+	idx := make([]int, len(s.data))
+	for i := range idx {
+		idx[i] = i
+	}
+	return idx
+}
+func (s *InterfaceSeries) Take(indices []int) Series {
+	d := make([]interface{}, len(indices))
+	v := make([]bool, len(indices))
+	for i, idx := range indices {
+		d[i] = s.data[idx]
+		v[i] = s.validity[idx]
+	}
+	return &InterfaceSeries{name: s.name, data: d, validity: v, dtype: s.dtype}
+}
+func (s *InterfaceSeries) Sum() float64     { return 0 }
+func (s *InterfaceSeries) Mean() float64    { return 0 }
+func (s *InterfaceSeries) Min() interface{} { return nil }
+func (s *InterfaceSeries) Max() interface{} { return nil }
+func (s *InterfaceSeries) Count() int       { return len(s.data) - s.NullCount() }
+func (s *InterfaceSeries) Std() float64     { return 0 }
+func (s *InterfaceSeries) Var() float64     { return 0 }
+func (s *InterfaceSeries) Median() float64  { return 0 }

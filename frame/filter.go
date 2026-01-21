@@ -5,6 +5,7 @@ import (
 
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/internal/datatypes"
+	"github.com/tnn1t1s/golars/internal/parallel"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -67,8 +68,13 @@ func (df *DataFrame) evaluateBooleanExpr(e expr.Expr) ([]bool, error) {
 		// A literal boolean value
 		if val, ok := ex.Value().(bool); ok {
 			mask := make([]bool, df.height)
-			for i := range mask {
-				mask[i] = val
+			if err := parallel.For(len(mask), func(start, end int) error {
+				for i := start; i < end; i++ {
+					mask[i] = val
+				}
+				return nil
+			}); err != nil {
+				return nil, err
 			}
 			return mask, nil
 		}
@@ -106,14 +112,19 @@ func (df *DataFrame) evaluateComparisonExpr(e *expr.BinaryExpr) ([]bool, error) 
 
 	// Perform comparison
 	mask := make([]bool, df.height)
-	for i := 0; i < df.height; i++ {
-		// Handle nulls - any comparison with null is false
-		if leftValues[i] == nil || rightValues[i] == nil {
-			mask[i] = false
-			continue
-		}
+	if err := parallel.For(df.height, func(start, end int) error {
+		for i := start; i < end; i++ {
+			// Handle nulls - any comparison with null is false
+			if leftValues[i] == nil || rightValues[i] == nil {
+				mask[i] = false
+				continue
+			}
 
-		mask[i] = compareValues(leftValues[i], rightValues[i], e.Op())
+			mask[i] = compareValues(leftValues[i], rightValues[i], e.Op())
+		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return mask, nil
@@ -135,13 +146,18 @@ func (df *DataFrame) evaluateLogicalExpr(e *expr.BinaryExpr) ([]bool, error) {
 
 	// Combine masks
 	mask := make([]bool, df.height)
-	for i := 0; i < df.height; i++ {
-		switch e.Op() {
-		case expr.OpAnd:
-			mask[i] = leftMask[i] && rightMask[i]
-		case expr.OpOr:
-			mask[i] = leftMask[i] || rightMask[i]
+	if err := parallel.For(df.height, func(start, end int) error {
+		for i := start; i < end; i++ {
+			switch e.Op() {
+			case expr.OpAnd:
+				mask[i] = leftMask[i] && rightMask[i]
+			case expr.OpOr:
+				mask[i] = leftMask[i] || rightMask[i]
+			}
 		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return mask, nil
@@ -156,8 +172,13 @@ func (df *DataFrame) evaluateUnaryExpr(e *expr.UnaryExpr) ([]bool, error) {
 			return nil, err
 		}
 		mask := make([]bool, len(innerMask))
-		for i := range innerMask {
-			mask[i] = !innerMask[i]
+		if err := parallel.For(len(innerMask), func(start, end int) error {
+			for i := start; i < end; i++ {
+				mask[i] = !innerMask[i]
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return mask, nil
 
@@ -167,12 +188,17 @@ func (df *DataFrame) evaluateUnaryExpr(e *expr.UnaryExpr) ([]bool, error) {
 			return nil, err
 		}
 		mask := make([]bool, len(values))
-		for i := range values {
-			if e.Op() == expr.OpIsNull {
-				mask[i] = values[i] == nil
-			} else {
-				mask[i] = values[i] != nil
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				if e.Op() == expr.OpIsNull {
+					mask[i] = values[i] == nil
+				} else {
+					mask[i] = values[i] != nil
+				}
 			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return mask, nil
 
@@ -190,16 +216,26 @@ func (df *DataFrame) evaluateExprValues(e expr.Expr) ([]interface{}, error) {
 			return nil, err
 		}
 		values := make([]interface{}, df.height)
-		for i := 0; i < df.height; i++ {
-			values[i] = col.Get(i)
+		if err := parallel.For(df.height, func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = col.Get(i)
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return values, nil
 
 	case *expr.LiteralExpr:
 		// Broadcast literal value
 		values := make([]interface{}, df.height)
-		for i := range values {
-			values[i] = ex.Value()
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				values[i] = ex.Value()
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return values, nil
 	case *expr.CastExpr:
@@ -208,16 +244,22 @@ func (df *DataFrame) evaluateExprValues(e expr.Expr) ([]interface{}, error) {
 			return nil, err
 		}
 		casted := make([]interface{}, len(values))
-		for i, value := range values {
-			if value == nil {
-				casted[i] = nil
-				continue
+		if err := parallel.For(len(values), func(start, end int) error {
+			for i := start; i < end; i++ {
+				value := values[i]
+				if value == nil {
+					casted[i] = nil
+					continue
+				}
+				converted, err := castValue(value, ex.TargetType())
+				if err != nil {
+					return err
+				}
+				casted[i] = converted
 			}
-			converted, err := castValue(value, ex.TargetType())
-			if err != nil {
-				return nil, err
-			}
-			casted[i] = converted
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 		return casted, nil
 	case *expr.AliasExpr:
@@ -231,15 +273,22 @@ func (df *DataFrame) evaluateExprValues(e expr.Expr) ([]interface{}, error) {
 // seriesToBoolMask converts a boolean series to a boolean mask
 func (df *DataFrame) seriesToBoolMask(s series.Series) ([]bool, error) {
 	mask := make([]bool, s.Len())
-	for i := 0; i < s.Len(); i++ {
-		val := s.Get(i)
-		if val == nil {
-			mask[i] = false
-		} else if b, ok := val.(bool); ok {
+	if err := parallel.For(s.Len(), func(start, end int) error {
+		for i := start; i < end; i++ {
+			val := s.Get(i)
+			if val == nil {
+				mask[i] = false
+				continue
+			}
+			b, ok := val.(bool)
+			if !ok {
+				return fmt.Errorf("series must contain boolean values for filtering")
+			}
 			mask[i] = b
-		} else {
-			return nil, fmt.Errorf("series must contain boolean values for filtering")
 		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 	return mask, nil
 }
@@ -278,12 +327,18 @@ func gatherSeries(s series.Series, indices []int) (series.Series, error) {
 	values := make([]interface{}, len(indices))
 	validity := make([]bool, len(indices))
 
-	for i, idx := range indices {
-		if idx < 0 || idx >= s.Len() {
-			return nil, fmt.Errorf("index %d out of bounds", idx)
+	if err := parallel.For(len(indices), func(start, end int) error {
+		for i := start; i < end; i++ {
+			idx := indices[i]
+			if idx < 0 || idx >= s.Len() {
+				return fmt.Errorf("index %d out of bounds", idx)
+			}
+			values[i] = s.Get(idx)
+			validity[i] = s.IsValid(idx)
 		}
-		values[i] = s.Get(idx)
-		validity[i] = s.IsValid(idx)
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	// Create new series based on type
