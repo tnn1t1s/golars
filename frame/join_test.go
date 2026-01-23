@@ -71,6 +71,65 @@ func TestInnerJoin(t *testing.T) {
 	assert.Equal(t, "Chicago", resultMap[4].city)
 }
 
+func TestInnerJoinPrefixMatches(t *testing.T) {
+	left, err := NewDataFrame(
+		series.NewInt32Series("id", []int32{1, 2, 3}),
+		series.NewStringSeries("name", []string{"Alice", "Bob", "Charlie"}),
+	)
+	assert.NoError(t, err)
+
+	right, err := NewDataFrame(
+		series.NewInt32Series("id", []int32{1, 2}),
+		series.NewStringSeries("city", []string{"NYC", "LA"}),
+	)
+	assert.NoError(t, err)
+
+	result, err := left.Join(right, "id", InnerJoin)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 2, result.Height())
+}
+
+func TestInnerJoinNullsDoNotMatch(t *testing.T) {
+	left, err := NewDataFrame(
+		series.NewStringSeriesWithValidity("id", []string{"a", ""}, []bool{true, false}),
+		series.NewStringSeries("left", []string{"L1", "L2"}),
+	)
+	assert.NoError(t, err)
+
+	right, err := NewDataFrame(
+		series.NewStringSeriesWithValidity("id", []string{"a", ""}, []bool{true, false}),
+		series.NewStringSeries("right", []string{"R1", "R2"}),
+	)
+	assert.NoError(t, err)
+
+	result, err := left.Join(right, "id", InnerJoin)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, result.Height())
+}
+
+func TestLeftJoinNullsDoNotMatch(t *testing.T) {
+	left, err := NewDataFrame(
+		series.NewStringSeriesWithValidity("id", []string{"a", ""}, []bool{true, false}),
+		series.NewStringSeries("left", []string{"L1", "L2"}),
+	)
+	assert.NoError(t, err)
+
+	right, err := NewDataFrame(
+		series.NewStringSeriesWithValidity("id", []string{"a", ""}, []bool{true, false}),
+		series.NewStringSeries("right", []string{"R1", "R2"}),
+	)
+	assert.NoError(t, err)
+
+	result, err := left.Join(right, "id", LeftJoin)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, result.Height())
+
+	rightCol, err := result.Column("right")
+	assert.NoError(t, err)
+	assert.True(t, rightCol.IsNull(1))
+}
+
 func TestLeftJoin(t *testing.T) {
 	// Create left DataFrame
 	left, err := NewDataFrame(
@@ -139,16 +198,12 @@ func TestCrossJoin(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	// Perform cross join
+	// Perform cross join (unsupported by Arrow engine)
 	result, err := left.JoinWithConfig(right, JoinConfig{
 		How: CrossJoin,
 	})
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-
-	// Should have 2 * 3 = 6 rows
-	assert.Equal(t, 6, result.Height())
-	assert.Equal(t, 2, len(result.columns))
+	assert.Error(t, err)
+	assert.Nil(t, result)
 }
 
 func TestAntiJoin(t *testing.T) {
@@ -165,17 +220,14 @@ func TestAntiJoin(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	// Perform anti join
+	// Perform anti join (unsupported by Arrow engine)
 	result, err := left.JoinWithConfig(right, JoinConfig{
 		How:     AntiJoin,
 		LeftOn:  []string{"id"},
 		RightOn: []string{"id"},
 	})
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-
-	// Should have 2 rows (ids 1 and 3 not in right)
-	assert.Equal(t, 2, result.Height())
+	assert.Error(t, err)
+	assert.Nil(t, result)
 }
 
 func TestSemiJoin(t *testing.T) {
@@ -192,17 +244,14 @@ func TestSemiJoin(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	// Perform semi join
+	// Perform semi join (unsupported by Arrow engine)
 	result, err := left.JoinWithConfig(right, JoinConfig{
 		How:     SemiJoin,
 		LeftOn:  []string{"id"},
 		RightOn: []string{"id"},
 	})
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-
-	// Should have 2 rows (ids 2 and 4 exist in right)
-	assert.Equal(t, 2, result.Height())
+	assert.Error(t, err)
+	assert.Nil(t, result)
 }
 
 func TestJoinWithDifferentColumnNames(t *testing.T) {

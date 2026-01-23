@@ -1,0 +1,367 @@
+{
+  "datasets": {
+    "small": {
+      "path": "../data/h2oai_small.parquet",
+      "rows": 10000,
+      "groups": 100,
+      "null_ratio": 0.05,
+      "seed": 0,
+      "sorted": false
+    },
+    "medium_safe": {
+      "path": "../data/h2oai_medium-safe.parquet",
+      "rows": 250000,
+      "groups": 500,
+      "null_ratio": 0.05,
+      "seed": 0,
+      "sorted": false
+    }
+  },
+  "queries": [
+    {
+      "name": "groupby_q1",
+      "dataset": "small",
+      "type": "groupby",
+      "group_by": ["id1"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"}
+      ]
+    },
+    {
+      "name": "groupby_q2",
+      "dataset": "small",
+      "type": "groupby",
+      "group_by": ["id1", "id2"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"}
+      ]
+    },
+    {
+      "name": "groupby_q3",
+      "dataset": "small",
+      "type": "groupby",
+      "group_by": ["id3"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"},
+        {"op": "mean", "col": "v3", "as": "v3_mean"}
+      ]
+    },
+    {
+      "name": "groupby_q4",
+      "dataset": "small",
+      "type": "groupby",
+      "group_by": ["id4"],
+      "aggs": [
+        {"op": "mean", "col": "v1", "as": "v1_mean"},
+        {"op": "mean", "col": "v2", "as": "v2_mean"},
+        {"op": "mean", "col": "v3", "as": "v3_mean"}
+      ]
+    },
+    {
+      "name": "groupby_q5",
+      "dataset": "small",
+      "type": "groupby",
+      "group_by": ["id6"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"},
+        {"op": "sum", "col": "v2", "as": "v2_sum"},
+        {"op": "sum", "col": "v3", "as": "v3_sum"}
+      ]
+    },
+    {
+      "name": "groupby_q6",
+      "dataset": "small",
+      "type": "groupby",
+      "group_by": ["id4", "id5"],
+      "aggs": [
+        {"op": "sum", "col": "v3", "as": "v3_sum"},
+        {"op": "mean", "col": "v3", "as": "v3_mean"}
+      ]
+    },
+    {
+      "name": "filter_eq",
+      "dataset": "small",
+      "type": "filter_agg",
+      "filter": {
+        "col": "id1",
+        "op": "eq",
+        "value": "id046",
+        "value_type": "string"
+      },
+      "aggs": [
+        {"op": "sum", "col": "id6", "as": "id6_sum"},
+        {"op": "sum", "col": "v3", "as": "v3_sum"}
+      ]
+    },
+    {
+      "name": "filter_neq",
+      "dataset": "small",
+      "type": "filter_agg",
+      "filter": {
+        "col": "id1",
+        "op": "ne",
+        "value": "id046",
+        "value_type": "string"
+      },
+      "aggs": [
+        {"op": "sum", "col": "id6", "as": "id6_sum"},
+        {"op": "sum", "col": "v3", "as": "v3_sum"}
+      ]
+    },
+    {
+      "name": "join_inner_id1",
+      "dataset": "small",
+      "type": "join",
+      "join": {
+        "how": "inner",
+        "left_on": ["id1"],
+        "right_on": ["id1"],
+        "right_rows": 5000
+      }
+    },
+    {
+      "name": "join_left_id1",
+      "dataset": "small",
+      "type": "join",
+      "join": {
+        "how": "left",
+        "left_on": ["id1"],
+        "right_on": ["id1"],
+        "right_rows": 5000
+      }
+    },
+    {
+      "name": "join_inner_id1_id2",
+      "dataset": "small",
+      "type": "join",
+      "join": {
+        "how": "inner",
+        "left_on": ["id1", "id2"],
+        "right_on": ["id1", "id2"],
+        "right_rows": 5000
+      }
+    },
+    {
+      "name": "sort_int",
+      "dataset": "small",
+      "type": "sort",
+      "sort": {
+        "columns": ["v1"],
+        "descending": false
+      }
+    },
+    {
+      "name": "sort_string",
+      "dataset": "small",
+      "type": "sort",
+      "sort": {
+        "columns": ["id1"],
+        "descending": false
+      }
+    },
+    {
+      "name": "sort_multi",
+      "dataset": "small",
+      "type": "sort",
+      "sort": {
+        "columns": ["id1", "id2", "v1"],
+        "descending": false
+      }
+    },
+    {
+      "name": "sort_desc",
+      "dataset": "small",
+      "type": "sort",
+      "sort": {
+        "columns": ["v1"],
+        "descending": true
+      }
+    },
+    {
+      "name": "sort_float",
+      "dataset": "small",
+      "type": "sort",
+      "sort": {
+        "columns": ["v3"],
+        "descending": false
+      }
+    },
+    {
+      "name": "groupby_q1",
+      "dataset": "medium_safe",
+      "type": "groupby",
+      "group_by": ["id1"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"}
+      ]
+    },
+    {
+      "name": "groupby_q2",
+      "dataset": "medium_safe",
+      "type": "groupby",
+      "group_by": ["id1", "id2"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"}
+      ]
+    },
+    {
+      "name": "groupby_q3",
+      "dataset": "medium_safe",
+      "type": "groupby",
+      "group_by": ["id3"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"},
+        {"op": "mean", "col": "v3", "as": "v3_mean"}
+      ]
+    },
+    {
+      "name": "groupby_q4",
+      "dataset": "medium_safe",
+      "type": "groupby",
+      "group_by": ["id4"],
+      "aggs": [
+        {"op": "mean", "col": "v1", "as": "v1_mean"},
+        {"op": "mean", "col": "v2", "as": "v2_mean"},
+        {"op": "mean", "col": "v3", "as": "v3_mean"}
+      ]
+    },
+    {
+      "name": "groupby_q5",
+      "dataset": "medium_safe",
+      "type": "groupby",
+      "group_by": ["id6"],
+      "aggs": [
+        {"op": "sum", "col": "v1", "as": "v1_sum"},
+        {"op": "sum", "col": "v2", "as": "v2_sum"},
+        {"op": "sum", "col": "v3", "as": "v3_sum"}
+      ]
+    },
+    {
+      "name": "groupby_q6",
+      "dataset": "medium_safe",
+      "type": "groupby",
+      "group_by": ["id4", "id5"],
+      "aggs": [
+        {"op": "sum", "col": "v3", "as": "v3_sum"},
+        {"op": "mean", "col": "v3", "as": "v3_mean"}
+      ]
+    },
+    {
+      "name": "filter_eq",
+      "dataset": "medium_safe",
+      "type": "filter_agg",
+      "filter": {
+        "col": "id1",
+        "op": "eq",
+        "value": "id046",
+        "value_type": "string"
+      },
+      "aggs": [
+        {"op": "sum", "col": "id6", "as": "id6_sum"},
+        {"op": "sum", "col": "v3", "as": "v3_sum"}
+      ]
+    },
+    {
+      "name": "filter_neq",
+      "dataset": "medium_safe",
+      "type": "filter_agg",
+      "filter": {
+        "col": "id1",
+        "op": "ne",
+        "value": "id046",
+        "value_type": "string"
+      },
+      "aggs": [
+        {"op": "sum", "col": "id6", "as": "id6_sum"},
+        {"op": "sum", "col": "v3", "as": "v3_sum"}
+      ]
+    },
+    {
+      "name": "join_inner_id1",
+      "dataset": "medium_safe",
+      "type": "join",
+      "join": {
+        "how": "inner",
+        "left_on": ["id1"],
+        "right_on": ["id1"],
+        "right_rows": 5000
+      }
+    },
+    {
+      "name": "join_left_id1",
+      "dataset": "medium_safe",
+      "type": "join",
+      "join": {
+        "how": "left",
+        "left_on": ["id1"],
+        "right_on": ["id1"],
+        "right_rows": 5000
+      }
+    },
+    {
+      "name": "join_inner_id1_id2",
+      "dataset": "medium_safe",
+      "type": "join",
+      "join": {
+        "how": "inner",
+        "left_on": ["id1", "id2"],
+        "right_on": ["id1", "id2"],
+        "right_rows": 5000
+      }
+    },
+    {
+      "name": "sort_int",
+      "dataset": "medium_safe",
+      "type": "sort",
+      "sort": {
+        "columns": ["v1"],
+        "descending": false
+      }
+    },
+    {
+      "name": "sort_string",
+      "dataset": "medium_safe",
+      "type": "sort",
+      "sort": {
+        "columns": ["id1"],
+        "descending": false
+      }
+    },
+    {
+      "name": "sort_multi",
+      "dataset": "medium_safe",
+      "type": "sort",
+      "sort": {
+        "columns": ["id1", "id2", "v1"],
+        "descending": false
+      }
+    },
+    {
+      "name": "sort_desc",
+      "dataset": "medium_safe",
+      "type": "sort",
+      "sort": {
+        "columns": ["v1"],
+        "descending": true
+      }
+    },
+    {
+      "name": "sort_float",
+      "dataset": "medium_safe",
+      "type": "sort",
+      "sort": {
+        "columns": ["v3"],
+        "descending": false
+      }
+    },
+    {
+      "name": "with_columns_small",
+      "dataset": "synthetic",
+      "type": "with_columns",
+      "with_columns": {
+        "rows": 1,
+        "columns": 100
+      }
+    }
+  ]
+}

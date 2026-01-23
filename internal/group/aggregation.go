@@ -24,33 +24,13 @@ type AggResult struct {
 
 // Agg performs multiple aggregations on the grouped data
 func (gb *GroupBy) Agg(aggregations map[string]expr.Expr) (*AggResult, error) {
-	gb.mu.RLock()
-	defer gb.mu.RUnlock()
-
-	result := &AggregationResult{
-		GroupKeys: gb.groupKeys,
-		Results:   make(map[string][]interface{}),
-		DataTypes: make(map[string]datatypes.DataType),
+	if result, ok, err := gb.tryAggArrow(aggregations); err != nil {
+		return nil, err
+	} else if ok {
+		return result, nil
 	}
 
-	// Initialize result slices
-	for colName := range aggregations {
-		result.Results[colName] = make([]interface{}, 0, len(gb.groups))
-	}
-
-	// Process each group in order
-	for _, hash := range gb.groupOrder {
-		indices := gb.groups[hash]
-		// Apply aggregations
-		for colName, aggExpr := range aggregations {
-			if err := gb.applyAggregation(result, hash, indices, colName, aggExpr); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// Build result DataFrame
-	return gb.buildResultDataFrame(result)
+	return nil, fmt.Errorf("arrow groupby does not support the requested aggregation")
 }
 
 // Sum performs sum aggregation on specified columns
@@ -73,36 +53,13 @@ func (gb *GroupBy) Mean(columns ...string) (*AggResult, error) {
 
 // Count returns the count of rows in each group
 func (gb *GroupBy) Count() (*AggResult, error) {
-	gb.mu.RLock()
-	defer gb.mu.RUnlock()
-
-	// Create result columns
-	resultCols := make([]series.Series, 0, len(gb.groupCols)+1)
-
-	// Add group columns in order
-	for i, groupCol := range gb.groupCols {
-		values := make([]interface{}, 0, len(gb.groupOrder))
-		for _, hash := range gb.groupOrder {
-			keyValues := gb.groupKeys[hash]
-			values = append(values, keyValues[i])
-		}
-
-		// Get original column to determine type
-		origCol, _ := gb.df.Column(groupCol)
-		s := createSeriesFromInterface(groupCol, values, origCol.DataType())
-		resultCols = append(resultCols, s)
+	if result, ok, err := gb.tryCountArrow(); err != nil {
+		return nil, err
+	} else if ok {
+		return result, nil
 	}
 
-	// Add count column in order
-	counts := make([]int64, 0, len(gb.groupOrder))
-	for _, hash := range gb.groupOrder {
-		indices := gb.groups[hash]
-		counts = append(counts, int64(len(indices)))
-	}
-	countSeries := series.NewInt64Series("count", counts)
-	resultCols = append(resultCols, countSeries)
-
-	return &AggResult{Columns: resultCols}, nil
+	return nil, fmt.Errorf("arrow groupby does not support count for the current keys")
 }
 
 // Min performs min aggregation on specified columns
@@ -145,6 +102,24 @@ func (gb *GroupBy) evaluateAggExpr(indices []int, e expr.Expr) (interface{}, dat
 		return gb.evaluateSimpleAgg(indices, ex)
 
 	case *expr.BinaryExpr:
+		if ex.Op() == expr.OpMultiply {
+			leftCorr, okLeft := ex.Left().(*expr.CorrExpr)
+			rightCorr, okRight := ex.Right().(*expr.CorrExpr)
+			if okLeft && okRight && sameCorr(leftCorr, rightCorr) {
+				val, _, err := gb.evaluateCorr(indices, leftCorr)
+				if err != nil {
+					return nil, nil, err
+				}
+				if val == nil {
+					return nil, datatypes.Float64{}, nil
+				}
+				corrVal, ok := val.(float64)
+				if !ok {
+					return nil, nil, fmt.Errorf("expected float64 correlation result")
+				}
+				return corrVal * corrVal, datatypes.Float64{}, nil
+			}
+		}
 		// Handle arithmetic on aggregations (e.g., Max() - Min())
 		leftVal, _, err := gb.evaluateAggExpr(indices, ex.Left())
 		if err != nil {
@@ -166,6 +141,13 @@ func (gb *GroupBy) evaluateAggExpr(indices []int, e expr.Expr) (interface{}, dat
 	default:
 		return nil, nil, fmt.Errorf("unsupported aggregation expression type: %T", e)
 	}
+}
+
+func sameCorr(left, right *expr.CorrExpr) bool {
+	if left == nil || right == nil {
+		return false
+	}
+	return left.Col1().Name() == right.Col1().Name() && left.Col2().Name() == right.Col2().Name()
 }
 
 // evaluateSimpleAgg evaluates a simple aggregation expression

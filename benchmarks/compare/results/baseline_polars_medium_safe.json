@@ -1,0 +1,88 @@
+{
+  "engine": "polars",
+  "dataset": "medium_safe",
+  "data_path": "/Users/palaitis/Development/golars/benchmarks/compare/../data/h2oai_medium-safe.parquet",
+  "data_sha256": "cd800dc71b53f6496c831f3ef80d5f682a0eb86f3a73210e8bdabdbd5cc55fe4",
+  "results": [
+    {
+      "name": "groupby_q1",
+      "ms": 1.9514443119987845,
+      "rows": 476
+    },
+    {
+      "name": "groupby_q2",
+      "ms": 5.574110973005493,
+      "rows": 143552
+    },
+    {
+      "name": "groupby_q3",
+      "ms": 1.85636132179449,
+      "rows": 476
+    },
+    {
+      "name": "groupby_q4",
+      "ms": 2.2059583376782634,
+      "rows": 476
+    },
+    {
+      "name": "groupby_q5",
+      "ms": 1.9212639890611172,
+      "rows": 476
+    },
+    {
+      "name": "groupby_q6",
+      "ms": 4.2400696547701955,
+      "rows": 143655
+    },
+    {
+      "name": "filter_eq",
+      "ms": 0.23098633391782641,
+      "rows": 1
+    },
+    {
+      "name": "filter_neq",
+      "ms": 0.77047199010849,
+      "rows": 1
+    },
+    {
+      "name": "join_inner_id1",
+      "ms": 35.59297232034927,
+      "rows": 2378606
+    },
+    {
+      "name": "join_left_id1",
+      "ms": 39.89641667188456,
+      "rows": 2391055
+    },
+    {
+      "name": "join_inner_id1_id2",
+      "ms": 1.5620969934388995,
+      "rows": 8922
+    },
+    {
+      "name": "sort_int",
+      "ms": 3.080736321862787,
+      "rows": 250000
+    },
+    {
+      "name": "sort_string",
+      "ms": 11.552402982488275,
+      "rows": 250000
+    },
+    {
+      "name": "sort_multi",
+      "ms": 12.130666640587151,
+      "rows": 250000
+    },
+    {
+      "name": "sort_desc",
+      "ms": 2.992847003042698,
+      "rows": 250000
+    },
+    {
+      "name": "sort_float",
+      "ms": 4.402125002040218,
+      "rows": 250000
+    }
+  ]
+}
