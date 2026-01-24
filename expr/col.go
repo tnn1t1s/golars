@@ -47,6 +47,15 @@ func (c *ColumnExpr) Eq(other interface{}) *BinaryExpr {
 	}
 }
 
+// EqMissing creates an equality comparison where null == null is true.
+func (c *ColumnExpr) EqMissing(other interface{}) *BinaryExpr {
+	return &BinaryExpr{
+		left:  c,
+		right: toExpr(other),
+		op:    OpEqualMissing,
+	}
+}
+
 // Ne creates a not equal comparison
 func (c *ColumnExpr) Ne(other interface{}) *BinaryExpr {
 	return &BinaryExpr{

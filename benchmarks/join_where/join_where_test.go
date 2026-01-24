@@ -132,15 +132,17 @@ func BenchmarkNonStrictInequalities(b *testing.B) {
 //	    pl.col("scaled_dur") < pl.col("time"),
 //	)
 //	.collect()
-//
-// Note: We skip the with_columns step and just use dur < time directly
-// since golars doesn't have full expression evaluation in WithColumn yet.
-// The benchmark still tests the JoinWhere functionality.
 func BenchmarkSingleInequality(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := east.JoinWhere(west,
-			expr.Col("dur").Lt(expr.Col("time")),
+		left, err := east.WithColumns(map[string]expr.Expr{
+			"scaled_dur": expr.Col("dur").Mul(30),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		result, err := left.JoinWhere(west,
+			expr.Col("scaled_dur").Lt(expr.Col("time")),
 		)
 		if err != nil {
 			b.Fatal(err)

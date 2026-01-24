@@ -545,6 +545,39 @@ func (df *DataFrame) WithColumns(exprs map[string]expr.Expr) (*DataFrame, error)
 	return applyExpressionsToFrame(df, names, exprList, true)
 }
 
+// WithColumnsFrame adds or replaces columns from another DataFrame.
+func (df *DataFrame) WithColumnsFrame(other *DataFrame) (*DataFrame, error) {
+	if other == nil {
+		return df, nil
+	}
+	df.mu.RLock()
+	defer df.mu.RUnlock()
+	other.mu.RLock()
+	defer other.mu.RUnlock()
+
+	if df.height != other.height {
+		return nil, fmt.Errorf("row count mismatch: %d vs %d", df.height, other.height)
+	}
+
+	nameToIndex := make(map[string]int, len(df.schema.Fields))
+	for i, field := range df.schema.Fields {
+		nameToIndex[field.Name] = i
+	}
+
+	newCols := make([]series.Series, len(df.columns))
+	copy(newCols, df.columns)
+
+	for _, col := range other.columns {
+		if idx, ok := nameToIndex[col.Name()]; ok {
+			newCols[idx] = col
+			continue
+		}
+		newCols = append(newCols, col)
+	}
+
+	return NewDataFrame(newCols...)
+}
+
 func hasExprDependencies(exprs map[string]expr.Expr) bool {
 	names := make(map[string]struct{}, len(exprs))
 	for name := range exprs {

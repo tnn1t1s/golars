@@ -178,6 +178,7 @@ const (
 	OpModulo
 	OpEqual
 	OpNotEqual
+	OpEqualMissing
 	OpLess
 	OpLessEqual
 	OpGreater
@@ -368,6 +369,8 @@ func (e *BinaryExpr) String() string {
 		op = "=="
 	case OpNotEqual:
 		op = "!="
+	case OpEqualMissing:
+		op = "eq_missing"
 	case OpLess:
 		op = "<"
 	case OpLessEqual:
@@ -401,7 +404,7 @@ func (e *BinaryExpr) String() string {
 func (e *BinaryExpr) DataType() datatypes.DataType {
 	// Comparison operators return boolean
 	switch e.op {
-	case OpEqual, OpNotEqual, OpLess, OpLessEqual, OpGreater, OpGreaterEqual:
+	case OpEqual, OpEqualMissing, OpNotEqual, OpLess, OpLessEqual, OpGreater, OpGreaterEqual:
 		return datatypes.Boolean{}
 	case OpAnd, OpOr:
 		return datatypes.Boolean{}

@@ -5,10 +5,15 @@ what Polars implements today (based on the local `../polars` checkout).
 
 ## Current Golars Join Shape
 
-- `frame/join.go` uses a per-row probe loop and a generic hash table.
-- Fast paths exist only for single-column `int64`/`int32` joins.
-- Probe is sequential; output materialization appends into `[]int` without a
-  precomputed size, which amplifies allocations for large joins.
+- `frame/join.go` routes to typed fast paths for single-column `int64`/`int32`/`string`
+  joins and a two-column string fast path.
+- Multi-key joins use a typed partitioned hash join when possible (see
+  `internal/compute/hash_partitioned.go`), falling back to the generic hash table.
+- String joins use custom hash tables with head/next chains to reduce allocations.
+- Probe is parallelized for large inputs (`shouldParallelProbe`).
+- Left joins reuse left-side columns when indices are identity, avoiding
+  materialization work for the left frame.
+- Nulls do not match by default in join keys (aligns with Polars `nulls_equal=false`).
 
 ## Observations From Polars (local code review)
 
@@ -89,3 +94,18 @@ Phase 4: String + dictionary optimizations
 - Compare sort-merge vs hash join when keys are already sorted.
 - Memory profile: output allocations before/after two-pass materialization.
 
+## Recent Bench Notes (local)
+
+- `BenchmarkInnerJoin_MediumSafe`: ~17.7ms, ~86MB, ~1.3k allocs.
+- `BenchmarkLeftJoin_MediumSafe`: ~2.5ms, ~17MB, ~223 allocs (identity reuse).
+- `BenchmarkMultiKeyJoin_MediumSafe`: ~26ms, ~111MB, ~1.8k allocs (string-pair
+  hash table head/next).
+- `BenchmarkMultiKeyJoinIndices_MediumSafe`: ~10.7ms, ~37MB, ~615 allocs (index
+  creation only).
+
+## Recent Changes (local)
+
+- String join dictionary encoding now builds IDs from the build side only and
+  leaves probe-side IDs at 0 when the value is absent from the build
+  dictionary. Join probes treat key ID 0 as non-match, avoiding dictionary
+  growth for probe-only values and skipping an extra probe-validity allocation.

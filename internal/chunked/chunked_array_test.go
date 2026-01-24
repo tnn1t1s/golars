@@ -3,8 +3,8 @@ package chunked
 import (
 	"testing"
 
-	"github.com/apache/arrow/go/v14/arrow/array"
-	"github.com/apache/arrow/go/v14/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/tnn1t1s/golars/internal/datatypes"
 )

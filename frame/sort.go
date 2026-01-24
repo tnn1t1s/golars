@@ -2,8 +2,10 @@ package frame
 
 import (
 	"fmt"
-	"sort"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	arrowcompute "github.com/apache/arrow-go/v18/arrow/compute"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -73,48 +75,88 @@ func (df *DataFrame) SortBy(options SortOptions) (*DataFrame, error) {
 		options.Orders = newOrders
 	}
 
-	// Get sort indices
-	indices := df.multiColumnArgSort(sortSeries, options)
+	indices, err := df.arrowSortIndices(sortSeries, options)
+	if err != nil {
+		return nil, err
+	}
 
-	// Create new sorted DataFrame
 	return df.Take(indices)
 }
 
-// multiColumnArgSort returns indices that would sort the DataFrame by multiple columns
-func (df *DataFrame) multiColumnArgSort(sortSeries []series.Series, options SortOptions) []int {
-	n := df.Height()
-	indices := make([]int, n)
-	for i := 0; i < n; i++ {
-		indices[i] = i
+func (df *DataFrame) arrowSortIndices(sortSeries []series.Series, options SortOptions) ([]int, error) {
+	if len(sortSeries) == 0 {
+		return nil, fmt.Errorf("sort requires at least one column")
 	}
 
-	// Create multi-column comparator
-	less := func(i, j int) bool {
-		for k, s := range sortSeries {
-			order := series.Ascending
-			if k < len(options.Orders) {
-				order = options.Orders[k]
-			}
-
-			cmp := compareSeriesValues(s, indices[i], indices[j], order, options.NullsFirst)
-
-			if cmp < 0 {
-				return true
-			} else if cmp > 0 {
-				return false
-			}
-			// Equal, continue to next column
+	chunked := make([]*arrow.Chunked, len(sortSeries))
+	for i, s := range sortSeries {
+		arr, ok := series.ArrowChunked(s)
+		if !ok {
+			return nil, fmt.Errorf("arrow sort requires Arrow-backed series")
 		}
-		return false // All equal
+		chunked[i] = arr
+	}
+	defer func() {
+		for _, arr := range chunked {
+			if arr != nil {
+				arr.Release()
+			}
+		}
+	}()
+
+	opts := arrowcompute.DefaultSortOptions()
+	opts.NullsFirst = options.NullsFirst
+	opts.Stable = options.Stable
+	opts.Orders = make([]arrowcompute.SortOrder, len(chunked))
+	for i := range chunked {
+		order := series.Ascending
+		if i < len(options.Orders) {
+			order = options.Orders[i]
+		}
+		opts.Orders[i] = toArrowSortOrder(order)
 	}
 
-	if options.Stable {
-		sort.SliceStable(indices, less)
+	var indicesArr arrow.Array
+	var err error
+	if len(chunked) == 1 {
+		indicesArr, err = arrowcompute.SortIndicesChunked(chunked[0], opts)
 	} else {
-		sort.Slice(indices, less)
+		indicesArr, err = arrowcompute.SortIndicesChunkedMulti(chunked, opts)
 	}
+	if err != nil {
+		return nil, err
+	}
+	defer indicesArr.Release()
 
-	return indices
+	return arrowSortIndexArrayToInts(indicesArr)
+}
+
+func toArrowSortOrder(order series.SortOrder) arrowcompute.SortOrder {
+	if order == series.Descending {
+		return arrowcompute.SortDescending
+	}
+	return arrowcompute.SortAscending
+}
+
+func arrowSortIndexArrayToInts(arr arrow.Array) ([]int, error) {
+	switch a := arr.(type) {
+	case *array.Int64:
+		values := a.Int64Values()
+		out := make([]int, len(values))
+		for i, v := range values {
+			out[i] = int(v)
+		}
+		return out, nil
+	case *array.Int32:
+		values := a.Int32Values()
+		out := make([]int, len(values))
+		for i, v := range values {
+			out[i] = int(v)
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("unsupported sort index type %s", arr.DataType().String())
+	}
 }
 
 // compareSeriesValues compares two values from a series

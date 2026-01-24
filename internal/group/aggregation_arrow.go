@@ -185,6 +185,16 @@ func arrowAggOp(op expr.AggOp) (arrowcompute.GroupByAggOp, bool) {
 		return arrowcompute.AggMax, true
 	case expr.AggCount:
 		return arrowcompute.AggCount, true
+	case expr.AggMedian:
+		return arrowcompute.AggMedian, true
+	case expr.AggStd:
+		return arrowcompute.AggStd, true
+	case expr.AggVar:
+		return arrowcompute.AggVar, true
+	case expr.AggFirst:
+		return arrowcompute.AggFirst, true
+	case expr.AggLast:
+		return arrowcompute.AggLast, true
 	default:
 		return 0, false
 	}
@@ -201,7 +211,8 @@ func isArrowGroupByKeySupported(col series.Series) bool {
 
 func isArrowGroupByValueSupported(col series.Series, op expr.AggOp) bool {
 	switch op {
-	case expr.AggSum, expr.AggMean, expr.AggMin, expr.AggMax:
+	case expr.AggSum, expr.AggMean, expr.AggMin, expr.AggMax,
+		expr.AggMedian, expr.AggStd, expr.AggVar, expr.AggFirst, expr.AggLast:
 	default:
 		return false
 	}

@@ -3,7 +3,7 @@ package datetime
 import (
 	"time"
 
-	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 )
 
 // TimeUnit represents the precision of temporal data

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -184,6 +185,36 @@ func TestMultiColumnJoin(t *testing.T) {
 
 	// Should have 2 matches: (2020,1) and (2021,1)
 	assert.Equal(t, 2, result.Height())
+}
+
+func TestMultiColumnJoinWithNullsAndDuplicates(t *testing.T) {
+	left, err := NewDataFrame(
+		series.NewSeriesWithValidity("k1", []string{"A", "A", "B", "x", "C"}, []bool{true, true, true, false, true}, datatypes.String{}),
+		series.NewSeriesWithValidity("k2", []string{"x", "x", "y", "y", "z"}, []bool{true, true, false, true, true}, datatypes.String{}),
+		series.NewInt32Series("val", []int32{1, 2, 3, 4, 5}),
+	)
+	assert.NoError(t, err)
+
+	right, err := NewDataFrame(
+		series.NewSeriesWithValidity("k1", []string{"A", "A", "C", "C", "B"}, []bool{true, true, true, true, true}, datatypes.String{}),
+		series.NewSeriesWithValidity("k2", []string{"x", "x", "z", "z", "y"}, []bool{true, true, true, true, false}, datatypes.String{}),
+		series.NewInt32Series("val_r", []int32{10, 11, 12, 13, 14}),
+	)
+	assert.NoError(t, err)
+
+	result, err := left.JoinOn(right, []string{"k1", "k2"}, []string{"k1", "k2"}, InnerJoin)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Expected matches: (A,x) -> 2 left rows * 2 right rows = 4, (C,z) -> 1 left * 2 right = 2
+	assert.Equal(t, 6, result.Height())
+
+	k1, _ := result.Column("k1")
+	k2, _ := result.Column("k2")
+	for i := 0; i < result.Height(); i++ {
+		assert.False(t, k1.IsNull(i))
+		assert.False(t, k2.IsNull(i))
+	}
 }
 
 func TestCrossJoin(t *testing.T) {

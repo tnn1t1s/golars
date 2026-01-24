@@ -1,5 +1,7 @@
 package parallel
 
+import "fmt"
+
 type stdPool struct {
 	tokens chan struct{}
 }
@@ -12,12 +14,16 @@ func newPool(size int) (pooler, error) {
 }
 
 func (p *stdPool) Submit(task func()) error {
-	p.tokens <- struct{}{}
-	go func() {
-		defer func() { <-p.tokens }()
-		task()
-	}()
-	return nil
+	select {
+	case p.tokens <- struct{}{}:
+		go func() {
+			defer func() { <-p.tokens }()
+			task()
+		}()
+		return nil
+	default:
+		return fmt.Errorf("parallel pool at capacity")
+	}
 }
 
 func (p *stdPool) Release() {}

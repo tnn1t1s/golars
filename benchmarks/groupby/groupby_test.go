@@ -11,6 +11,7 @@
 package groupby
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/tnn1t1s/golars/benchmarks/data"
@@ -20,14 +21,21 @@ import (
 
 // testData matches Polars' groupby_data fixture from conftest.py
 // Default: 10,000 rows, 100 groups, 5% null ratio
-var testData *frame.DataFrame
+var (
+	testData     *frame.DataFrame
+	testDataOnce sync.Once
+	testDataErr  error
+)
 
-func init() {
-	var err error
-	testData, err = data.GenerateH2OAIData(data.H2OAISmall)
-	if err != nil {
-		panic(err)
+func loadTestData(b *testing.B) *frame.DataFrame {
+	b.Helper()
+	testDataOnce.Do(func() {
+		testData, testDataErr = data.LoadH2OAI("small")
+	})
+	if testDataErr != nil {
+		b.Fatal(testDataErr)
 	}
+	return testData
 }
 
 // =============================================================================
@@ -42,6 +50,7 @@ func init() {
 //	.agg(pl.sum("v1").alias("v1_sum"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q1(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id1")
@@ -66,6 +75,7 @@ func BenchmarkGroupByH2OAI_Q1(b *testing.B) {
 //	.agg(pl.sum("v1").alias("v1_sum"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q2(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id1", "id2")
@@ -90,6 +100,7 @@ func BenchmarkGroupByH2OAI_Q2(b *testing.B) {
 //	.agg(pl.sum("v1").alias("v1_sum"), pl.mean("v3").alias("v3_mean"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q3(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id3")
@@ -115,6 +126,7 @@ func BenchmarkGroupByH2OAI_Q3(b *testing.B) {
 //	.agg(pl.mean("v1").alias("v1_mean"), pl.mean("v2").alias("v2_mean"), pl.mean("v3").alias("v3_mean"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q4(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id4")
@@ -141,6 +153,7 @@ func BenchmarkGroupByH2OAI_Q4(b *testing.B) {
 //	.agg(pl.sum("v1").alias("v1_sum"), pl.sum("v2").alias("v2_sum"), pl.sum("v3").alias("v3_sum"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q5(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id6")
@@ -167,6 +180,7 @@ func BenchmarkGroupByH2OAI_Q5(b *testing.B) {
 //	.agg(pl.median("v3").alias("v3_median"), pl.std("v3").alias("v3_std"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q6(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id4", "id5")
@@ -192,6 +206,7 @@ func BenchmarkGroupByH2OAI_Q6(b *testing.B) {
 //	.agg((pl.max("v1") - pl.min("v2")).alias("range_v1_v2"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q7(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id3")
@@ -219,12 +234,29 @@ func BenchmarkGroupByH2OAI_Q7(b *testing.B) {
 //	.explode("largest2_v3")
 //	.collect()
 func BenchmarkGroupByH2OAI_Q8(b *testing.B) {
-	b.Skip("Explode not implemented yet")
-	// TODO: Implement when Explode is available
-	// filtered, _ := testData.Filter(expr.Col("v3").IsNotNull())
-	// groupBy, _ := filtered.GroupBy("id6")
-	// aggDF, _ := groupBy.Agg(map[string]expr.Expr{"largest2_v3": expr.Col("v3").TopK(2)})
-	// result, _ := aggDF.Explode("largest2_v3")
+	testData := loadTestData(b)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		filtered, err := testData.Filter(expr.Col("v3").IsNotNull())
+		if err != nil {
+			b.Fatal(err)
+		}
+		groupBy, err := filtered.GroupBy("id6")
+		if err != nil {
+			b.Fatal(err)
+		}
+		aggDF, err := groupBy.Agg(map[string]expr.Expr{
+			"largest2_v3": expr.Col("v3").TopK(2),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		result, err := aggDF.Explode("largest2_v3")
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = result
+	}
 }
 
 // BenchmarkGroupByH2OAI_Q9 matches test_groupby_h2oai_q9
@@ -234,20 +266,17 @@ func BenchmarkGroupByH2OAI_Q8(b *testing.B) {
 //	.group_by("id2", "id4")
 //	.agg((pl.corr("v1", "v2") ** 2).alias("r2"))
 //	.collect()
-//
-// Note: We compute correlation but don't square it since golars doesn't
-// support ** operator on scalar results yet. The benchmark is still meaningful
-// as correlation is the computationally expensive part.
 func BenchmarkGroupByH2OAI_Q9(b *testing.B) {
+	testData := loadTestData(b)
+	squared := expr.NewBuilder(expr.Corr("v1", "v2")).Mul(expr.Corr("v1", "v2")).Build()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id2", "id4")
 		if err != nil {
 			b.Fatal(err)
 		}
-		// Correlation aggregation (corr squared would require additional op)
 		result, err := groupBy.Agg(map[string]expr.Expr{
-			"r2": expr.Corr("v1", "v2"),
+			"r2": squared,
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -264,6 +293,7 @@ func BenchmarkGroupByH2OAI_Q9(b *testing.B) {
 //	.agg(pl.sum("v3").alias("v3_sum"), pl.count("v1").alias("v1_count"))
 //	.collect()
 func BenchmarkGroupByH2OAI_Q10(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		groupBy, err := testData.GroupBy("id1", "id2", "id3", "id4", "id5", "id6")

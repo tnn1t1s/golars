@@ -1,6 +1,7 @@
 package agg
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/tnn1t1s/golars/benchmarks/data"
@@ -8,31 +9,45 @@ import (
 )
 
 var testData struct {
-	small  *frame.DataFrame
-	medium *frame.DataFrame
+	small      *frame.DataFrame
+	mediumSafe *frame.DataFrame
 }
 
-func init() {
-	small, err := data.GenerateH2OAIData(data.H2OAISmall)
-	if err != nil {
-		panic(err)
-	}
-	testData.small = small
+var (
+	loadOnce sync.Once
+	loadErr  error
+)
 
-	medium, err := data.GenerateH2OAIData(data.H2OAIMediumSafe)
-	if err != nil {
-		panic(err)
+func loadAggData(b *testing.B) {
+	b.Helper()
+	loadOnce.Do(func() {
+		small, err := data.LoadH2OAI("small")
+		if err != nil {
+			loadErr = err
+			return
+		}
+		mediumSafe, err := data.LoadH2OAI("medium-safe")
+		if err != nil {
+			loadErr = err
+			return
+		}
+		testData.small = small
+		testData.mediumSafe = mediumSafe
+	})
+	if loadErr != nil {
+		b.Fatal(loadErr)
 	}
-	testData.medium = medium
 }
 
 // BenchmarkSum - Sum aggregation on numeric column
 func BenchmarkSum_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkSum(b, testData.small)
 }
 
-func BenchmarkSum_Medium(b *testing.B) {
-	benchmarkSum(b, testData.medium)
+func BenchmarkSum_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkSum(b, testData.mediumSafe)
 }
 
 func benchmarkSum(b *testing.B, df *frame.DataFrame) {
@@ -50,11 +65,13 @@ func benchmarkSum(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkMean - Mean aggregation on numeric column
 func BenchmarkMean_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkMean(b, testData.small)
 }
 
-func BenchmarkMean_Medium(b *testing.B) {
-	benchmarkMean(b, testData.medium)
+func BenchmarkMean_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkMean(b, testData.mediumSafe)
 }
 
 func benchmarkMean(b *testing.B, df *frame.DataFrame) {
@@ -72,11 +89,13 @@ func benchmarkMean(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkMin - Min aggregation
 func BenchmarkMin_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkMin(b, testData.small)
 }
 
-func BenchmarkMin_Medium(b *testing.B) {
-	benchmarkMin(b, testData.medium)
+func BenchmarkMin_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkMin(b, testData.mediumSafe)
 }
 
 func benchmarkMin(b *testing.B, df *frame.DataFrame) {
@@ -94,11 +113,13 @@ func benchmarkMin(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkMax - Max aggregation
 func BenchmarkMax_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkMax(b, testData.small)
 }
 
-func BenchmarkMax_Medium(b *testing.B) {
-	benchmarkMax(b, testData.medium)
+func BenchmarkMax_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkMax(b, testData.mediumSafe)
 }
 
 func benchmarkMax(b *testing.B, df *frame.DataFrame) {
@@ -116,11 +137,13 @@ func benchmarkMax(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkStd - Standard deviation
 func BenchmarkStd_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkStd(b, testData.small)
 }
 
-func BenchmarkStd_Medium(b *testing.B) {
-	benchmarkStd(b, testData.medium)
+func BenchmarkStd_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkStd(b, testData.mediumSafe)
 }
 
 func benchmarkStd(b *testing.B, df *frame.DataFrame) {
@@ -138,11 +161,13 @@ func benchmarkStd(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkMedian - Median aggregation
 func BenchmarkMedian_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkMedian(b, testData.small)
 }
 
-func BenchmarkMedian_Medium(b *testing.B) {
-	benchmarkMedian(b, testData.medium)
+func BenchmarkMedian_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkMedian(b, testData.mediumSafe)
 }
 
 func benchmarkMedian(b *testing.B, df *frame.DataFrame) {
@@ -160,11 +185,13 @@ func benchmarkMedian(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkCount - Count aggregation
 func BenchmarkCount_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkCount(b, testData.small)
 }
 
-func BenchmarkCount_Medium(b *testing.B) {
-	benchmarkCount(b, testData.medium)
+func BenchmarkCount_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkCount(b, testData.mediumSafe)
 }
 
 func benchmarkCount(b *testing.B, df *frame.DataFrame) {
@@ -182,11 +209,13 @@ func benchmarkCount(b *testing.B, df *frame.DataFrame) {
 
 // BenchmarkVar - Variance
 func BenchmarkVar_Small(b *testing.B) {
+	loadAggData(b)
 	benchmarkVar(b, testData.small)
 }
 
-func BenchmarkVar_Medium(b *testing.B) {
-	benchmarkVar(b, testData.medium)
+func BenchmarkVar_MediumSafe(b *testing.B) {
+	loadAggData(b)
+	benchmarkVar(b, testData.mediumSafe)
 }
 
 func benchmarkVar(b *testing.B, df *frame.DataFrame) {

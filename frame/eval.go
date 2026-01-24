@@ -2,9 +2,11 @@ package frame
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/tnn1t1s/golars/expr"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/internal/parallel"
 	"github.com/tnn1t1s/golars/internal/window"
 	"github.com/tnn1t1s/golars/series"
@@ -342,20 +344,64 @@ func (df *DataFrame) createLiteralSeries(value interface{}) (series.Series, erro
 // evaluateBinaryOpExpr evaluates a binary operation expression
 func (df *DataFrame) evaluateBinaryOpExpr(e *expr.BinaryExpr) (series.Series, error) {
 	// Evaluate left and right expressions
-	_, err := df.evaluateExpr(e.Left())
+	left, err := df.evaluateExpr(e.Left())
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate left expression: %w", err)
 	}
 
-	_, err = df.evaluateExpr(e.Right())
+	right, err := df.evaluateExpr(e.Right())
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate right expression: %w", err)
 	}
 
-	// Perform the operation
-	// This would use the compute kernels
-	// For now, return an error
-	return nil, fmt.Errorf("binary operations not yet implemented in WithColumn")
+	if left.Len() != df.height || right.Len() != df.height {
+		return nil, fmt.Errorf("binary op length mismatch")
+	}
+
+	values := make([]float64, df.height)
+	validity := make([]bool, df.height)
+
+	if err := parallel.For(df.height, func(start, end int) error {
+		for i := start; i < end; i++ {
+			lv := left.Get(i)
+			rv := right.Get(i)
+			if lv == nil || rv == nil {
+				continue
+			}
+			l := toFloat64(lv)
+			r := toFloat64(rv)
+			var out float64
+			switch e.Op() {
+			case expr.OpAdd:
+				out = l + r
+			case expr.OpSubtract:
+				out = l - r
+			case expr.OpMultiply:
+				out = l * r
+			case expr.OpDivide:
+				if r == 0 {
+					out = math.NaN()
+				} else {
+					out = l / r
+				}
+			case expr.OpModulo:
+				if r == 0 {
+					out = math.NaN()
+				} else {
+					out = math.Mod(l, r)
+				}
+			default:
+				return fmt.Errorf("unsupported binary op in WithColumn: %v", e.Op())
+			}
+			values[i] = out
+			validity[i] = true
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return series.NewSeriesWithValidity("binary", values, validity, datatypes.Float64{}), nil
 }
 
 // evaluateUnaryOpExpr evaluates a unary operation expression

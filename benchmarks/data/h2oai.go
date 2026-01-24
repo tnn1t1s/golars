@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
 )
 
@@ -105,27 +106,44 @@ func GenerateH2OAIData(config H2OAIConfig) (*frame.DataFrame, error) {
 	}
 
 	// Create series
+	validID1 := allValid(len(id1))
+	validID2 := allValid(len(id2))
+	validID3 := allValid(len(id3))
+	validID4 := allValid(len(id4))
+	validID5 := allValid(len(id5))
+	validID6 := allValid(len(id6))
+	validV1 := allValid(len(v1))
+	validV2 := allValid(len(v2))
+	validV3 := allValid(len(v3))
+
+	if config.NullRatio > 0 {
+		validID1 = nullMaskGroupStrings(id1, config.NullRatio, rng)
+		validID2 = nullMaskGroupStrings(id2, config.NullRatio, rng)
+		validID3 = nullMaskGroupStrings(id3, config.NullRatio, rng)
+		validID4 = nullMaskGroupInt32(id4, config.NullRatio, rng)
+		validID5 = nullMaskGroupInt32(id5, config.NullRatio, rng)
+		validID6 = nullMaskGroupInt32(id6, config.NullRatio, rng)
+		validV1 = nullMaskValues(len(v1), config.NullRatio, rng)
+		validV2 = nullMaskValues(len(v2), config.NullRatio, rng)
+		validV3 = nullMaskValues(len(v3), config.NullRatio, rng)
+	}
+
 	seriesList := []series.Series{
-		series.NewStringSeries("id1", id1),
-		series.NewStringSeries("id2", id2),
-		series.NewStringSeries("id3", id3),
-		series.NewInt32Series("id4", id4),
-		series.NewInt32Series("id5", id5),
-		series.NewInt32Series("id6", id6),
-		series.NewInt32Series("v1", v1),
-		series.NewInt32Series("v2", v2),
-		series.NewFloat64Series("v3", v3),
+		series.NewStringSeriesWithValidity("id1", id1, validID1),
+		series.NewStringSeriesWithValidity("id2", id2, validID2),
+		series.NewStringSeriesWithValidity("id3", id3, validID3),
+		series.NewSeriesWithValidity("id4", id4, validID4, datatypes.Int32{}),
+		series.NewSeriesWithValidity("id5", id5, validID5, datatypes.Int32{}),
+		series.NewSeriesWithValidity("id6", id6, validID6, datatypes.Int32{}),
+		series.NewSeriesWithValidity("v1", v1, validV1, datatypes.Int32{}),
+		series.NewSeriesWithValidity("v2", v2, validV2, datatypes.Int32{}),
+		series.NewSeriesWithValidity("v3", v3, validV3, datatypes.Float64{}),
 	}
 
 	// Create dataframe
 	df, err := frame.NewDataFrame(seriesList...)
 	if err != nil {
 		return nil, err
-	}
-
-	// Apply nulls if requested
-	if config.NullRatio > 0 {
-		df = setNulls(df, config.NullRatio, rng)
 	}
 
 	// Sort if requested
@@ -142,13 +160,82 @@ func GenerateH2OAIData(config H2OAIConfig) (*frame.DataFrame, error) {
 	return df, nil
 }
 
-// setNulls applies null values to the dataframe according to the ratio
-func setNulls(df *frame.DataFrame, nullRatio float64, rng *rand.Rand) *frame.DataFrame {
-	// This is a simplified version - in production you'd want to properly
-	// handle nulls by modifying the underlying arrays
-	// For now, we'll return the dataframe as-is
-	// TODO: Implement proper null handling when golars supports it
-	return df
+func allValid(length int) []bool {
+	validity := make([]bool, length)
+	for i := range validity {
+		validity[i] = true
+	}
+	return validity
+}
+
+func nullMaskValues(length int, ratio float64, rng *rand.Rand) []bool {
+	validity := make([]bool, length)
+	if ratio <= 0 {
+		for i := range validity {
+			validity[i] = true
+		}
+		return validity
+	}
+	for i := range validity {
+		validity[i] = rng.Float64() >= ratio
+	}
+	return validity
+}
+
+func nullMaskGroupStrings(values []string, ratio float64, rng *rand.Rand) []bool {
+	unique := make(map[string]struct{}, len(values))
+	for _, v := range values {
+		unique[v] = struct{}{}
+	}
+	uniq := make([]string, 0, len(unique))
+	for v := range unique {
+		uniq = append(uniq, v)
+	}
+	nNull := int(float64(len(uniq)) * ratio)
+	if nNull <= 0 {
+		return allValid(len(values))
+	}
+	rng.Shuffle(len(uniq), func(i, j int) {
+		uniq[i], uniq[j] = uniq[j], uniq[i]
+	})
+	nullSet := make(map[string]struct{}, nNull)
+	for i := 0; i < nNull; i++ {
+		nullSet[uniq[i]] = struct{}{}
+	}
+	validity := make([]bool, len(values))
+	for i, v := range values {
+		_, isNull := nullSet[v]
+		validity[i] = !isNull
+	}
+	return validity
+}
+
+func nullMaskGroupInt32(values []int32, ratio float64, rng *rand.Rand) []bool {
+	unique := make(map[int32]struct{}, len(values))
+	for _, v := range values {
+		unique[v] = struct{}{}
+	}
+	uniq := make([]int32, 0, len(unique))
+	for v := range unique {
+		uniq = append(uniq, v)
+	}
+	nNull := int(float64(len(uniq)) * ratio)
+	if nNull <= 0 {
+		return allValid(len(values))
+	}
+	rng.Shuffle(len(uniq), func(i, j int) {
+		uniq[i], uniq[j] = uniq[j], uniq[i]
+	})
+	nullSet := make(map[int32]struct{}, nNull)
+	for i := 0; i < nNull; i++ {
+		nullSet[uniq[i]] = struct{}{}
+	}
+	validity := make([]bool, len(values))
+	for i, v := range values {
+		_, isNull := nullSet[v]
+		validity[i] = !isNull
+	}
+	return validity
 }
 
 // GetConfigBySize returns a config for the given size name

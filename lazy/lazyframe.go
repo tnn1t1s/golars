@@ -15,14 +15,19 @@ type LazyFrame struct {
 	plan  LogicalPlan
 }
 
-// FromDataFrame creates a LazyFrame from a DataFrame.
-func FromDataFrame(df *frame.DataFrame) *LazyFrame {
+// NewLazyFrame creates a LazyFrame from a data source.
+func NewLazyFrame(source DataSource) *LazyFrame {
 	arena := NewArena()
-	source := &FrameSource{NameValue: "dataframe", Frame: df}
 	return &LazyFrame{
 		arena: arena,
 		plan:  &ScanPlan{Source: source, Arena: arena},
 	}
+}
+
+// FromDataFrame creates a LazyFrame from a DataFrame.
+func FromDataFrame(df *frame.DataFrame) *LazyFrame {
+	source := &FrameSource{NameValue: "dataframe", Frame: df}
+	return NewLazyFrame(source)
 }
 
 // Col creates a column expression.

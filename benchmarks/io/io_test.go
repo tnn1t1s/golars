@@ -8,8 +8,9 @@
 package io
 
 import (
-	"os"
+	"context"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/tnn1t1s/golars"
@@ -20,21 +21,21 @@ import (
 
 // testData matches Polars' groupby_data fixture from conftest.py
 // Default: 10,000 rows, 100 groups, 5% null ratio
-var testData *frame.DataFrame
-var tempDir string
+var (
+	testData     *frame.DataFrame
+	testDataOnce sync.Once
+	testDataErr  error
+)
 
-func init() {
-	var err error
-	testData, err = data.GenerateH2OAIData(data.H2OAISmall)
-	if err != nil {
-		panic(err)
+func loadTestData(b *testing.B) *frame.DataFrame {
+	b.Helper()
+	testDataOnce.Do(func() {
+		testData, testDataErr = data.LoadH2OAI("small")
+	})
+	if testDataErr != nil {
+		b.Fatal(testDataErr)
 	}
-
-	// Create temp directory for I/O tests
-	tempDir, err = os.MkdirTemp("", "golars_bench_io_*")
-	if err != nil {
-		panic(err)
-	}
+	return testData
 }
 
 // =============================================================================
@@ -51,17 +52,15 @@ func init() {
 //	shape_eager = pl.read_csv(data_path).filter(predicate).shape
 //	shape_lazy = pl.scan_csv(data_path).filter(predicate).collect().shape
 //	assert shape_lazy == shape_eager
-//
-// Note: golars does not have scan_csv (lazy evaluation), so we only test eager read
 func BenchmarkWriteReadFilterCSV(b *testing.B) {
-	dataPath := filepath.Join(tempDir, "data.csv")
+	testData := loadTestData(b)
+	dataPath := filepath.Join(b.TempDir(), "data.csv")
 
 	// Write CSV once
 	err := golars.WriteCSV(testData, dataPath)
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer os.Remove(dataPath)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -71,13 +70,22 @@ func BenchmarkWriteReadFilterCSV(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		// Filter: v2 < 5
+		// Filter: v2 < 5 (eager)
 		filtered, err := df.Filter(expr.Col("v2").Lt(5))
 		if err != nil {
 			b.Fatal(err)
 		}
 
 		_, _ = filtered.Shape()
+
+		// Lazy scan + filter
+		lf := golars.ScanCSV(dataPath)
+		lazyFiltered := lf.Filter(lf.Col("v2").Lt(lf.Lit(5)))
+		lazyResult, err := lazyFiltered.Collect(context.Background())
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, _ = lazyResult.Shape()
 	}
 }
 
@@ -87,7 +95,8 @@ func BenchmarkWriteReadFilterCSV(b *testing.B) {
 
 // BenchmarkWriteCSV benchmarks CSV write performance
 func BenchmarkWriteCSV(b *testing.B) {
-	path := filepath.Join(tempDir, "write_bench.csv")
+	testData := loadTestData(b)
+	path := filepath.Join(b.TempDir(), "write_bench.csv")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -95,20 +104,19 @@ func BenchmarkWriteCSV(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		os.Remove(path)
 	}
 }
 
 // BenchmarkReadCSV benchmarks CSV read performance
 func BenchmarkReadCSV(b *testing.B) {
-	path := filepath.Join(tempDir, "read_bench.csv")
+	testData := loadTestData(b)
+	path := filepath.Join(b.TempDir(), "read_bench.csv")
 
 	// Write once for reading
 	err := golars.WriteCSV(testData, path)
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer os.Remove(path)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -122,7 +130,8 @@ func BenchmarkReadCSV(b *testing.B) {
 
 // BenchmarkWriteParquet benchmarks Parquet write performance
 func BenchmarkWriteParquet(b *testing.B) {
-	path := filepath.Join(tempDir, "write_bench.parquet")
+	testData := loadTestData(b)
+	path := filepath.Join(b.TempDir(), "write_bench.parquet")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -130,20 +139,19 @@ func BenchmarkWriteParquet(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		os.Remove(path)
 	}
 }
 
 // BenchmarkReadParquet benchmarks Parquet read performance
 func BenchmarkReadParquet(b *testing.B) {
-	path := filepath.Join(tempDir, "read_bench.parquet")
+	testData := loadTestData(b)
+	path := filepath.Join(b.TempDir(), "read_bench.parquet")
 
 	// Write once for reading
 	err := golars.WriteParquet(testData, path)
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer os.Remove(path)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -153,13 +161,4 @@ func BenchmarkReadParquet(b *testing.B) {
 		}
 		_ = df
 	}
-}
-
-// TestMain cleans up temp directory
-func TestMain(m *testing.M) {
-	code := m.Run()
-	if tempDir != "" {
-		os.RemoveAll(tempDir)
-	}
-	os.Exit(code)
 }

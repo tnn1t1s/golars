@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/tnn1t1s/golars/internal/chunked"
 	"github.com/tnn1t1s/golars/internal/datatypes"
 )
@@ -187,8 +187,7 @@ func (s *TypedSeries[T]) Tail(n int) Series {
 }
 
 func (s *TypedSeries[T]) Cast(dt datatypes.DataType) (Series, error) {
-	// TODO: Implement type casting
-	return nil, fmt.Errorf("casting not yet implemented")
+	return castSeries(s, dt)
 }
 
 func (s *TypedSeries[T]) Equals(other Series) bool {
@@ -389,6 +388,140 @@ func SeriesFromArrowArray(name string, arr arrow.Array) (Series, error) {
 	}
 }
 
+// SeriesFromArrowChunked creates a Series from an Arrow chunked array.
+// The caller should release the chunked array after this returns.
+func SeriesFromArrowChunked(name string, chunkedArr *arrow.Chunked) (Series, error) {
+	if chunkedArr == nil {
+		return nil, fmt.Errorf("chunked array is nil")
+	}
+	dt := datatypes.FromArrowType(chunkedArr.DataType())
+	chunks := chunkedArr.Chunks()
+
+	switch dt.(type) {
+	case datatypes.Boolean:
+		ca := chunked.NewChunkedArray[bool](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Int8:
+		ca := chunked.NewChunkedArray[int8](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Int16:
+		ca := chunked.NewChunkedArray[int16](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Int32:
+		ca := chunked.NewChunkedArray[int32](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Int64:
+		ca := chunked.NewChunkedArray[int64](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.UInt8:
+		ca := chunked.NewChunkedArray[uint8](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.UInt16:
+		ca := chunked.NewChunkedArray[uint16](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.UInt32:
+		ca := chunked.NewChunkedArray[uint32](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.UInt64:
+		ca := chunked.NewChunkedArray[uint64](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Float32:
+		ca := chunked.NewChunkedArray[float32](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Float64:
+		ca := chunked.NewChunkedArray[float64](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.String:
+		ca := chunked.NewChunkedArray[string](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	case datatypes.Binary:
+		ca := chunked.NewChunkedArray[[]byte](name, dt)
+		for _, arr := range chunks {
+			_ = ca.AppendArray(arr)
+		}
+		return NewSeriesFromChunkedArray(ca), nil
+	default:
+		return nil, fmt.Errorf("unsupported data type: %s", dt)
+	}
+}
+
+// ArrowChunked exposes the underlying Arrow chunks for a Series.
+// The caller must Release the returned chunked array.
+func ArrowChunked(s Series) (*arrow.Chunked, bool) {
+	switch ts := s.(type) {
+	case *TypedSeries[bool]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[int8]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[int16]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[int32]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[int64]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[uint8]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[uint16]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[uint32]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[uint64]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[float32]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[float64]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[string]:
+		return typedArrowChunked(ts), true
+	case *TypedSeries[[]byte]:
+		return typedArrowChunked(ts), true
+	default:
+		return nil, false
+	}
+}
+
+func typedArrowChunked[T datatypes.ArrayValue](s *TypedSeries[T]) *arrow.Chunked {
+	dt := datatypes.GetPolarsType(s.chunkedArray.DataType()).ArrowType()
+	chunks := s.chunkedArray.Chunks()
+	return arrow.NewChunked(dt, chunks)
+}
+
 // InterfaceSeries holds arbitrary interface{} values (e.g., slices from TopK)
 // This is used for list-like columns that can be exploded
 type InterfaceSeries struct {
@@ -448,7 +581,7 @@ func (s *InterfaceSeries) Tail(n int) Series {
 	return &InterfaceSeries{name: s.name, data: s.data[start:], validity: s.validity[start:], dtype: s.dtype}
 }
 func (s *InterfaceSeries) Cast(dt datatypes.DataType) (Series, error) {
-	return nil, fmt.Errorf("cast not supported for InterfaceSeries")
+	return castSeries(s, dt)
 }
 func (s *InterfaceSeries) Equals(other Series) bool { return false }
 func (s *InterfaceSeries) Clone() Series {

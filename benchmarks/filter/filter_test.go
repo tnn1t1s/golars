@@ -8,23 +8,32 @@
 package filter
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/tnn1t1s/golars/benchmarks/data"
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/frame"
+	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
 // testData matches Polars' groupby_data fixture from conftest.py
 // Default: 10,000 rows, 100 groups, 5% null ratio
-var testData *frame.DataFrame
+var (
+	testData     *frame.DataFrame
+	testDataOnce sync.Once
+	testDataErr  error
+)
 
-func init() {
-	var err error
-	testData, err = data.GenerateH2OAIData(data.H2OAISmall)
-	if err != nil {
-		panic(err)
+func loadTestData(b *testing.B) *frame.DataFrame {
+	b.Helper()
+	testDataOnce.Do(func() {
+		testData, testDataErr = data.LoadH2OAI("small")
+	})
+	if testDataErr != nil {
+		b.Fatal(testDataErr)
 	}
+	return testData
 }
 
 // =============================================================================
@@ -41,14 +50,12 @@ func init() {
 //	    pl.col("v3").sum(),
 //	)
 //	.collect()
-//
-// Note: golars uses Eq() instead of eq_missing() which handles nulls differently
-// Note: golars Filter returns a DataFrame, then we aggregate columns directly
 func BenchmarkFilter1(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Filter
-		filtered, err := testData.Filter(expr.Col("id1").Eq(expr.Lit("id046")))
+		filtered, err := testData.Filter(expr.Col("id1").EqMissing(expr.Lit("id046")))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -58,13 +65,16 @@ func BenchmarkFilter1(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+		id6Cast, err := id6.Cast(datatypes.Int64{})
+		if err != nil {
+			b.Fatal(err)
+		}
 		v3, err := filtered.Column("v3")
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		// Polars does cast(Int64).sum() on id6; golars id6 is already Int32, Sum returns float64
-		id6Sum := id6.Sum()
+		id6Sum := id6Cast.Sum()
 		v3Sum := v3.Sum()
 
 		_, _ = id6Sum, v3Sum
@@ -81,13 +91,12 @@ func BenchmarkFilter1(b *testing.B) {
 //	    pl.col("v3").sum(),
 //	)
 //	.collect()
-//
-// Note: Polars uses ~ (not) on eq_missing; golars uses Ne() for not-equal
 func BenchmarkFilter2(b *testing.B) {
+	testData := loadTestData(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Filter with negation (not equal)
-		filtered, err := testData.Filter(expr.Col("id1").Ne(expr.Lit("id046")))
+		filtered, err := testData.Filter(expr.Col("id1").EqMissing(expr.Lit("id046")).Not())
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -97,12 +106,16 @@ func BenchmarkFilter2(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+		id6Cast, err := id6.Cast(datatypes.Int64{})
+		if err != nil {
+			b.Fatal(err)
+		}
 		v3, err := filtered.Column("v3")
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		id6Sum := id6.Sum()
+		id6Sum := id6Cast.Sum()
 		v3Sum := v3.Sum()
 
 		_, _ = id6Sum, v3Sum

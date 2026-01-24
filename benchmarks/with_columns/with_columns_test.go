@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/series"
 )
@@ -50,23 +49,13 @@ func BenchmarkWithColumnsQuadratic(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	// Build expression map for all columns from df2
-	exprs := make(map[string]expr.Expr)
-	for i := 0; i < numColumns; i++ {
-		colName := fmt.Sprintf("feature_%d", i)
-		exprs[colName] = expr.Lit(0)
-	}
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// Note: golars WithColumns takes expressions, not another DataFrame directly
-		// This is a slight difference from Polars API
-		result, err := df1.WithColumns(exprs)
+		result, err := df1.WithColumnsFrame(df2)
 		if err != nil {
 			b.Fatal(err)
 		}
 		_ = result
-		_ = df2 // df2 used for reference to match Polars test setup
 	}
 }
 
@@ -83,15 +72,18 @@ func BenchmarkWithColumnsSmall(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-
-	exprs := make(map[string]expr.Expr)
+	cols2 := make([]series.Series, numColumns)
 	for i := 0; i < numColumns; i++ {
-		exprs[fmt.Sprintf("feature_%d", i)] = expr.Lit(0)
+		cols2[i] = series.NewInt32Series(fmt.Sprintf("feature_%d", i), []int32{0})
+	}
+	df2, err := frame.NewDataFrame(cols2...)
+	if err != nil {
+		b.Fatal(err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := df1.WithColumns(exprs)
+		result, err := df1.WithColumnsFrame(df2)
 		if err != nil {
 			b.Fatal(err)
 		}

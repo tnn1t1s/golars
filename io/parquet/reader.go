@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/apache/arrow/go/v14/arrow"
-	"github.com/apache/arrow/go/v14/arrow/array"
-	"github.com/apache/arrow/go/v14/arrow/memory"
-	parquetlib "github.com/apache/arrow/go/v14/parquet"
-	"github.com/apache/arrow/go/v14/parquet/file"
-	"github.com/apache/arrow/go/v14/parquet/pqarrow"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	parquetlib "github.com/apache/arrow-go/v18/parquet"
+	"github.com/apache/arrow-go/v18/parquet/file"
+	"github.com/apache/arrow-go/v18/parquet/pqarrow"
 	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/internal/chunked"
 	"github.com/tnn1t1s/golars/internal/datatypes"
@@ -302,6 +302,14 @@ func (r *Reader) newSeriesBuilder(field arrow.Field) (seriesBuilder, error) {
 			},
 			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
 		}, nil
+	case arrow.DATE32:
+		ca := chunked.NewChunkedArray[int32](field.Name, datatypes.Date{})
+		return seriesBuilder{
+			append: func(arr arrow.Array) error {
+				return r.appendDate32(ca, arr)
+			},
+			finish: func() (series.Series, error) { return series.NewSeriesFromChunkedArray(ca), nil },
+		}, nil
 	default:
 		return seriesBuilder{}, fmt.Errorf("unsupported arrow type: %s", field.Type)
 	}
@@ -331,6 +339,12 @@ func (r *Reader) appendLargeString(ca *chunked.ChunkedArray[string], arr arrow.A
 	}
 	strArr.Release()
 	return nil
+}
+
+func (r *Reader) appendDate32(ca *chunked.ChunkedArray[int32], arr arrow.Array) error {
+	// Date32 arrays can be appended directly - the chunked array stores int32 values
+	// but expects Date32 Arrow arrays for type compatibility
+	return ca.AppendArray(arr)
 }
 
 // tableToDataFrame converts an Arrow table to a Golars DataFrame
@@ -378,6 +392,8 @@ func (r *Reader) columnToSeries(col *arrow.Column, field arrow.Field) (series.Se
 		return r.stringColumnToSeries(field.Name, chunks)
 	case arrow.LARGE_STRING:
 		return r.largeStringColumnToSeries(field.Name, chunks)
+	case arrow.DATE32:
+		return r.date32ColumnToSeries(field.Name, chunks)
 	default:
 		return nil, fmt.Errorf("unsupported arrow type: %s", field.Type)
 	}
@@ -484,6 +500,19 @@ func (r *Reader) largeStringColumnToSeries(name string, chunks []arrow.Array) (s
 			return nil, err
 		}
 		strArr.Release()
+	}
+
+	return series.NewSeriesFromChunkedArray(ca), nil
+}
+
+func (r *Reader) date32ColumnToSeries(name string, chunks []arrow.Array) (series.Series, error) {
+	ca := chunked.NewChunkedArray[int32](name, datatypes.Date{})
+
+	for _, chunk := range chunks {
+		// Date32 arrays can be appended directly
+		if err := ca.AppendArray(chunk); err != nil {
+			return nil, err
+		}
 	}
 
 	return series.NewSeriesFromChunkedArray(ca), nil

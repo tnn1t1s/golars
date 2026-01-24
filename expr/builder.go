@@ -92,6 +92,17 @@ func (b *ExprBuilder) Eq(other interface{}) *ExprBuilder {
 	}
 }
 
+// EqMissing creates an equality expression where null == null is true.
+func (b *ExprBuilder) EqMissing(other interface{}) *ExprBuilder {
+	return &ExprBuilder{
+		expr: &BinaryExpr{
+			left:  b.expr,
+			right: toExpr(other),
+			op:    OpEqualMissing,
+		},
+	}
+}
+
 // Ne creates a not-equal expression
 func (b *ExprBuilder) Ne(other interface{}) *ExprBuilder {
 	return &ExprBuilder{
