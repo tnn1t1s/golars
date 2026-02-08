@@ -1,8 +1,8 @@
 package datetime
 
 import (
-	_ "fmt"
-	_ "time"
+	"fmt"
+	"time"
 
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/internal/datatypes"
@@ -16,76 +16,190 @@ type DateTimeArithmetic struct {
 
 // Add adds a duration to each datetime value
 func (dts *DateTimeSeries) Add(duration Duration) series.Series {
-	panic("not implemented")
-
+	switch dts.s.DataType().(type) {
+	case datatypes.Date:
+		return addDurationToDate(dts.s, dts.s.Name()+"_plus_"+duration.String(), duration)
+	default:
+		return addDurationToDateTime(dts.s, dts.s.Name()+"_plus_"+duration.String(), duration)
+	}
 }
 
 // Sub subtracts a duration from each datetime value
 func (dts *DateTimeSeries) Sub(duration Duration) series.Series {
-	panic("not implemented")
-
+	negated := duration.Negate()
+	switch dts.s.DataType().(type) {
+	case datatypes.Date:
+		return addDurationToDate(dts.s, dts.s.Name()+"_minus_"+duration.String(), negated)
+	default:
+		return addDurationToDateTime(dts.s, dts.s.Name()+"_minus_"+duration.String(), negated)
+	}
 }
 
 // Diff calculates the difference between two datetime series
 func (dts *DateTimeSeries) Diff(other series.Series) (series.Series, error) {
-	panic("not implemented")
+	if dts.s.Len() != other.Len() {
+		return nil, fmt.Errorf("series length mismatch: %d vs %d", dts.s.Len(), other.Len())
+	}
+	name := dts.s.Name() + "_diff_" + other.Name()
 
-	// Check that other is also a datetime type
-
-	// OK
-
+	switch dts.s.DataType().(type) {
+	case datatypes.Date:
+		return diffDate(dts.s, other, name)
+	default:
+		return diffDateTime(dts.s, other, name)
+	}
 }
 
 // AddBusinessDays adds business days to datetime/date series
 func (dts *DateTimeSeries) AddBusinessDays(days int) series.Series {
-	panic("not implemented")
-
+	name := fmt.Sprintf("%s_plus_%d_business_days", dts.s.Name(), days)
+	switch dts.s.DataType().(type) {
+	case datatypes.Date:
+		return addBusinessDaysToDate(dts.s, name, days)
+	default:
+		return addBusinessDaysToDateTime(dts.s, name, days)
+	}
 }
 
 // Helper functions
 
 func addDurationToDateTime(s series.Series, name string, duration Duration) series.Series {
-	panic("not implemented")
-
+	n := s.Len()
+	values := make([]int64, n)
+	validity := make([]bool, n)
+	for i := 0; i < n; i++ {
+		if s.IsNull(i) {
+			validity[i] = false
+			continue
+		}
+		ts := s.Get(i).(int64)
+		dt := DateTime{timestamp: ts, timezone: time.UTC}
+		result := dt.Add(duration)
+		values[i] = result.timestamp
+		validity[i] = true
+	}
+	return series.NewSeriesWithValidity(name, values, validity, s.DataType())
 }
 
 func addDurationToDate(s series.Series, name string, duration Duration) series.Series {
-	panic("not implemented")
-
-	// Add duration components
-
+	n := s.Len()
+	values := make([]int32, n)
+	validity := make([]bool, n)
+	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < n; i++ {
+		if s.IsNull(i) {
+			validity[i] = false
+			continue
+		}
+		days := s.Get(i).(int32)
+		d := Date{days: days}
+		t := d.Time()
+		// Add duration components
+		if duration.months != 0 {
+			t = t.AddDate(0, int(duration.months), 0)
+		}
+		if duration.days != 0 {
+			t = t.AddDate(0, 0, int(duration.days))
+		}
+		if duration.nanoseconds != 0 {
+			t = t.Add(time.Duration(duration.nanoseconds))
+		}
+		values[i] = int32(t.Sub(epoch).Hours() / 24)
+		validity[i] = true
+	}
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.Date{})
 }
 
 func diffDateTime(s1, s2 series.Series, name string) (series.Series, error) {
-	panic("not implemented")
-
-	// Difference in nanoseconds
-
+	n := s1.Len()
+	values := make([]int64, n)
+	validity := make([]bool, n)
+	for i := 0; i < n; i++ {
+		if s1.IsNull(i) || s2.IsNull(i) {
+			validity[i] = false
+			continue
+		}
+		ts1 := s1.Get(i).(int64)
+		ts2 := s2.Get(i).(int64)
+		// Difference in nanoseconds
+		values[i] = ts1 - ts2
+		validity[i] = true
+	}
 	// Return as Duration type
-
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.Duration{Unit: datatypes.Nanoseconds}), nil
 }
 
 func diffDate(s1, s2 series.Series, name string) (series.Series, error) {
-	panic("not implemented")
-
-	// Difference in days
-
+	n := s1.Len()
+	values := make([]int32, n)
+	validity := make([]bool, n)
+	for i := 0; i < n; i++ {
+		if s1.IsNull(i) || s2.IsNull(i) {
+			validity[i] = false
+			continue
+		}
+		d1 := s1.Get(i).(int32)
+		d2 := s2.Get(i).(int32)
+		// Difference in days
+		values[i] = d1 - d2
+		validity[i] = true
+	}
 	// Return as days (Int32)
-
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.Int32{}), nil
 }
 
 func addBusinessDaysToDateTime(s series.Series, name string, days int) series.Series {
-	panic("not implemented")
-
-	// Add business days
-
+	n := s.Len()
+	values := make([]int64, n)
+	validity := make([]bool, n)
+	for i := 0; i < n; i++ {
+		if s.IsNull(i) {
+			validity[i] = false
+			continue
+		}
+		ts := s.Get(i).(int64)
+		t := time.Unix(0, ts).UTC()
+		t = addBusinessDaysToTime(t, days)
+		values[i] = t.UnixNano()
+		validity[i] = true
+	}
+	return series.NewSeriesWithValidity(name, values, validity, s.DataType())
 }
 
 func addBusinessDaysToDate(s series.Series, name string, days int) series.Series {
-	panic("not implemented")
+	n := s.Len()
+	values := make([]int32, n)
+	validity := make([]bool, n)
+	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < n; i++ {
+		if s.IsNull(i) {
+			validity[i] = false
+			continue
+		}
+		d := s.Get(i).(int32)
+		t := Date{days: d}.Time()
+		t = addBusinessDaysToTime(t, days)
+		values[i] = int32(t.Sub(epoch).Hours() / 24)
+		validity[i] = true
+	}
+	return series.NewSeriesWithValidity(name, values, validity, datatypes.Date{})
+}
 
-	// Add business days
-
+func addBusinessDaysToTime(t time.Time, days int) time.Time {
+	direction := 1
+	if days < 0 {
+		direction = -1
+		days = -days
+	}
+	added := 0
+	for added < days {
+		t = t.AddDate(0, 0, direction)
+		wd := t.Weekday()
+		if wd != time.Saturday && wd != time.Sunday {
+			added++
+		}
+	}
+	return t
 }
 
 // Series arithmetic operations for expressions
@@ -97,34 +211,31 @@ type DateTimeAddExpr struct {
 }
 
 func (e *DateTimeAddExpr) String() string {
-	panic("not implemented")
-
+	return fmt.Sprintf("%s + %s", e.expr.String(), e.duration.String())
 }
 
 func (e *DateTimeAddExpr) DataType() datatypes.DataType {
-	panic("not implemented")
-
+	return datatypes.Datetime{Unit: datatypes.Nanoseconds}
 }
 
 func (e *DateTimeAddExpr) Alias(name string) expr.Expr {
-	panic("not implemented")
-
+	return &dateTimeAliasExpr{expr: e, alias: name}
 }
 
 func (e *DateTimeAddExpr) IsColumn() bool {
-	panic("not implemented")
-
+	return false
 }
 
 func (e *DateTimeAddExpr) Name() string {
-	panic("not implemented")
-
+	return e.expr.Name() + "_plus_" + e.duration.String()
 }
 
 // Add adds a duration to the datetime expression
 func (dte *DateTimeExpr) Add(duration Duration) expr.Expr {
-	panic("not implemented")
-
+	return &DateTimeAddExpr{
+		expr:     dte.expr,
+		duration: duration,
+	}
 }
 
 // DateTimeSubExpr represents subtracting a duration from a datetime expression
@@ -134,34 +245,31 @@ type DateTimeSubExpr struct {
 }
 
 func (e *DateTimeSubExpr) String() string {
-	panic("not implemented")
-
+	return fmt.Sprintf("%s - %s", e.expr.String(), e.duration.String())
 }
 
 func (e *DateTimeSubExpr) DataType() datatypes.DataType {
-	panic("not implemented")
-
+	return datatypes.Datetime{Unit: datatypes.Nanoseconds}
 }
 
 func (e *DateTimeSubExpr) Alias(name string) expr.Expr {
-	panic("not implemented")
-
+	return &dateTimeAliasExpr{expr: e, alias: name}
 }
 
 func (e *DateTimeSubExpr) IsColumn() bool {
-	panic("not implemented")
-
+	return false
 }
 
 func (e *DateTimeSubExpr) Name() string {
-	panic("not implemented")
-
+	return e.expr.Name() + "_minus_" + e.duration.String()
 }
 
 // Sub subtracts a duration from the datetime expression
 func (dte *DateTimeExpr) Sub(duration Duration) expr.Expr {
-	panic("not implemented")
-
+	return &DateTimeSubExpr{
+		expr:     dte.expr,
+		duration: duration,
+	}
 }
 
 // DateTimeDiffExpr represents the difference between two datetime expressions
@@ -171,38 +279,29 @@ type DateTimeDiffExpr struct {
 }
 
 func (e *DateTimeDiffExpr) String() string {
-	panic("not implemented")
-
+	return fmt.Sprintf("%s - %s", e.left.String(), e.right.String())
 }
 
 func (e *DateTimeDiffExpr) DataType() datatypes.DataType {
-	panic(
-		// Returns duration for datetime diff, int32 for date diff
-		"not implemented")
-
-	// If left is a column expression, assume it's datetime by default
-
-	// Default to Duration for datetime operations
-
+	return datatypes.Duration{Unit: datatypes.Nanoseconds}
 }
 
 func (e *DateTimeDiffExpr) Alias(name string) expr.Expr {
-	panic("not implemented")
-
+	return &dateTimeAliasExpr{expr: e, alias: name}
 }
 
 func (e *DateTimeDiffExpr) IsColumn() bool {
-	panic("not implemented")
-
+	return false
 }
 
 func (e *DateTimeDiffExpr) Name() string {
-	panic("not implemented")
-
+	return e.left.Name() + "_diff_" + e.right.Name()
 }
 
 // Diff calculates the difference with another datetime expression
 func (dte *DateTimeExpr) Diff(other expr.Expr) expr.Expr {
-	panic("not implemented")
-
+	return &DateTimeDiffExpr{
+		left:  dte.expr,
+		right: other,
+	}
 }
