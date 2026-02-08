@@ -45,6 +45,8 @@ Thumbs.db
 
 # Other projects and comparison directories
 polars/
+arrow/
+arrow-go/
 test_golars/
 transcripts/
 claude-observer/

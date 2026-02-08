@@ -1,7 +1,7 @@
 package lazy
 
 import (
-	"path/filepath"
+	_ "path/filepath"
 	"sync"
 
 	"github.com/tnn1t1s/golars/frame"
@@ -21,34 +21,26 @@ type CSVSource struct {
 
 // NewCSVSource creates a CSV-backed data source.
 func NewCSVSource(path string, options ...gio.CSVReadOption) *CSVSource {
-	return &CSVSource{
-		Path:    path,
-		Options: options,
-	}
+	panic("not implemented")
+
 }
 
 func (s *CSVSource) Name() string {
-	if s.Path == "" {
-		return "csv"
-	}
-	return filepath.Base(s.Path)
+	panic("not implemented")
+
 }
 
 func (s *CSVSource) Schema() (*datatypes.Schema, error) {
-	df, err := s.load()
-	if err != nil {
-		return nil, err
-	}
-	return df.Schema(), nil
+	panic("not implemented")
+
 }
 
 func (s *CSVSource) DataFrame() (*frame.DataFrame, error) {
-	return s.load()
+	panic("not implemented")
+
 }
 
 func (s *CSVSource) load() (*frame.DataFrame, error) {
-	s.loadOnce.Do(func() {
-		s.frame, s.loadErr = gio.ReadCSV(s.Path, s.Options...)
-	})
-	return s.frame, s.loadErr
+	panic("not implemented")
+
 }

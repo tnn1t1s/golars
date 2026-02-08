@@ -74,8 +74,8 @@
       "type": "groupby",
       "group_by": ["id4", "id5"],
       "aggs": [
-        {"op": "sum", "col": "v3", "as": "v3_sum"},
-        {"op": "mean", "col": "v3", "as": "v3_mean"}
+        {"op": "median", "col": "v3", "as": "v3_median"},
+        {"op": "std", "col": "v3", "as": "v3_std"}
       ]
     },
     {
@@ -242,8 +242,8 @@
       "type": "groupby",
       "group_by": ["id4", "id5"],
       "aggs": [
-        {"op": "sum", "col": "v3", "as": "v3_sum"},
-        {"op": "mean", "col": "v3", "as": "v3_mean"}
+        {"op": "median", "col": "v3", "as": "v3_median"},
+        {"op": "std", "col": "v3", "as": "v3_std"}
       ]
     },
     {

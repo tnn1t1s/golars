@@ -1,12 +1,2 @@
-goos: darwin
-goarch: arm64
-pkg: github.com/tnn1t1s/golars/benchmarks/groupby
-cpu: Apple M2
-BenchmarkGroupByQ1_Small-8   	       3	   2257542 ns/op
-BenchmarkGroupByQ2_Small-8   	       3	   5928667 ns/op
-BenchmarkGroupByQ3_Small-8   	       3	   2903403 ns/op
-BenchmarkGroupByQ4_Small-8   	       3	   2615736 ns/op
-BenchmarkGroupByQ5_Small-8   	       3	   2633320 ns/op
-BenchmarkGroupByQ6_Small-8   	       3	   6829972 ns/op
 PASS
-ok  	github.com/tnn1t1s/golars/benchmarks/groupby	0.564s
+ok  	github.com/tnn1t1s/golars/benchmarks/groupby	0.248s

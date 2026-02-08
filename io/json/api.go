@@ -6,24 +6,24 @@ import (
 
 // ReadJSON reads a JSON file into a DataFrame
 func ReadJSON(filename string, opts ...func(*ReadOptions)) (*frame.DataFrame, error) {
-	reader := NewReader(opts...)
-	return reader.ReadFile(filename)
+	panic("not implemented")
+
 }
 
 // ReadNDJSON reads an NDJSON file into a DataFrame
 func ReadNDJSON(filename string, opts ...func(*ReadOptions)) (*frame.DataFrame, error) {
-	reader := NewNDJSONReader(opts...)
-	return reader.ReadFile(filename)
+	panic("not implemented")
+
 }
 
 // WriteJSON writes a DataFrame to a JSON file
 func WriteJSON(df *frame.DataFrame, filename string, opts ...func(*WriteOptions)) error {
-	writer := NewWriter(opts...)
-	return writer.WriteFile(df, filename)
+	panic("not implemented")
+
 }
 
 // WriteNDJSON writes a DataFrame to an NDJSON file
 func WriteNDJSON(df *frame.DataFrame, filename string, opts ...func(*WriteOptions)) error {
-	writer := NewNDJSONWriter(opts...)
-	return writer.WriteFile(df, filename)
+	panic("not implemented")
+
 }

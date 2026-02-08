@@ -59,6 +59,7 @@ def bench(fn):
         _ = result.height
         times.append(time.perf_counter() - start)
     return {
+        "median_ms": statistics.median(times) * 1000.0,
         "mean_ms": statistics.mean(times) * 1000.0,
         "min_ms": min(times) * 1000.0,
         "max_ms": max(times) * 1000.0,
