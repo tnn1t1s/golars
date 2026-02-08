@@ -4,6 +4,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+
 	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
@@ -51,6 +52,14 @@ func (cb *ChunkedBuilder[T]) Append(value T) {
 		bb.Append(any(value).(string))
 	case *array.BinaryBuilder:
 		bb.Append(any(value).([]byte))
+	case *array.TimestampBuilder:
+		bb.Append(arrow.Timestamp(any(value).(int64)))
+	case *array.Date32Builder:
+		bb.Append(arrow.Date32(any(value).(int32)))
+	case *array.Time64Builder:
+		bb.Append(arrow.Time64(any(value).(int64)))
+	case *array.DurationBuilder:
+		bb.Append(arrow.Duration(any(value).(int64)))
 	}
 }
 
