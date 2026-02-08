@@ -30,6 +30,7 @@ The reference implementation (before stubbing) is tagged at
 - Data type definitions (`internal/datatypes/`) with working tests
 - Parallel execution utilities (`internal/parallel/`)
 - Apache Arrow Go bindings (`arrow-go/`)
+- Design notes for every package ([design/](design/README.md))
 
 ## What You Implement
 
