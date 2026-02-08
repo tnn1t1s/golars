@@ -1,0 +1,104 @@
+name: Validate Submission
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-branch-name:
+    name: Branch naming convention
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ ! "$BRANCH" =~ ^agent/[a-z0-9-]+/[a-z0-9-]+$ ]]; then
+            echo "::error::Branch name '$BRANCH' does not match required pattern: agent/<agent-name>/<run-id>"
+            echo "Examples: agent/claude-swarm/run-001, agent/gpt4-solo/2024-06-15-a"
+            exit 1
+          fi
+          echo "Branch name '$BRANCH' is valid."
+
+  check-protected-files:
+    name: No protected files modified
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for modified test files
+        run: |
+          CHANGED=$(git diff --name-only origin/main...HEAD -- '*_test.go')
+          if [ -n "$CHANGED" ]; then
+            echo "::error::Test files were modified. This is not allowed."
+            echo "$CHANGED"
+            exit 1
+          fi
+          echo "No test files modified."
+
+      - name: Check for modified protected directories
+        run: |
+          PROTECTED_DIRS=(
+            "testutil/"
+            "expr/"
+            "internal/datatypes/"
+            "internal/parallel/"
+            "design/"
+            ".github/"
+          )
+          for dir in "${PROTECTED_DIRS[@]}"; do
+            CHANGED=$(git diff --name-only origin/main...HEAD -- "$dir")
+            if [ -n "$CHANGED" ]; then
+              echo "::error::Protected directory '$dir' was modified. This is not allowed."
+              echo "$CHANGED"
+              exit 1
+            fi
+          done
+          echo "No protected directories modified."
+
+      - name: Check for modified go.mod / go.sum
+        run: |
+          CHANGED=$(git diff --name-only origin/main...HEAD -- go.mod go.sum go.work go.work.sum)
+          if [ -n "$CHANGED" ]; then
+            echo "::error::Module files were modified. This is not allowed."
+            echo "$CHANGED"
+            exit 1
+          fi
+          echo "No module files modified."
+
+      - name: Check for new files outside allowed paths
+        run: |
+          ALLOWED_PATTERN="^(internal/(chunked|group|window|datetime|strings|compute)/|series/|frame/|io/|lazy/|dataframe_auto\.go|series_auto\.go)"
+          NEW_FILES=$(git diff --name-only --diff-filter=A origin/main...HEAD)
+          if [ -n "$NEW_FILES" ]; then
+            VIOLATIONS=""
+            while IFS= read -r file; do
+              if [[ ! "$file" =~ $ALLOWED_PATTERN ]]; then
+                VIOLATIONS="$VIOLATIONS$file\n"
+              fi
+            done <<< "$NEW_FILES"
+            if [ -n "$VIOLATIONS" ]; then
+              echo "::error::New files created outside allowed paths:"
+              echo -e "$VIOLATIONS"
+              exit 1
+            fi
+          fi
+          echo "No files created outside allowed paths."
+
+  build:
+    name: Build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...

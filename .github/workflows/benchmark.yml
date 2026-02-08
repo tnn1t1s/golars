@@ -1,0 +1,219 @@
+name: Benchmark Report
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scorecard:
+    name: Generate scorecard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build check
+        id: build
+        run: |
+          if go build ./... 2>&1; then
+            echo "status=pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+            echo "::error::Build failed. Scorecard will be incomplete."
+          fi
+
+      - name: Run test suite
+        id: tests
+        if: steps.build.outputs.status == 'pass'
+        run: |
+          # Run tests with JSON output for parsing
+          go test -json -count=1 ./... 2>&1 | tee test-output.json || true
+
+          # Also capture human-readable output
+          go test -count=1 ./... 2>&1 | tee test-output.txt || true
+
+      - name: Run race detector tests
+        id: race
+        if: steps.build.outputs.status == 'pass'
+        run: |
+          if go test -race -count=1 ./... 2>&1 | tee race-output.txt; then
+            echo "status=pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Parse results and build scorecard
+        id: scorecard
+        if: always()
+        run: |
+          BUILD_STATUS="${{ steps.build.outputs.status }}"
+          RACE_STATUS="${{ steps.race.outputs.status }}"
+
+          # Parse test JSON output
+          if [ -f test-output.json ]; then
+            TOTAL_PASS=$(grep -c '"Test":.*"Action":"pass"' test-output.json || echo 0)
+            TOTAL_FAIL=$(grep -c '"Test":.*"Action":"fail"' test-output.json || echo 0)
+            TOTAL_SKIP=$(grep -c '"Test":.*"Action":"skip"' test-output.json || echo 0)
+
+            # Package-level results
+            PKG_PASS=$(grep '"Action":"pass"' test-output.json | grep -v '"Test":' | grep -oP '"Package":"[^"]*"' | sort -u | wc -l || echo 0)
+            PKG_FAIL=$(grep '"Action":"fail"' test-output.json | grep -v '"Test":' | grep -oP '"Package":"[^"]*"' | sort -u | wc -l || echo 0)
+          else
+            TOTAL_PASS=0
+            TOTAL_FAIL=0
+            TOTAL_SKIP=0
+            PKG_PASS=0
+            PKG_FAIL=0
+          fi
+
+          TOTAL_TESTS=$((TOTAL_PASS + TOTAL_FAIL + TOTAL_SKIP))
+          if [ "$TOTAL_TESTS" -gt 0 ]; then
+            PASS_RATE=$(awk "BEGIN {printf \"%.1f\", ($TOTAL_PASS / $TOTAL_TESTS) * 100}")
+          else
+            PASS_RATE="0.0"
+          fi
+
+          # Build JSON scorecard
+          cat > scorecard.json << ENDJSON
+          {
+            "branch": "${{ github.head_ref }}",
+            "sha": "${{ github.event.pull_request.head.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "build": "$BUILD_STATUS",
+            "race": "$RACE_STATUS",
+            "tests": {
+              "total": $TOTAL_TESTS,
+              "pass": $TOTAL_PASS,
+              "fail": $TOTAL_FAIL,
+              "skip": $TOTAL_SKIP,
+              "pass_rate": $PASS_RATE
+            },
+            "packages": {
+              "pass": $PKG_PASS,
+              "fail": $PKG_FAIL
+            }
+          }
+          ENDJSON
+
+          echo "total_pass=$TOTAL_PASS" >> "$GITHUB_OUTPUT"
+          echo "total_fail=$TOTAL_FAIL" >> "$GITHUB_OUTPUT"
+          echo "total_skip=$TOTAL_SKIP" >> "$GITHUB_OUTPUT"
+          echo "total_tests=$TOTAL_TESTS" >> "$GITHUB_OUTPUT"
+          echo "pass_rate=$PASS_RATE" >> "$GITHUB_OUTPUT"
+          echo "pkg_pass=$PKG_PASS" >> "$GITHUB_OUTPUT"
+          echo "pkg_fail=$PKG_FAIL" >> "$GITHUB_OUTPUT"
+
+      - name: Generate per-package breakdown
+        id: breakdown
+        if: steps.build.outputs.status == 'pass' && hashFiles('test-output.json') != ''
+        run: |
+          # Extract per-package pass/fail from JSON output
+          echo "| Package | Status | Pass | Fail |" > package-breakdown.md
+          echo "|---------|--------|------|------|" >> package-breakdown.md
+
+          # Get unique packages
+          grep '"Action":"pass\|"Action":"fail"' test-output.json \
+            | grep -v '"Test":' \
+            | grep -oP '"Package":"[^"]*"' \
+            | sort -u \
+            | sed 's/"Package":"//;s/"//' \
+            | while read -r pkg; do
+                SHORT=$(echo "$pkg" | sed 's|github.com/tnn1t1s/golars/||;s|github.com/tnn1t1s/golars|root|')
+                P=$(grep "\"Package\":\"$pkg\"" test-output.json | grep '"Test":' | grep -c '"Action":"pass"' || echo 0)
+                F=$(grep "\"Package\":\"$pkg\"" test-output.json | grep '"Test":' | grep -c '"Action":"fail"' || echo 0)
+                if [ "$F" -eq 0 ] && [ "$P" -gt 0 ]; then
+                  STATUS="PASS"
+                else
+                  STATUS="FAIL"
+                fi
+                echo "| \`$SHORT\` | $STATUS | $P | $F |" >> package-breakdown.md
+              done
+
+      - name: Post PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const build = '${{ steps.build.outputs.status }}';
+            const race = '${{ steps.race.outputs.status }}' || 'skipped';
+            const pass = '${{ steps.scorecard.outputs.total_pass }}' || '0';
+            const fail = '${{ steps.scorecard.outputs.total_fail }}' || '0';
+            const skip = '${{ steps.scorecard.outputs.total_skip }}' || '0';
+            const total = '${{ steps.scorecard.outputs.total_tests }}' || '0';
+            const rate = '${{ steps.scorecard.outputs.pass_rate }}' || '0.0';
+            const pkgPass = '${{ steps.scorecard.outputs.pkg_pass }}' || '0';
+            const pkgFail = '${{ steps.scorecard.outputs.pkg_fail }}' || '0';
+
+            const buildIcon = build === 'pass' ? ':white_check_mark:' : ':x:';
+            const raceIcon = race === 'pass' ? ':white_check_mark:' : (race === 'skipped' ? ':fast_forward:' : ':x:');
+
+            let breakdown = '';
+            try {
+              breakdown = fs.readFileSync('package-breakdown.md', 'utf8');
+            } catch (e) {
+              breakdown = '_Package breakdown unavailable (build failed)._';
+            }
+
+            const body = `## Benchmark Scorecard
+
+            | Metric | Result |
+            |--------|--------|
+            | **Build** | ${buildIcon} ${build} |
+            | **Race detector** | ${raceIcon} ${race} |
+            | **Tests passing** | ${pass} / ${total} (${rate}%) |
+            | **Tests failing** | ${fail} |
+            | **Tests skipped** | ${skip} |
+            | **Packages passing** | ${pkgPass} |
+            | **Packages failing** | ${pkgFail} |
+
+            ### Per-Package Breakdown
+
+            ${breakdown}
+
+            ---
+            _Generated by the Golars benchmark harness._`;
+
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const marker = 'Benchmark Scorecard';
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+      - name: Upload scorecard artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorecard
+          path: |
+            scorecard.json
+            test-output.json
+            test-output.txt
+            race-output.txt
+            package-breakdown.md
+          retention-days: 90
