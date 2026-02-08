@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+
 	"github.com/tnn1t1s/golars/internal/datatypes"
 )
 
@@ -218,6 +219,38 @@ func (ca *ChunkedArray[T]) AppendSlice(values []T, validity []bool) error {
 				b.Append(any(values[i]).([]byte))
 			}
 		}
+	case *array.TimestampBuilder:
+		for i := 0; i < n; i++ {
+			if validity != nil && !validity[i] {
+				b.AppendNull()
+			} else {
+				b.Append(arrow.Timestamp(any(values[i]).(int64)))
+			}
+		}
+	case *array.Date32Builder:
+		for i := 0; i < n; i++ {
+			if validity != nil && !validity[i] {
+				b.AppendNull()
+			} else {
+				b.Append(arrow.Date32(any(values[i]).(int32)))
+			}
+		}
+	case *array.Time64Builder:
+		for i := 0; i < n; i++ {
+			if validity != nil && !validity[i] {
+				b.AppendNull()
+			} else {
+				b.Append(arrow.Time64(any(values[i]).(int64)))
+			}
+		}
+	case *array.DurationBuilder:
+		for i := 0; i < n; i++ {
+			if validity != nil && !validity[i] {
+				b.AppendNull()
+			} else {
+				b.Append(arrow.Duration(any(values[i]).(int64)))
+			}
+		}
 	default:
 		return fmt.Errorf("unsupported builder type: %T", builder)
 	}
@@ -285,6 +318,14 @@ func (ca *ChunkedArray[T]) getValue(chunk arrow.Array, idx int) T {
 		return any(arr.Value(idx)).(T)
 	case *array.Binary:
 		return any(arr.Value(idx)).(T)
+	case *array.Timestamp:
+		return any(int64(arr.Value(idx))).(T)
+	case *array.Date32:
+		return any(int32(arr.Value(idx))).(T)
+	case *array.Time64:
+		return any(int64(arr.Value(idx))).(T)
+	case *array.Duration:
+		return any(int64(arr.Value(idx))).(T)
 	default:
 		var zero T
 		return zero
