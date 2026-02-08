@@ -1,8 +1,8 @@
 package frame
 
 import (
-	"fmt"
-	"math"
+	_ "fmt"
+	_ "math"
 
 	"github.com/tnn1t1s/golars/internal/datatypes"
 	"github.com/tnn1t1s/golars/series"
@@ -19,267 +19,94 @@ type InterpolateOptions struct {
 
 // Interpolate fills null values using interpolation
 func (df *DataFrame) Interpolate(options InterpolateOptions) (*DataFrame, error) {
-	// Default to linear interpolation
-	if options.Method == "" {
-		options.Method = "linear"
-	}
+	panic(
+		// Default to linear interpolation
+		"not implemented")
 
 	// Validate method
-	validMethods := map[string]bool{
-		"linear": true, "nearest": true, "zero": true,
-		"slinear": true, "quadratic": true, "cubic": true,
-	}
-	if !validMethods[options.Method] {
-		return nil, fmt.Errorf("invalid interpolation method: %s", options.Method)
-	}
 
 	// Get columns to interpolate
-	columnsToInterp := options.Columns
-	if len(columnsToInterp) == 0 {
-		// Default to all numeric columns
-		columnsToInterp = make([]string, 0)
-		for _, col := range df.columns {
-			switch col.DataType().(type) {
-			case datatypes.Int8, datatypes.Int16, datatypes.Int32, datatypes.Int64,
-				datatypes.UInt8, datatypes.UInt16, datatypes.UInt32, datatypes.UInt64,
-				datatypes.Float32, datatypes.Float64:
-				columnsToInterp = append(columnsToInterp, col.Name())
-			}
-		}
-	}
+
+	// Default to all numeric columns
 
 	// Create result columns
-	resultColumns := make([]series.Series, len(df.columns))
 
 	// Process each column
-	for i, col := range df.columns {
-		colName := col.Name()
 
-		// Check if this column should be interpolated
-		shouldInterp := false
-		for _, name := range columnsToInterp {
-			if name == colName {
-				shouldInterp = true
-				break
-			}
-		}
+	// Check if this column should be interpolated
 
-		if shouldInterp {
-			// Interpolate based on method
-			switch options.Method {
-			case "linear", "slinear":
-				resultColumns[i] = linearInterpolate(col, options.Limit, options.LimitArea)
-			case "nearest":
-				resultColumns[i] = nearestInterpolate(col, options.Limit, options.LimitArea)
-			case "zero":
-				resultColumns[i] = zeroInterpolate(col, options.Limit, options.LimitArea)
-			default:
-				// For now, fall back to linear for unsupported methods
-				resultColumns[i] = linearInterpolate(col, options.Limit, options.LimitArea)
-			}
-		} else {
-			// Keep column as is
-			resultColumns[i] = col
-		}
-	}
+	// Interpolate based on method
 
-	return NewDataFrame(resultColumns...)
+	// For now, fall back to linear for unsupported methods
+
+	// Keep column as is
+
 }
 
 // Helper function for linear interpolation
 func linearInterpolate(s series.Series, limit int, limitArea string) series.Series {
-	length := s.Len()
-	values := make([]interface{}, length)
-	validity := make([]bool, length)
+	panic("not implemented")
 
 	// First pass: copy all valid values
-	validIndices := make([]int, 0)
-	for i := 0; i < length; i++ {
-		if !s.IsNull(i) {
-			values[i] = s.Get(i)
-			validity[i] = true
-			validIndices = append(validIndices, i)
-		}
-	}
 
 	// Second pass: interpolate null values
-	for i := 0; i < length; i++ {
-		if s.IsNull(i) {
-			// Find surrounding valid values
-			prevIdx, nextIdx := -1, -1
 
-			// Find previous valid value
-			for j := len(validIndices) - 1; j >= 0; j-- {
-				if validIndices[j] < i {
-					prevIdx = validIndices[j]
-					break
-				}
-			}
+	// Find surrounding valid values
 
-			// Find next valid value
-			for _, idx := range validIndices {
-				if idx > i {
-					nextIdx = idx
-					break
-				}
-			}
+	// Find previous valid value
 
-			// Check limit area constraints
-			if limitArea == "inside" && (prevIdx == -1 || nextIdx == -1) {
-				continue
-			}
-			if limitArea == "outside" && prevIdx != -1 && nextIdx != -1 {
-				continue
-			}
+	// Find next valid value
 
-			// Interpolate
-			if prevIdx != -1 && nextIdx != -1 {
-				// Check consecutive null limit
-				nullCount := nextIdx - prevIdx - 1
-				if limit > 0 && nullCount > limit {
-					continue
-				}
+	// Check limit area constraints
 
-				// Linear interpolation
-				prevVal := toFloat64Value(s.Get(prevIdx))
-				nextVal := toFloat64Value(s.Get(nextIdx))
-				fraction := float64(i-prevIdx) / float64(nextIdx-prevIdx)
-				interpVal := prevVal + fraction*(nextVal-prevVal)
+	// Interpolate
 
-				values[i] = convertToOriginalType(interpVal, s.DataType())
-				validity[i] = true
-			}
-		}
-	}
+	// Check consecutive null limit
 
-	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
+	// Linear interpolation
+
 }
 
 // Helper function for nearest neighbor interpolation
 func nearestInterpolate(s series.Series, limit int, limitArea string) series.Series {
-	length := s.Len()
-	values := make([]interface{}, length)
-	validity := make([]bool, length)
+	panic("not implemented")
 
 	// Copy all values
-	for i := 0; i < length; i++ {
-		values[i] = s.Get(i)
-		validity[i] = !s.IsNull(i)
-	}
 
 	// Find null ranges and interpolate
-	for i := 0; i < length; i++ {
-		if s.IsNull(i) {
-			// Find nearest valid values
-			prevDist, nextDist := length, length
-			prevIdx, nextIdx := -1, -1
 
-			// Search backward
-			for j := i - 1; j >= 0; j-- {
-				if !s.IsNull(j) {
-					prevIdx = j
-					prevDist = i - j
-					break
-				}
-			}
+	// Find nearest valid values
 
-			// Search forward
-			for j := i + 1; j < length; j++ {
-				if !s.IsNull(j) {
-					nextIdx = j
-					nextDist = j - i
-					break
-				}
-			}
+	// Search backward
 
-			// Check limit area constraints
-			if limitArea == "inside" && (prevIdx == -1 || nextIdx == -1) {
-				continue
-			}
-			if limitArea == "outside" && prevIdx != -1 && nextIdx != -1 {
-				continue
-			}
+	// Search forward
 
-			// Choose nearest
-			if prevIdx != -1 && (nextIdx == -1 || prevDist <= nextDist) {
-				// Check limit
-				if limit <= 0 || prevDist <= limit {
-					values[i] = s.Get(prevIdx)
-					validity[i] = true
-				}
-			} else if nextIdx != -1 {
-				// Check limit
-				if limit <= 0 || nextDist <= limit {
-					values[i] = s.Get(nextIdx)
-					validity[i] = true
-				}
-			}
-		}
-	}
+	// Check limit area constraints
 
-	return createSeriesFromInterface(s.Name(), values, validity, s.DataType())
+	// Choose nearest
+
+	// Check limit
+
+	// Check limit
+
 }
 
 // Helper function for zero-order hold interpolation
 func zeroInterpolate(s series.Series, limit int, limitArea string) series.Series {
-	// Zero-order hold is essentially forward fill
-	return forwardFillSeries(s, limit)
+	panic(
+		// Zero-order hold is essentially forward fill
+		"not implemented")
+
 }
 
 // Helper to convert value to float64
 func toFloat64Value(v interface{}) float64 {
-	switch val := v.(type) {
-	case float64:
-		return val
-	case float32:
-		return float64(val)
-	case int64:
-		return float64(val)
-	case int32:
-		return float64(val)
-	case int16:
-		return float64(val)
-	case int8:
-		return float64(val)
-	case int:
-		return float64(val)
-	case uint64:
-		return float64(val)
-	case uint32:
-		return float64(val)
-	case uint16:
-		return float64(val)
-	case uint8:
-		return float64(val)
-	default:
-		return 0
-	}
+	panic("not implemented")
+
 }
 
 // Helper to convert float64 back to original type
 func convertToOriginalType(val float64, dataType datatypes.DataType) interface{} {
-	switch dataType.(type) {
-	case datatypes.Float64:
-		return val
-	case datatypes.Float32:
-		return float32(val)
-	case datatypes.Int64:
-		return int64(math.Round(val))
-	case datatypes.Int32:
-		return int32(math.Round(val))
-	case datatypes.Int16:
-		return int16(math.Round(val))
-	case datatypes.Int8:
-		return int8(math.Round(val))
-	case datatypes.UInt64:
-		return uint64(math.Round(val))
-	case datatypes.UInt32:
-		return uint32(math.Round(val))
-	case datatypes.UInt16:
-		return uint16(math.Round(val))
-	case datatypes.UInt8:
-		return uint8(math.Round(val))
-	default:
-		return val
-	}
+	panic("not implemented")
+
 }

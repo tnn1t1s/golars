@@ -49,14 +49,11 @@ Each query is tested with multiple data sizes:
 
 ## Implementation Notes
 
-### Current Limitations
+### Current Status
 
-Some golars features may not be fully implemented yet:
-- **Q6**: Median and standard deviation functions
-- **Q8**: Top-k selection and null handling
-- **Q9**: Correlation function
-
-These benchmarks use placeholder implementations where necessary and should be updated as golars adds these features.
+All Q1–Q10 queries are implemented in golars, including:
+- Q8 top-k aggregation with `Explode`
+- Q9 correlation squared (`corr * corr`)
 
 ### Memory Considerations
 

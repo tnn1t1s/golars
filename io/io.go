@@ -2,7 +2,7 @@
 package io
 
 import (
-	"os"
+	_ "os"
 
 	"github.com/tnn1t1s/golars/frame"
 	"github.com/tnn1t1s/golars/io/csv"
@@ -16,51 +16,44 @@ type CSVReadOption func(*csv.ReadOptions)
 
 // WithDelimiter sets the field delimiter
 func WithDelimiter(d rune) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.Delimiter = d
-	}
+	panic("not implemented")
+
 }
 
 // WithHeader specifies whether the first row contains headers
 func WithHeader(h bool) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.Header = h
-	}
+	panic("not implemented")
+
 }
 
 // WithSkipRows sets the number of rows to skip at the start
 func WithSkipRows(n int) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.SkipRows = n
-	}
+	panic("not implemented")
+
 }
 
 // WithColumns specifies which columns to read
 func WithColumns(cols []string) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.Columns = cols
-	}
+	panic("not implemented")
+
 }
 
 // WithNullValues sets strings that should be treated as null
 func WithNullValues(values []string) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.NullValues = values
-	}
+	panic("not implemented")
+
 }
 
 // WithInferSchemaRows sets the number of rows to use for type inference
 func WithInferSchemaRows(n int) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.InferSchemaRows = n
-	}
+	panic("not implemented")
+
 }
 
 // WithComment sets the comment character
 func WithComment(c rune) CSVReadOption {
-	return func(o *csv.ReadOptions) {
-		o.Comment = c
-	}
+	panic("not implemented")
+
 }
 
 // CSV Write Options
@@ -70,71 +63,44 @@ type CSVWriteOption func(*csv.WriteOptions)
 
 // WithWriteDelimiter sets the field delimiter for writing
 func WithWriteDelimiter(d rune) CSVWriteOption {
-	return func(o *csv.WriteOptions) {
-		o.Delimiter = d
-	}
+	panic("not implemented")
+
 }
 
 // WithWriteHeader specifies whether to write column headers
 func WithWriteHeader(h bool) CSVWriteOption {
-	return func(o *csv.WriteOptions) {
-		o.Header = h
-	}
+	panic("not implemented")
+
 }
 
 // WithNullValue sets the string to use for null values
 func WithNullValue(s string) CSVWriteOption {
-	return func(o *csv.WriteOptions) {
-		o.NullValue = s
-	}
+	panic("not implemented")
+
 }
 
 // WithFloatFormat sets the format string for floating point numbers
 func WithFloatFormat(f string) CSVWriteOption {
-	return func(o *csv.WriteOptions) {
-		o.FloatFormat = f
-	}
+	panic("not implemented")
+
 }
 
 // WithQuote specifies whether to quote all fields
 func WithQuote(q bool) CSVWriteOption {
-	return func(o *csv.WriteOptions) {
-		o.Quote = q
-	}
+	panic("not implemented")
+
 }
 
 // ReadCSV reads a CSV file into a DataFrame
 func ReadCSV(filename string, options ...CSVReadOption) (*frame.DataFrame, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+	panic("not implemented")
 
-	opts := csv.DefaultReadOptions()
-	for _, opt := range options {
-		opt(&opts)
-	}
-
-	reader := csv.NewReader(file, opts)
-	return reader.Read()
 }
 
 // WriteCSV writes a DataFrame to a CSV file
 func WriteCSV(df *frame.DataFrame, filename string, options ...CSVWriteOption) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+	panic("not implemented")
 
-	opts := csv.DefaultWriteOptions()
-	for _, opt := range options {
-		opt(&opts)
-	}
-
-	writer := csv.NewWriter(file, opts)
-	return writer.Write(df)
 }
 
 // Parquet Read Options
@@ -144,69 +110,56 @@ type ParquetReadOption func(*parquet.ReaderOptions)
 
 // WithParquetColumns specifies which columns to read
 func WithParquetColumns(cols []string) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.Columns = cols
-	}
+	panic("not implemented")
+
 }
 
 // WithRowGroups specifies which row groups to read
 func WithRowGroups(groups []int) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.RowGroups = groups
-	}
+	panic("not implemented")
+
 }
 
 // WithNumRows limits the number of rows to read
 func WithNumRows(n int64) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.NumRows = n
-	}
+	panic("not implemented")
+
 }
 
 // WithParquetParallel enables or disables parallel parquet reads.
 func WithParquetParallel(enabled bool) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.Parallel = enabled
-	}
+	panic("not implemented")
+
 }
 
 // WithParquetBatchSize sets the record batch size for parquet reads.
 func WithParquetBatchSize(size int64) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.BatchSize = size
-	}
+	panic("not implemented")
+
 }
 
 // WithParquetBufferedStream enables buffered streams for parquet reads.
 func WithParquetBufferedStream(enabled bool) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.BufferedStream = enabled
-	}
+	panic("not implemented")
+
 }
 
 // WithParquetBufferSize sets the buffer size for buffered parquet streams.
 func WithParquetBufferSize(size int64) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.BufferSize = size
-	}
+	panic("not implemented")
+
 }
 
 // WithParquetMemoryMap enables or disables memory-mapped parquet reads.
 func WithParquetMemoryMap(enabled bool) ParquetReadOption {
-	return func(o *parquet.ReaderOptions) {
-		o.MemoryMap = enabled
-	}
+	panic("not implemented")
+
 }
 
 // ReadParquet reads a Parquet file into a DataFrame
 func ReadParquet(filename string, options ...ParquetReadOption) (*frame.DataFrame, error) {
-	opts := parquet.DefaultReaderOptions()
-	for _, opt := range options {
-		opt(&opts)
-	}
+	panic("not implemented")
 
-	reader := parquet.NewReader(opts)
-	return reader.ReadFile(filename)
 }
 
 // Parquet Write Options
@@ -216,46 +169,36 @@ type ParquetWriteOption func(*parquet.WriterOptions)
 
 // WithCompression sets the compression type
 func WithCompression(compression parquet.CompressionType) ParquetWriteOption {
-	return func(o *parquet.WriterOptions) {
-		o.Compression = compression
-	}
+	panic("not implemented")
+
 }
 
 // WithCompressionLevel sets the compression level (for gzip and zstd)
 func WithCompressionLevel(level int) ParquetWriteOption {
-	return func(o *parquet.WriterOptions) {
-		o.CompressionLevel = level
-	}
+	panic("not implemented")
+
 }
 
 // WithRowGroupSize sets the row group size in bytes
 func WithRowGroupSize(size int64) ParquetWriteOption {
-	return func(o *parquet.WriterOptions) {
-		o.RowGroupSize = size
-	}
+	panic("not implemented")
+
 }
 
 // WithPageSize sets the page size in bytes
 func WithPageSize(size int64) ParquetWriteOption {
-	return func(o *parquet.WriterOptions) {
-		o.PageSize = size
-	}
+	panic("not implemented")
+
 }
 
 // WithDictionary enables or disables dictionary encoding
 func WithDictionary(enabled bool) ParquetWriteOption {
-	return func(o *parquet.WriterOptions) {
-		o.UseDictionary = enabled
-	}
+	panic("not implemented")
+
 }
 
 // WriteParquet writes a DataFrame to a Parquet file
 func WriteParquet(df *frame.DataFrame, filename string, options ...ParquetWriteOption) error {
-	opts := parquet.DefaultWriterOptions()
-	for _, opt := range options {
-		opt(&opts)
-	}
+	panic("not implemented")
 
-	writer := parquet.NewWriter(opts)
-	return writer.WriteFile(df, filename)
 }

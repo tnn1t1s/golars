@@ -7,7 +7,7 @@ This directory now uses `just` for running benchmarks with a consistent naming c
 All commands follow the pattern: `{verb}-{adjective}-{noun}`
 
 - **Verbs**: `generate`, `run`, `compare`, `analyze`, `clean`, `list`, `show`
-- **Adjectives**: `light`, `full`, `heavy`, `all`
+- **Adjectives**: `light`, `full`, `medium-safe`, `heavy`, `all`
 - **Nouns**: `data`, `golars`, `polars`, `benchmarks`, `results`
 
 ## Quick Start
@@ -41,7 +41,7 @@ just compare-light-benchmarks
 
 ### Full (Standard Benchmarks)
 - **Queries**: All (Q1-Q10)
-- **Data**: Medium dataset (100K rows)
+- **Data**: Medium dataset (1M rows)
 - **Purpose**: Performance testing
 - **Note**: Q7-Q10 have limited functionality
 
@@ -51,9 +51,20 @@ just run-full-polars
 just compare-full-benchmarks
 ```
 
+### Medium-Safe (Memory-Constrained Systems)
+- **Queries**: Q1-Q6
+- **Data**: Medium-safe dataset (250K rows)
+- **Purpose**: Larger-than-light runs on constrained machines
+
+```bash
+just run-medium-safe-golars
+just run-medium-safe-polars
+just compare-medium-safe-benchmarks
+```
+
 ### Heavy (Stress Testing)
 - **Queries**: All (Q1-Q10)
-- **Data**: Large dataset (1M rows)
+- **Data**: Large dataset (10M rows)
 - **Purpose**: Scalability testing
 
 ```bash
@@ -72,8 +83,9 @@ just test-quick-benchmarks
 ### Generate data only
 ```bash
 just generate-light-data    # 10K rows
-just generate-medium-data   # 100K rows
-just generate-heavy-data    # 1M rows
+just generate-medium-data   # 1M rows
+just generate-medium-safe-data # 250K rows
+just generate-heavy-data    # 10M rows
 ```
 
 ### Clean up

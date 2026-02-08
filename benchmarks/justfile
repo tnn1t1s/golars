@@ -20,6 +20,12 @@ LIGHT_QUERIES := "Q[1-6]"
 FULL_QUERIES := ".*"
 RESULTS_DIR := "compare/results"
 
+# Polars location - override with: just --set POLARS_DIR /path/to/polars
+# Or set environment variable: export POLARS_DIR=/path/to/polars
+POLARS_DIR := env_var_or_default("POLARS_DIR", "../polars")
+POLARS_VENV := POLARS_DIR / ".venv/bin/activate"
+POLARS_PY_DIR := POLARS_DIR / "py-polars"
+
 # =============================================================================
 # DATA GENERATION COMMANDS
 # =============================================================================
@@ -92,7 +98,7 @@ run-heavy-golars: _ensure-heavy-data
 run-light-polars: _ensure-light-data _ensure-polars-setup
     @echo -e "${BLUE}Running light polars benchmarks (Q1-Q6)...${NC}"
     @mkdir -p {{RESULTS_DIR}}
-    cd compare && source ../../polars/.venv/bin/activate && python run_polars_benchmarks.py small 1-6 | tee results/polars_light.txt
+    cd compare && source {{POLARS_VENV}} && python run_polars_benchmarks.py small 1-6 | tee results/polars_light.txt
     @echo -e "${BLUE}✓ Light polars benchmarks complete${NC}"
 
 # Run full polars benchmarks (all queries on medium data)
@@ -107,7 +113,7 @@ run-full-polars: _ensure-medium-data
 run-medium-safe-polars: _ensure-medium-safe-data _ensure-polars-setup
     @echo -e "${BLUE}Running medium-safe polars benchmarks (Q1-Q6, 250k rows)...${NC}"
     @mkdir -p {{RESULTS_DIR}}
-    cd compare && source ../../polars/.venv/bin/activate && python run_polars_benchmarks.py medium-safe 1-6 | tee results/polars_medium_safe.txt
+    cd compare && source {{POLARS_VENV}} && python run_polars_benchmarks.py medium-safe 1-6 | tee results/polars_medium_safe.txt
     @echo -e "${BLUE}✓ Medium-safe polars benchmarks complete${NC}"
 
 # Run heavy polars benchmarks (all queries on large data)
@@ -146,6 +152,18 @@ compare-heavy-benchmarks: run-heavy-golars run-heavy-polars
     cd compare && python3 analyze.py large
     @echo -e "${GREEN}✓ Heavy comparison complete${NC}"
 
+# Compare suite benchmarks using shared JSON spec (golars vs polars)
+compare-suite: run-suite-golars run-suite-polars
+    @echo -e "${YELLOW}Comparing suite results...${NC}"
+    cd compare && python3 analyze_suite.py --golars results/golars_suite.json --polars results/polars_suite.json
+    @echo -e "${GREEN}✓ Suite comparison complete${NC}"
+
+# Compare suite benchmarks with pandas (golars vs polars vs pandas)
+compare-suite-all: run-suite-golars run-suite-polars run-suite-pandas
+    @echo -e "${YELLOW}Comparing suite results (3-way)...${NC}"
+    cd compare && python3 analyze_suite.py --golars results/golars_suite.json --polars results/polars_suite.json --pandas results/pandas_suite.json
+    @echo -e "${GREEN}✓ Suite comparison complete${NC}"
+
 # =============================================================================
 # ANALYSIS COMMANDS
 # =============================================================================
@@ -167,6 +185,20 @@ analyze-full-results:
         cd compare && python3 analyze.py medium; \
     else \
         echo -e "${RED}Error: Run benchmarks first with 'just compare-full-benchmarks'${NC}"; \
+        exit 1; \
+    fi
+
+# Analyze suite benchmark results (auto-detects pandas if available)
+analyze-suite-results:
+    @echo -e "${YELLOW}Analyzing suite benchmark results...${NC}"
+    @if [ -f "{{RESULTS_DIR}}/golars_suite.json" ] && [ -f "{{RESULTS_DIR}}/polars_suite.json" ]; then \
+        if [ -f "{{RESULTS_DIR}}/pandas_suite.json" ]; then \
+            cd compare && python3 analyze_suite.py --golars results/golars_suite.json --polars results/polars_suite.json --pandas results/pandas_suite.json; \
+        else \
+            cd compare && python3 analyze_suite.py --golars results/golars_suite.json --polars results/polars_suite.json; \
+        fi \
+    else \
+        echo -e "${RED}Error: Run suite benchmarks first with 'just compare-suite'${NC}"; \
         exit 1; \
     fi
 
@@ -214,6 +246,13 @@ list-all-benchmarks:
     @echo "  just generate-heavy-data - Generate large dataset"
     @echo "  just clean-all-data      - Remove generated data"
     @echo "  just clean-all-results   - Remove benchmark results"
+    @echo ""
+    @echo -e "${GREEN}Suite (shared spec):${NC}"
+    @echo "  just run-suite-golars    - Run suite with golars"
+    @echo "  just run-suite-polars    - Run suite with polars"
+    @echo "  just run-suite-pandas    - Run suite with pandas"
+    @echo "  just compare-suite       - Compare golars vs polars"
+    @echo "  just compare-suite-all   - Compare golars vs polars vs pandas"
     @echo ""
     @echo -e "${BLUE}Note: Light benchmarks (Q1-Q6) are fully implemented and working.${NC}"
     @echo -e "${BLUE}      Q7-Q10 require additional aggregation functions.${NC}"
@@ -276,13 +315,38 @@ test-quick-benchmarks: compare-light-benchmarks
 
 # Ensure Polars is available
 _ensure-polars-setup:
-    @if [ ! -d "../polars/py-polars" ]; then \
-        echo -e "${RED}Error: Polars not found at ../polars${NC}"; \
-        echo -e "${YELLOW}Please ensure Polars is cloned at the expected location${NC}"; \
+    @if [ ! -d "{{POLARS_PY_DIR}}" ]; then \
+        echo -e "${RED}Error: Polars not found at {{POLARS_DIR}}${NC}"; \
+        echo -e "${YELLOW}Set POLARS_DIR env var or use: just --set POLARS_DIR /path/to/polars${NC}"; \
         exit 1; \
     fi
-    @if [ ! -f "../polars/.venv/bin/activate" ]; then \
-        echo -e "${RED}Error: Polars virtual environment not found${NC}"; \
+    @if [ ! -f "{{POLARS_VENV}}" ]; then \
+        echo -e "${RED}Error: Polars venv not found at {{POLARS_VENV}}${NC}"; \
         echo -e "${YELLOW}Please set up the Polars virtual environment first${NC}"; \
         exit 1; \
     fi
+
+# =============================================================================
+# SUITE COMMANDS
+# =============================================================================
+
+# Run suite benchmarks using shared JSON spec
+run-suite-golars: _ensure-light-data
+    @echo -e "${GREEN}Running golars suite benchmarks...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && go run run_golars_suite.go --suite suite.json --dataset small --iterations 3 > results/golars_suite.json
+    @echo -e "${GREEN}✓ Golars suite benchmarks complete${NC}"
+
+# Run suite benchmarks in Polars using shared JSON spec
+run-suite-polars: _ensure-light-data _ensure-polars-setup
+    @echo -e "${BLUE}Running polars suite benchmarks...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && source {{POLARS_VENV}} && python run_polars_suite.py --suite suite.json --dataset small --iterations 3 > results/polars_suite.json
+    @echo -e "${BLUE}✓ Polars suite benchmarks complete${NC}"
+
+# Run suite benchmarks in Pandas using shared JSON spec
+run-suite-pandas: _ensure-light-data _ensure-polars-setup
+    @echo -e "${YELLOW}Running pandas suite benchmarks...${NC}"
+    @mkdir -p {{RESULTS_DIR}}
+    cd compare && source {{POLARS_VENV}} && python run_pandas_suite.py --suite suite.json --dataset small --iterations 3 > results/pandas_suite.json
+    @echo -e "${YELLOW}✓ Pandas suite benchmarks complete${NC}"

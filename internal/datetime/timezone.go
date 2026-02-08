@@ -1,8 +1,8 @@
 package datetime
 
 import (
-	"fmt"
-	"strings"
+	_ "fmt"
+	_ "strings"
 	"time"
 
 	"github.com/tnn1t1s/golars/expr"
@@ -12,178 +12,85 @@ import (
 
 // ConvertTimezone converts a DateTime to a different timezone
 func (dt DateTime) ConvertTimezone(tz *time.Location) DateTime {
-	if tz == nil {
-		tz = time.UTC
-	}
+	panic("not implemented")
 
 	// Convert to time.Time in current timezone, then to new timezone
-	t := dt.Time().In(tz)
 
-	return DateTime{
-		timestamp: t.UnixNano(),
-		timezone:  tz,
-	}
 }
 
 // WithTimezone returns a new DateTime with the specified timezone
 // without changing the underlying timestamp
 func (dt DateTime) WithTimezone(tz *time.Location) DateTime {
-	if tz == nil {
-		tz = time.UTC
-	}
+	panic("not implemented")
 
-	return DateTime{
-		timestamp: dt.timestamp,
-		timezone:  tz,
-	}
 }
 
 // InTimezone converts the DateTime to the specified timezone
 func (dt DateTime) InTimezone(tzName string) (DateTime, error) {
-	tz, err := LoadTimezone(tzName)
-	if err != nil {
-		return dt, err
-	}
+	panic("not implemented")
 
-	return dt.ConvertTimezone(tz), nil
 }
 
 // ToUTC converts the DateTime to UTC
 func (dt DateTime) ToUTC() DateTime {
-	return dt.ConvertTimezone(time.UTC)
+	panic("not implemented")
+
 }
 
 // ToLocal converts the DateTime to the local timezone
 func (dt DateTime) ToLocal() DateTime {
-	return dt.ConvertTimezone(time.Local)
+	panic("not implemented")
+
 }
 
 // LoadTimezone loads a timezone by name
 func LoadTimezone(name string) (*time.Location, error) {
-	// Handle common timezone aliases
-	switch strings.ToUpper(name) {
-	case "UTC", "GMT", "Z":
-		return time.UTC, nil
-	case "LOCAL":
-		return time.Local, nil
-	case "EST":
-		return time.LoadLocation("America/New_York")
-	case "CST":
-		return time.LoadLocation("America/Chicago")
-	case "MST":
-		return time.LoadLocation("America/Denver")
-	case "PST":
-		return time.LoadLocation("America/Los_Angeles")
-	default:
-		return time.LoadLocation(name)
-	}
+	panic(
+		// Handle common timezone aliases
+		"not implemented")
+
 }
 
 // Series timezone operations
 
 // ConvertTimezone converts all datetime values in the series to a new timezone
 func (dts *DateTimeSeries) ConvertTimezone(tzName string) (series.Series, error) {
-	tz, err := LoadTimezone(tzName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load timezone %s: %w", tzName, err)
-	}
+	panic("not implemented")
 
-	name := fmt.Sprintf("%s_tz_%s", dts.s.Name(), tzName)
+	// Assume UTC if not specified
 
-	switch dts.s.DataType().(type) {
-	case datatypes.Datetime:
-		length := dts.s.Len()
-		values := make([]int64, length)
-		validity := make([]bool, length)
+	// Create new datetime type with timezone info
 
-		for i := 0; i < length; i++ {
-			if dts.s.IsNull(i) {
-				validity[i] = false
-			} else {
-				ts := dts.s.Get(i).(int64)
-				dt := DateTime{timestamp: ts, timezone: time.UTC} // Assume UTC if not specified
-				converted := dt.ConvertTimezone(tz)
-				values[i] = converted.timestamp
-				validity[i] = true
-			}
-		}
-
-		// Create new datetime type with timezone info
-		newDt := datatypes.Datetime{
-			Unit:     datatypes.Nanoseconds,
-			TimeZone: tz,
-		}
-
-		return series.NewSeriesWithValidity(name, values, validity, newDt), nil
-
-	default:
-		return nil, fmt.Errorf("timezone conversion not supported for type %s", dts.s.DataType())
-	}
 }
 
 // ToUTC converts all datetime values to UTC
 func (dts *DateTimeSeries) ToUTC() series.Series {
-	s, _ := dts.ConvertTimezone("UTC")
-	return s
+	panic("not implemented")
+
 }
 
 // ToLocal converts all datetime values to local timezone
 func (dts *DateTimeSeries) ToLocal() series.Series {
-	s, _ := dts.ConvertTimezone("Local")
-	return s
+	panic("not implemented")
+
 }
 
 // Localize interprets naive timestamps as being in the specified timezone
 func (dts *DateTimeSeries) Localize(tzName string) (series.Series, error) {
-	tz, err := LoadTimezone(tzName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load timezone %s: %w", tzName, err)
-	}
+	panic("not implemented")
 
-	name := fmt.Sprintf("%s_localized_%s", dts.s.Name(), tzName)
+	// Simply update the timezone metadata without changing timestamps
 
-	switch dt := dts.s.DataType().(type) {
-	case datatypes.Datetime:
-		// Simply update the timezone metadata without changing timestamps
-		newDt := datatypes.Datetime{
-			Unit:     dt.Unit,
-			TimeZone: tz,
-		}
+	// For localize, we keep the same timestamps but update metadata
+	// Since we can't directly modify the datatype, we'll create a new series
+	// with the same values but new datatype
 
-		// For localize, we keep the same timestamps but update metadata
-		// Since we can't directly modify the datatype, we'll create a new series
-		// with the same values but new datatype
-		length := dts.s.Len()
-		values := make([]int64, length)
-		validity := make([]bool, length)
-
-		for i := 0; i < length; i++ {
-			if dts.s.IsNull(i) {
-				validity[i] = false
-			} else {
-				values[i] = dts.s.Get(i).(int64)
-				validity[i] = true
-			}
-		}
-
-		return series.NewSeriesWithValidity(name, values, validity, newDt), nil
-
-	default:
-		return nil, fmt.Errorf("localize not supported for type %s", dts.s.DataType())
-	}
 }
 
 // GetTimezone returns the timezone of the datetime series
 func (dts *DateTimeSeries) GetTimezone() string {
-	switch dt := dts.s.DataType().(type) {
-	case datatypes.Datetime:
-		if dt.TimeZone == nil {
-			return "UTC"
-		}
-		return dt.TimeZone.String()
-	default:
-		return ""
-	}
+	panic("not implemented")
+
 }
 
 // Expression API for timezone operations
@@ -195,41 +102,46 @@ type TimezoneConvertExpr struct {
 }
 
 func (e *TimezoneConvertExpr) String() string {
-	return fmt.Sprintf("%s.dt.convert_timezone(%q)", e.expr.String(), e.timezone)
+	panic("not implemented")
+
 }
 
 func (e *TimezoneConvertExpr) DataType() datatypes.DataType {
-	// Parse timezone to get location
-	tz, _ := LoadTimezone(e.timezone)
-	return datatypes.Datetime{Unit: datatypes.Nanoseconds, TimeZone: tz}
+	panic(
+		// Parse timezone to get location
+		"not implemented")
+
 }
 
 func (e *TimezoneConvertExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *TimezoneConvertExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *TimezoneConvertExpr) Name() string {
-	return fmt.Sprintf("%s_tz_%s", e.expr.Name(), e.timezone)
+	panic("not implemented")
+
 }
 
 // ConvertTimezone creates an expression to convert datetime to a new timezone
 func (dte *DateTimeExpr) ConvertTimezone(tzName string) expr.Expr {
-	return &TimezoneConvertExpr{
-		expr:     dte.expr,
-		timezone: tzName,
-	}
+	panic("not implemented")
+
 }
 
 // ToUTC creates an expression to convert datetime to UTC
 func (dte *DateTimeExpr) ToUTC() expr.Expr {
-	return dte.ConvertTimezone("UTC")
+	panic("not implemented")
+
 }
 
 // ToLocal creates an expression to convert datetime to local timezone
 func (dte *DateTimeExpr) ToLocal() expr.Expr {
-	return dte.ConvertTimezone("Local")
+	panic("not implemented")
+
 }

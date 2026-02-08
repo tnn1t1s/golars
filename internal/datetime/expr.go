@@ -1,7 +1,7 @@
 package datetime
 
 import (
-	"fmt"
+	_ "fmt"
 
 	"github.com/tnn1t1s/golars/expr"
 	"github.com/tnn1t1s/golars/internal/datatypes"
@@ -19,28 +19,34 @@ type dateTimeAliasExpr struct {
 }
 
 func (e *dateTimeAliasExpr) String() string {
-	return e.alias
+	panic("not implemented")
+
 }
 
 func (e *dateTimeAliasExpr) DataType() datatypes.DataType {
-	return e.expr.DataType()
+	panic("not implemented")
+
 }
 
 func (e *dateTimeAliasExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e.expr, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *dateTimeAliasExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *dateTimeAliasExpr) Name() string {
-	return e.alias
+	panic("not implemented")
+
 }
 
 // DtExpr returns datetime operations for an expression
 func DtExpr(e expr.Expr) *DateTimeExpr {
-	return &DateTimeExpr{expr: e}
+	panic("not implemented")
+
 }
 
 // DateTimeComponentExpr represents a datetime component extraction
@@ -50,117 +56,96 @@ type DateTimeComponentExpr struct {
 }
 
 func (e *DateTimeComponentExpr) String() string {
-	return fmt.Sprintf("%s.dt.%s()", e.expr.String(), e.component)
+	panic("not implemented")
+
 }
 
 func (e *DateTimeComponentExpr) DataType() datatypes.DataType {
-	// Most components return Int32
-	switch e.component {
-	case "nanosecond", "microsecond", "millisecond":
-		return datatypes.Int64{}
-	default:
-		return datatypes.Int32{}
-	}
+	panic(
+		// Most components return Int32
+		"not implemented")
+
 }
 
 func (e *DateTimeComponentExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *DateTimeComponentExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *DateTimeComponentExpr) Name() string {
-	return fmt.Sprintf("%s_%s", e.expr.Name(), e.component)
+	panic("not implemented")
+
 }
 
 // Year extracts the year component
 func (dte *DateTimeExpr) Year() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "year",
-	}
+	panic("not implemented")
+
 }
 
 // Month extracts the month component
 func (dte *DateTimeExpr) Month() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "month",
-	}
+	panic("not implemented")
+
 }
 
 // Day extracts the day component
 func (dte *DateTimeExpr) Day() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "day",
-	}
+	panic("not implemented")
+
 }
 
 // Hour extracts the hour component
 func (dte *DateTimeExpr) Hour() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "hour",
-	}
+	panic("not implemented")
+
 }
 
 // Minute extracts the minute component
 func (dte *DateTimeExpr) Minute() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "minute",
-	}
+	panic("not implemented")
+
 }
 
 // Second extracts the second component
 func (dte *DateTimeExpr) Second() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "second",
-	}
+	panic("not implemented")
+
 }
 
 // Nanosecond extracts the nanosecond component
 func (dte *DateTimeExpr) Nanosecond() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "nanosecond",
-	}
+	panic("not implemented")
+
 }
 
 // DayOfWeek extracts the day of week
 func (dte *DateTimeExpr) DayOfWeek() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "dayofweek",
-	}
+	panic("not implemented")
+
 }
 
 // DayOfYear extracts the day of year
 func (dte *DateTimeExpr) DayOfYear() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "dayofyear",
-	}
+	panic("not implemented")
+
 }
 
 // Quarter extracts the quarter
 func (dte *DateTimeExpr) Quarter() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "quarter",
-	}
+	panic("not implemented")
+
 }
 
 // WeekOfYear extracts the week of year
 func (dte *DateTimeExpr) WeekOfYear() expr.Expr {
-	return &DateTimeComponentExpr{
-		expr:      dte.expr,
-		component: "weekofyear",
-	}
+	panic("not implemented")
+
 }
 
 // DateTimeFormatExpr represents datetime formatting
@@ -170,31 +155,34 @@ type DateTimeFormatExpr struct {
 }
 
 func (e *DateTimeFormatExpr) String() string {
-	return fmt.Sprintf("%s.dt.format(%q)", e.expr.String(), e.format)
+	panic("not implemented")
+
 }
 
 func (e *DateTimeFormatExpr) DataType() datatypes.DataType {
-	return datatypes.String{}
+	panic("not implemented")
+
 }
 
 func (e *DateTimeFormatExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *DateTimeFormatExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *DateTimeFormatExpr) Name() string {
-	return fmt.Sprintf("%s_formatted", e.expr.Name())
+	panic("not implemented")
+
 }
 
 // Format formats the datetime values
 func (dte *DateTimeExpr) Format(format string) expr.Expr {
-	return &DateTimeFormatExpr{
-		expr:   dte.expr,
-		format: format,
-	}
+	panic("not implemented")
+
 }
 
 // DateTimeRoundExpr represents datetime rounding operations
@@ -205,56 +193,54 @@ type DateTimeRoundExpr struct {
 }
 
 func (e *DateTimeRoundExpr) String() string {
-	return fmt.Sprintf("%s.dt.%s(%s)", e.expr.String(), e.op, e.unit.String())
+	panic("not implemented")
+
 }
 
 func (e *DateTimeRoundExpr) DataType() datatypes.DataType {
-	// Returns the same datetime type as input
-	return e.expr.DataType()
+	panic(
+		// Returns the same datetime type as input
+		"not implemented")
+
 }
 
 func (e *DateTimeRoundExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *DateTimeRoundExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *DateTimeRoundExpr) Name() string {
-	return fmt.Sprintf("%s_%s_%s", e.expr.Name(), e.op, e.unit.String())
+	panic("not implemented")
+
 }
 
 // Floor rounds down to the nearest unit
 func (dte *DateTimeExpr) Floor(unit TimeUnit) expr.Expr {
-	return &DateTimeRoundExpr{
-		expr: dte.expr,
-		unit: unit,
-		op:   "floor",
-	}
+	panic("not implemented")
+
 }
 
 // Ceil rounds up to the nearest unit
 func (dte *DateTimeExpr) Ceil(unit TimeUnit) expr.Expr {
-	return &DateTimeRoundExpr{
-		expr: dte.expr,
-		unit: unit,
-		op:   "ceil",
-	}
+	panic("not implemented")
+
 }
 
 // Round rounds to the nearest unit
 func (dte *DateTimeExpr) Round(unit TimeUnit) expr.Expr {
-	return &DateTimeRoundExpr{
-		expr: dte.expr,
-		unit: unit,
-		op:   "round",
-	}
+	panic("not implemented")
+
 }
 
 // Truncate is an alias for Floor
 func (dte *DateTimeExpr) Truncate(unit TimeUnit) expr.Expr {
-	return dte.Floor(unit)
+	panic("not implemented")
+
 }
 
 // String to DateTime conversion expressions
@@ -266,37 +252,34 @@ type StrToDateTimeExpr struct {
 }
 
 func (e *StrToDateTimeExpr) String() string {
-	if e.format == "" {
-		return fmt.Sprintf("str_to_datetime(%s)", e.expr.String())
-	}
-	return fmt.Sprintf("str_to_datetime(%s, %q)", e.expr.String(), e.format)
+	panic("not implemented")
+
 }
 
 func (e *StrToDateTimeExpr) DataType() datatypes.DataType {
-	return datatypes.Datetime{
-		Unit:     datatypes.Nanoseconds,
-		TimeZone: nil,
-	}
+	panic("not implemented")
+
 }
 
 func (e *StrToDateTimeExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *StrToDateTimeExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *StrToDateTimeExpr) Name() string {
-	return fmt.Sprintf("%s_datetime", e.expr.Name())
+	panic("not implemented")
+
 }
 
 // StrToDateTime converts a string expression to datetime
 func StrToDateTime(e expr.Expr, format string) expr.Expr {
-	return &StrToDateTimeExpr{
-		expr:   e,
-		format: format,
-	}
+	panic("not implemented")
+
 }
 
 // StrToDateExpr converts string to date
@@ -306,34 +289,34 @@ type StrToDateExpr struct {
 }
 
 func (e *StrToDateExpr) String() string {
-	if e.format == "" {
-		return fmt.Sprintf("str_to_date(%s)", e.expr.String())
-	}
-	return fmt.Sprintf("str_to_date(%s, %q)", e.expr.String(), e.format)
+	panic("not implemented")
+
 }
 
 func (e *StrToDateExpr) DataType() datatypes.DataType {
-	return datatypes.Date{}
+	panic("not implemented")
+
 }
 
 func (e *StrToDateExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *StrToDateExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *StrToDateExpr) Name() string {
-	return fmt.Sprintf("%s_date", e.expr.Name())
+	panic("not implemented")
+
 }
 
 // StrToDate converts a string expression to date
 func StrToDate(e expr.Expr, format string) expr.Expr {
-	return &StrToDateExpr{
-		expr:   e,
-		format: format,
-	}
+	panic("not implemented")
+
 }
 
 // StrToTimeExpr converts string to time
@@ -343,32 +326,32 @@ type StrToTimeExpr struct {
 }
 
 func (e *StrToTimeExpr) String() string {
-	if e.format == "" {
-		return fmt.Sprintf("str_to_time(%s)", e.expr.String())
-	}
-	return fmt.Sprintf("str_to_time(%s, %q)", e.expr.String(), e.format)
+	panic("not implemented")
+
 }
 
 func (e *StrToTimeExpr) DataType() datatypes.DataType {
-	return datatypes.Time{}
+	panic("not implemented")
+
 }
 
 func (e *StrToTimeExpr) Alias(name string) expr.Expr {
-	return &dateTimeAliasExpr{expr: e, alias: name}
+	panic("not implemented")
+
 }
 
 func (e *StrToTimeExpr) IsColumn() bool {
-	return false
+	panic("not implemented")
+
 }
 
 func (e *StrToTimeExpr) Name() string {
-	return fmt.Sprintf("%s_time", e.expr.Name())
+	panic("not implemented")
+
 }
 
 // StrToTime converts a string expression to time
 func StrToTime(e expr.Expr, format string) expr.Expr {
-	return &StrToTimeExpr{
-		expr:   e,
-		format: format,
-	}
+	panic("not implemented")
+
 }

@@ -1,8 +1,8 @@
 package series
 
 import (
-	"fmt"
-	"reflect"
+	_ "fmt"
+	_ "reflect"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/tnn1t1s/golars/internal/chunked"
@@ -87,439 +87,206 @@ type TypedSeries[T datatypes.ArrayValue] struct {
 
 // NewSeries creates a new series from a slice of values
 func NewSeries[T datatypes.ArrayValue](name string, values []T, dt datatypes.DataType) Series {
-	ca := chunked.NewChunkedArray[T](name, dt)
-	if len(values) > 0 {
-		_ = ca.AppendSlice(values, nil)
-	}
+	panic("not implemented")
 
-	return &TypedSeries[T]{
-		chunkedArray: ca,
-		name:         name,
-	}
 }
 
 // NewSeriesWithValidity creates a new series with explicit null values
 func NewSeriesWithValidity[T datatypes.ArrayValue](name string, values []T, validity []bool, dt datatypes.DataType) Series {
-	ca := chunked.NewChunkedArray[T](name, dt)
-	if len(values) > 0 {
-		_ = ca.AppendSlice(values, validity)
-	}
+	panic("not implemented")
 
-	return &TypedSeries[T]{
-		chunkedArray: ca,
-		name:         name,
-	}
 }
 
 // NewSeriesFromChunkedArray creates a series from an existing ChunkedArray
 func NewSeriesFromChunkedArray[T datatypes.ArrayValue](ca *chunked.ChunkedArray[T]) Series {
-	return &TypedSeries[T]{
-		chunkedArray: ca,
-		name:         ca.Name(),
-	}
+	panic("not implemented")
+
 }
 
 // Implementation of Series interface for TypedSeries
 
 func (s *TypedSeries[T]) Name() string {
-	return s.name
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Rename(name string) Series {
-	newCA := chunked.NewChunkedArray[T](name, s.chunkedArray.DataType())
-	for _, chunk := range s.chunkedArray.Chunks() {
-		_ = newCA.AppendArray(chunk)
-	}
+	panic("not implemented")
 
-	return &TypedSeries[T]{
-		chunkedArray: newCA,
-		name:         name,
-	}
 }
 
 func (s *TypedSeries[T]) DataType() datatypes.DataType {
-	return s.chunkedArray.DataType()
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Len() int {
-	return int(s.chunkedArray.Len())
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) IsNull(i int) bool {
-	return !s.chunkedArray.IsValid(int64(i))
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) IsValid(i int) bool {
-	return s.chunkedArray.IsValid(int64(i))
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) NullCount() int {
-	return int(s.chunkedArray.NullCount())
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Slice(start, end int) (Series, error) {
-	sliced, err := s.chunkedArray.Slice(int64(start), int64(end))
-	if err != nil {
-		return nil, err
-	}
+	panic("not implemented")
 
-	return &TypedSeries[T]{
-		chunkedArray: sliced,
-		name:         s.name,
-	}, nil
 }
 
 func (s *TypedSeries[T]) Head(n int) Series {
-	if n < 0 || n > s.Len() {
-		n = s.Len()
-	}
-	result, _ := s.Slice(0, n)
-	return result
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Tail(n int) Series {
-	length := s.Len()
-	if n < 0 || n > length {
-		n = length
-	}
-	result, _ := s.Slice(length-n, length)
-	return result
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Cast(dt datatypes.DataType) (Series, error) {
-	return castSeries(s, dt)
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Equals(other Series) bool {
-	if other == nil {
-		return false
-	}
-
-	if s.Len() != other.Len() {
-		return false
-	}
-
-	if !s.DataType().Equals(other.DataType()) {
-		return false
-	}
+	panic("not implemented")
 
 	// Compare values
-	for i := 0; i < s.Len(); i++ {
-		if s.IsNull(i) != other.IsNull(i) {
-			return false
-		}
-		if !s.IsNull(i) {
-			v1 := s.Get(i)
-			v2 := other.Get(i)
-			if !reflect.DeepEqual(v1, v2) {
-				return false
-			}
-		}
-	}
 
-	return true
 }
 
 func (s *TypedSeries[T]) Clone() Series {
-	return s.Rename(s.name)
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) Get(i int) interface{} {
-	val, valid := s.chunkedArray.Get(int64(i))
-	if !valid {
-		return nil
-	}
-	return val
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) GetAsString(i int) string {
-	if s.IsNull(i) {
-		return "null"
-	}
-	val := s.Get(i)
-	return fmt.Sprintf("%v", val)
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) ToSlice() interface{} {
-	values, _ := s.chunkedArray.ToSlice()
-	return values
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) ValuesWithValidity() ([]T, []bool) {
-	return s.chunkedArray.ToSlice()
+	panic("not implemented")
+
 }
 
 func (s *TypedSeries[T]) String() string {
-	const maxDisplay = 10
+	panic("not implemented")
 
-	str := fmt.Sprintf("Series: %s [%s]\n", s.name, s.DataType())
-	str += "[\n"
-
-	displayLen := s.Len()
-	if displayLen > maxDisplay {
-		displayLen = maxDisplay
-	}
-
-	for i := 0; i < displayLen; i++ {
-		str += fmt.Sprintf("\t%s\n", s.GetAsString(i))
-	}
-
-	if s.Len() > maxDisplay {
-		str += fmt.Sprintf("\t... %d more values\n", s.Len()-maxDisplay)
-	}
-
-	str += "]"
-	return str
 }
 
 // Helper functions to create series of specific types
 
 func NewBooleanSeries(name string, values []bool) Series {
-	return NewSeries(name, values, datatypes.Boolean{})
+	panic("not implemented")
+
 }
 
 func NewInt8Series(name string, values []int8) Series {
-	return NewSeries(name, values, datatypes.Int8{})
+	panic("not implemented")
+
 }
 
 func NewInt16Series(name string, values []int16) Series {
-	return NewSeries(name, values, datatypes.Int16{})
+	panic("not implemented")
+
 }
 
 func NewInt32Series(name string, values []int32) Series {
-	return NewSeries(name, values, datatypes.Int32{})
+	panic("not implemented")
+
 }
 
 func NewInt64Series(name string, values []int64) Series {
-	return NewSeries(name, values, datatypes.Int64{})
+	panic("not implemented")
+
 }
 
 func NewUInt8Series(name string, values []uint8) Series {
-	return NewSeries(name, values, datatypes.UInt8{})
+	panic("not implemented")
+
 }
 
 func NewUInt16Series(name string, values []uint16) Series {
-	return NewSeries(name, values, datatypes.UInt16{})
+	panic("not implemented")
+
 }
 
 func NewUInt32Series(name string, values []uint32) Series {
-	return NewSeries(name, values, datatypes.UInt32{})
+	panic("not implemented")
+
 }
 
 func NewUInt64Series(name string, values []uint64) Series {
-	return NewSeries(name, values, datatypes.UInt64{})
+	panic("not implemented")
+
 }
 
 func NewFloat32Series(name string, values []float32) Series {
-	return NewSeries(name, values, datatypes.Float32{})
+	panic("not implemented")
+
 }
 
 func NewFloat64Series(name string, values []float64) Series {
-	return NewSeries(name, values, datatypes.Float64{})
+	panic("not implemented")
+
 }
 
 func NewStringSeries(name string, values []string) Series {
-	return NewSeries(name, values, datatypes.String{})
+	panic("not implemented")
+
 }
 
 func NewBinarySeries(name string, values [][]byte) Series {
-	return NewSeries(name, values, datatypes.Binary{})
+	panic("not implemented")
+
 }
 
 // SeriesFromArrowArray creates a Series from an Arrow array
 func SeriesFromArrowArray(name string, arr arrow.Array) (Series, error) {
-	dt := datatypes.FromArrowType(arr.DataType())
+	panic("not implemented")
 
-	switch dt.(type) {
-	case datatypes.Boolean:
-		ca := chunked.NewChunkedArray[bool](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int8:
-		ca := chunked.NewChunkedArray[int8](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int16:
-		ca := chunked.NewChunkedArray[int16](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int32:
-		ca := chunked.NewChunkedArray[int32](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int64:
-		ca := chunked.NewChunkedArray[int64](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt8:
-		ca := chunked.NewChunkedArray[uint8](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt16:
-		ca := chunked.NewChunkedArray[uint16](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt32:
-		ca := chunked.NewChunkedArray[uint32](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt64:
-		ca := chunked.NewChunkedArray[uint64](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Float32:
-		ca := chunked.NewChunkedArray[float32](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Float64:
-		ca := chunked.NewChunkedArray[float64](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.String:
-		ca := chunked.NewChunkedArray[string](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Binary:
-		ca := chunked.NewChunkedArray[[]byte](name, dt)
-		_ = ca.AppendArray(arr)
-		return NewSeriesFromChunkedArray(ca), nil
-	default:
-		return nil, fmt.Errorf("unsupported data type: %s", dt)
-	}
 }
 
 // SeriesFromArrowChunked creates a Series from an Arrow chunked array.
 // The caller should release the chunked array after this returns.
 func SeriesFromArrowChunked(name string, chunkedArr *arrow.Chunked) (Series, error) {
-	if chunkedArr == nil {
-		return nil, fmt.Errorf("chunked array is nil")
-	}
-	dt := datatypes.FromArrowType(chunkedArr.DataType())
-	chunks := chunkedArr.Chunks()
+	panic("not implemented")
 
-	switch dt.(type) {
-	case datatypes.Boolean:
-		ca := chunked.NewChunkedArray[bool](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int8:
-		ca := chunked.NewChunkedArray[int8](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int16:
-		ca := chunked.NewChunkedArray[int16](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int32:
-		ca := chunked.NewChunkedArray[int32](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Int64:
-		ca := chunked.NewChunkedArray[int64](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt8:
-		ca := chunked.NewChunkedArray[uint8](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt16:
-		ca := chunked.NewChunkedArray[uint16](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt32:
-		ca := chunked.NewChunkedArray[uint32](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.UInt64:
-		ca := chunked.NewChunkedArray[uint64](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Float32:
-		ca := chunked.NewChunkedArray[float32](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Float64:
-		ca := chunked.NewChunkedArray[float64](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.String:
-		ca := chunked.NewChunkedArray[string](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	case datatypes.Binary:
-		ca := chunked.NewChunkedArray[[]byte](name, dt)
-		for _, arr := range chunks {
-			_ = ca.AppendArray(arr)
-		}
-		return NewSeriesFromChunkedArray(ca), nil
-	default:
-		return nil, fmt.Errorf("unsupported data type: %s", dt)
-	}
 }
 
 // ArrowChunked exposes the underlying Arrow chunks for a Series.
 // The caller must Release the returned chunked array.
 func ArrowChunked(s Series) (*arrow.Chunked, bool) {
-	switch ts := s.(type) {
-	case *TypedSeries[bool]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[int8]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[int16]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[int32]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[int64]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[uint8]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[uint16]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[uint32]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[uint64]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[float32]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[float64]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[string]:
-		return typedArrowChunked(ts), true
-	case *TypedSeries[[]byte]:
-		return typedArrowChunked(ts), true
-	default:
-		return nil, false
-	}
+	panic("not implemented")
+
 }
 
 func typedArrowChunked[T datatypes.ArrayValue](s *TypedSeries[T]) *arrow.Chunked {
-	dt := datatypes.GetPolarsType(s.chunkedArray.DataType()).ArrowType()
-	chunks := s.chunkedArray.Chunks()
-	return arrow.NewChunked(dt, chunks)
+	panic("not implemented")
+
 }
 
 // InterfaceSeries holds arbitrary interface{} values (e.g., slices from TopK)
@@ -533,92 +300,65 @@ type InterfaceSeries struct {
 
 // NewInterfaceSeries creates a series that holds interface{} values
 func NewInterfaceSeries(name string, data []interface{}, validity []bool, dtype datatypes.DataType) Series {
-	if validity == nil {
-		validity = make([]bool, len(data))
-		for i := range validity {
-			validity[i] = true
-		}
-	}
-	return &InterfaceSeries{
-		name:     name,
-		data:     data,
-		validity: validity,
-		dtype:    dtype,
-	}
+	panic("not implemented")
+
 }
 
-func (s *InterfaceSeries) Name() string { return s.name }
+func (s *InterfaceSeries) Name() string { panic("not implemented") }
 func (s *InterfaceSeries) Rename(name string) Series {
-	return &InterfaceSeries{name: name, data: s.data, validity: s.validity, dtype: s.dtype}
+	panic("not implemented")
+
 }
-func (s *InterfaceSeries) DataType() datatypes.DataType { return s.dtype }
-func (s *InterfaceSeries) Len() int                     { return len(s.data) }
-func (s *InterfaceSeries) IsNull(i int) bool            { return !s.validity[i] }
-func (s *InterfaceSeries) IsValid(i int) bool           { return s.validity[i] }
+func (s *InterfaceSeries) DataType() datatypes.DataType { panic("not implemented") }
+func (s *InterfaceSeries) Len() int                     { panic("not implemented") }
+func (s *InterfaceSeries) IsNull(i int) bool            { panic("not implemented") }
+func (s *InterfaceSeries) IsValid(i int) bool           { panic("not implemented") }
 func (s *InterfaceSeries) NullCount() int {
-	c := 0
-	for _, v := range s.validity {
-		if !v {
-			c++
-		}
-	}
-	return c
+	panic("not implemented")
+
 }
 func (s *InterfaceSeries) Slice(start, end int) (Series, error) {
-	return &InterfaceSeries{name: s.name, data: s.data[start:end], validity: s.validity[start:end], dtype: s.dtype}, nil
+	panic("not implemented")
+
 }
 func (s *InterfaceSeries) Head(n int) Series {
-	if n > len(s.data) {
-		n = len(s.data)
-	}
-	return &InterfaceSeries{name: s.name, data: s.data[:n], validity: s.validity[:n], dtype: s.dtype}
+	panic("not implemented")
+
 }
 func (s *InterfaceSeries) Tail(n int) Series {
-	start := len(s.data) - n
-	if start < 0 {
-		start = 0
-	}
-	return &InterfaceSeries{name: s.name, data: s.data[start:], validity: s.validity[start:], dtype: s.dtype}
+	panic("not implemented")
+
 }
 func (s *InterfaceSeries) Cast(dt datatypes.DataType) (Series, error) {
-	return castSeries(s, dt)
+	panic("not implemented")
+
 }
-func (s *InterfaceSeries) Equals(other Series) bool { return false }
+func (s *InterfaceSeries) Equals(other Series) bool { panic("not implemented") }
 func (s *InterfaceSeries) Clone() Series {
-	d := make([]interface{}, len(s.data))
-	copy(d, s.data)
-	v := make([]bool, len(s.validity))
-	copy(v, s.validity)
-	return &InterfaceSeries{name: s.name, data: d, validity: v, dtype: s.dtype}
+	panic("not implemented")
+
 }
-func (s *InterfaceSeries) Get(i int) interface{}    { return s.data[i] }
-func (s *InterfaceSeries) GetAsString(i int) string { return fmt.Sprint(s.data[i]) }
-func (s *InterfaceSeries) ToSlice() interface{}     { return s.data }
+func (s *InterfaceSeries) Get(i int) interface{}    { panic("not implemented") }
+func (s *InterfaceSeries) GetAsString(i int) string { panic("not implemented") }
+func (s *InterfaceSeries) ToSlice() interface{}     { panic("not implemented") }
 func (s *InterfaceSeries) String() string {
-	return fmt.Sprintf("InterfaceSeries[%s](%d)", s.name, len(s.data))
+	panic("not implemented")
+
 }
-func (s *InterfaceSeries) Sort(ascending bool) Series { return s.Clone() }
+func (s *InterfaceSeries) Sort(ascending bool) Series { panic("not implemented") }
 func (s *InterfaceSeries) ArgSort(config SortConfig) []int {
-	idx := make([]int, len(s.data))
-	for i := range idx {
-		idx[i] = i
-	}
-	return idx
+	panic("not implemented")
+
 }
 func (s *InterfaceSeries) Take(indices []int) Series {
-	d := make([]interface{}, len(indices))
-	v := make([]bool, len(indices))
-	for i, idx := range indices {
-		d[i] = s.data[idx]
-		v[i] = s.validity[idx]
-	}
-	return &InterfaceSeries{name: s.name, data: d, validity: v, dtype: s.dtype}
+	panic("not implemented")
+
 }
-func (s *InterfaceSeries) Sum() float64     { return 0 }
-func (s *InterfaceSeries) Mean() float64    { return 0 }
-func (s *InterfaceSeries) Min() interface{} { return nil }
-func (s *InterfaceSeries) Max() interface{} { return nil }
-func (s *InterfaceSeries) Count() int       { return len(s.data) - s.NullCount() }
-func (s *InterfaceSeries) Std() float64     { return 0 }
-func (s *InterfaceSeries) Var() float64     { return 0 }
-func (s *InterfaceSeries) Median() float64  { return 0 }
+func (s *InterfaceSeries) Sum() float64     { panic("not implemented") }
+func (s *InterfaceSeries) Mean() float64    { panic("not implemented") }
+func (s *InterfaceSeries) Min() interface{} { panic("not implemented") }
+func (s *InterfaceSeries) Max() interface{} { panic("not implemented") }
+func (s *InterfaceSeries) Count() int       { panic("not implemented") }
+func (s *InterfaceSeries) Std() float64     { panic("not implemented") }
+func (s *InterfaceSeries) Var() float64     { panic("not implemented") }
+func (s *InterfaceSeries) Median() float64  { panic("not implemented") }
