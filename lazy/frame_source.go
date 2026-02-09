@@ -12,16 +12,13 @@ type FrameSource struct {
 }
 
 func (s *FrameSource) Name() string {
-	panic("not implemented")
-
+	return s.NameValue
 }
 
 func (s *FrameSource) Schema() (*datatypes.Schema, error) {
-	panic("not implemented")
-
+	return s.Frame.Schema(), nil
 }
 
 func (s *FrameSource) DataFrame() (*frame.DataFrame, error) {
-	panic("not implemented")
-
+	return s.Frame, nil
 }
