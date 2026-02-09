@@ -120,7 +120,7 @@ func concatHorizontal(frames []*DataFrame, options ConcatOptions) (*DataFrame, e
 	height := frames[0].height
 	for i, f := range frames[1:] {
 		if f.height != height {
-			return nil, fmt.Errorf("cannot concat frames with different heights: frame %d has height %d, expected %d", i+1, f.height, height)
+			return nil, fmt.Errorf("cannot concat frames with different heights: frame %d has height %d, expected %d", i+1, f.Height(), height)
 		}
 	}
 
