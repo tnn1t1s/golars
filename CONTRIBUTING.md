@@ -100,6 +100,15 @@ go test ./series/ -v
 
 # Run with race detector
 go test -race ./...
+
+# Check if benchmarks run (T2, fast, single iteration)
+go test -bench=. -benchtime=1x -run='^$' ./benchmarks/agg/
+
+# Run full benchmark suite with timing (T3)
+go test -bench=. -benchtime=3x -benchmem -run='^$' ./benchmarks/...
+
+# Generate local scorecard (all three tiers)
+bash benchmarks/scorecard.sh
 ```
 
 ### Recommended Order
@@ -123,18 +132,32 @@ Read `design/README.md` for architecture hints per package.
 
 ## Scoring
 
-Each run is evaluated by CI on these dimensions:
+Each run is evaluated by CI across three tiers:
 
-| Dimension | What It Measures |
-|-----------|-----------------|
-| **Build** | Does `go build ./...` succeed? |
-| **Correctness** | Fraction of test cases passing |
-| **Coverage** | Which packages have fully passing test suites |
-| **No Tampering** | Were any protected files modified? |
-| **Race Safety** | Do tests pass under `-race`? |
+| Tier | Dimension | Weight | What It Measures |
+|------|-----------|--------|-----------------|
+| T1 | Build | Required | `go build ./...` succeeds |
+| T1 | Correctness | 40% | Fraction of unit tests passing |
+| T1 | Race Safety | 5% | Tests pass under `-race` |
+| T2 | Bench Runability | 30% | Fraction of benchmarks that complete without panic |
+| T3 | Performance | 25% | Geometric mean of (agent/reference) ns/op ratios |
 
-The benchmark report workflow generates a scorecard as a PR comment and
-a JSON artifact for programmatic analysis.
+**T1 (Correctness)** runs `go test -json ./...` and counts pass/fail/skip
+per test and per package. Build must pass for any scoring to happen.
+
+**T2 (Runability)** runs `go test -bench=. -benchtime=1x -run='^$'` across
+all benchmark packages. Each `BenchmarkXxx` function either completes (pass)
+or panics/fatals (fail). This is fast (single iteration) and catches crashes.
+
+**T3 (Performance)** runs `go test -bench=. -benchtime=3x -benchmem -run='^$'`
+and parses ns/op, B/op, and allocs/op for every benchmark. Results are
+compared against `benchmarks/reference_baseline.json` (generated from the
+`v0-reference-implementation` tag). The geometric mean of all ratios
+(agent_ns / reference_ns) summarizes overall performance; lower is better,
+1.0 means identical to the reference.
+
+The benchmark report workflow generates a three-tier scorecard as a PR
+comment and uploads `scorecard.json` as a build artifact.
 
 ---
 

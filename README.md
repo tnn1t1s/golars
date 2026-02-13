@@ -91,12 +91,37 @@ go test -race ./...
 
 ## Scoring
 
-A run is scored by:
+Runs are evaluated across three tiers:
 
-1. **Correctness**: fraction of test cases that pass
-2. **Build integrity**: does `go build ./...` still succeed?
-3. **No test modification**: test files must remain unmodified
-4. **Trace quality**: every action the swarm takes is logged
+| Tier | Dimension | Weight | What It Measures |
+|------|-----------|--------|-----------------|
+| T1 | Build | Required | `go build ./...` succeeds |
+| T1 | Correctness | 40% | Fraction of unit tests passing |
+| T1 | Race Safety | 5% | Tests pass under `-race` |
+| T2 | Bench Runability | 30% | Fraction of benchmarks that complete without panic |
+| T3 | Performance | 25% | Geometric mean of (agent/reference) ns/op ratios |
+
+**T3 and the reference baseline.** Performance ratios are computed against
+`benchmarks/reference_baseline.json`, generated from the
+`v0-reference-implementation` tag. The reference implementation is built on
+Apache Arrow's compute engine, which does not support every operation. Three
+H2O.ai groupby queries (Q7, Q8, Q9) use compound expressions, top-k, and
+correlation that Arrow's grouped aggregation kernel cannot handle. These
+benchmarks have **no reference entry**, and that is by design.
+
+When a benchmark has no reference entry, its T3 ratio is null and it is
+excluded from the geometric mean. This means:
+
+- An agent that only implements what Arrow supports will match the reference
+  and score a geometric mean near 1.0.
+- An agent that implements its own groupby engine and passes Q7/Q8/Q9 gets
+  T2 credit (runability) for those benchmarks, even though there is no T3
+  ratio to compare against.
+- **No reference is not a penalty.** It simply means the reference could not
+  run that benchmark either.
+
+Run `bash benchmarks/scorecard.sh` locally to generate a full three-tier
+scorecard. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## Project Structure
 
